@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import {
     ImageBackground,
+    Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     View,
 } from "react-native";
@@ -12,183 +12,138 @@ const HERO_PLACEHOLDER = {
     uri: "https://placehold.co/800x400/2d3b2e/ffffff?text=Community+Photo",
 };
 
+const listItems = [
+    {
+        icon: "megaphone" as const,
+        color: "#B5562E",
+        title: "Mga Anunsyo",
+        subtitle: "Balita mula sa iyong komunidad",
+    },
+    {
+        icon: "chatbubbles" as const,
+        color: "#2F8F82",
+        title: "Mensahe",
+        subtitle: "Makipag-usap sa pamilya at komunidad",
+    },
+    {
+        icon: "document-text" as const,
+        color: "#35608F",
+        title: "Mag-report ng Insidente",
+        subtitle: "I-pakalat ang isang pangyayari",
+    },
+];
+
 export default function Home() {
     return (
-        <SafeAreaView style={styles.safeArea} edges={["top"]}>
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+        <SafeAreaView className="flex-1 bg-[#F7F4EE]" edges={["top"]}>
+            <ScrollView contentContainerClassName="p-5 pb-8">
                 {/* Header */}
-                <View style={styles.header}>
-                    <View style={styles.avatar}>
-                        <Ionicons name="person" size={20} color="#fff" />
+                <View className="flex-row items-center justify-between mb-5">
+                    <View className="flex-row items-center gap-3">
+                        <View className="w-11 h-11 rounded-full bg-[#3F5C42] items-center justify-center">
+                            <Text className="text-white text-[13px] font-semibold">
+                                Pp
+                            </Text>
+                        </View>
+                        <View>
+                            <Text className="text-[15px] font-semibold text-[#1F2A1F]">
+                                Kumusta! Pangalan
+                            </Text>
+                            <Text className="text-[12px] text-[#6B6357] mt-0.5">
+                                Barangay Name · Porac
+                            </Text>
+                        </View>
                     </View>
-                    <View>
-                        <Text style={styles.greeting}>
-                            Hello, Juan Dela Cruz
-                        </Text>
-                        <Text style={styles.role}>Aeta Community Member</Text>
-                    </View>
+
+                    <Pressable className="w-9 h-9 rounded-full bg-[#FDFCF9] items-center justify-center">
+                        <Ionicons
+                            name="notifications"
+                            size={18}
+                            color="#1F2A1F"
+                        />
+                        <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#B23A2E]" />
+                    </Pressable>
                 </View>
 
                 {/* Hero banner */}
                 <ImageBackground
                     source={HERO_PLACEHOLDER}
-                    style={styles.hero}
-                    imageStyle={styles.heroImage}
+                    className="h-60 rounded-[20px] overflow-hidden mb-4"
+                    imageClassName="rounded-[20px]"
                 >
-                    <View style={styles.heroOverlay}>
-                        <Text style={styles.heroTitle}>
-                            Welcome to{"\n"}TriboConnect
+                    <View className="flex-1 justify-end p-[18px] bg-black/35">
+                        <Text className="text-white text-[20px] font-bold leading-7">
+                            Maligayang Pagdating sa{"\n"}TriboConnect
                         </Text>
-                        <Text style={styles.heroSubtitle}>
-                            Your community. Your voice. Your safety.
+                        <Text className="text-[#EDEDED] text-[13px] mt-1">
+                            Iyong komunidad. Iyong boses. Iyong kaligtasan.
                         </Text>
                     </View>
                 </ImageBackground>
 
-                {/* Feature grid — raw, no component */}
-                <View style={styles.grid}>
-                    <View style={styles.card}>
-                        <View
-                            style={[
-                                styles.iconBadge,
-                                { backgroundColor: "#E8654B" },
-                            ]}
-                        >
-                            <Ionicons name="megaphone" size={20} color="#fff" />
-                        </View>
-                        <Text style={styles.cardTitle}>Announcements</Text>
-                        <Text style={styles.cardSubtitle}>
-                            Latest updates from your barangay
+                {/* Emergency — isolated, urgent, distinct from the rest */}
+                <Pressable className="flex-row items-center gap-3 bg-[#F7E5E2] rounded-2xl p-4 mb-5 border border-[#E8C4BE]">
+                    <View className="w-11 h-11 rounded-full bg-[#B23A2E] items-center justify-center">
+                        <Ionicons name="warning" size={20} color="#fff" />
+                    </View>
+                    <View className="flex-1">
+                        <Text className="text-[15px] font-semibold text-[#B23A2E]">
+                            Emergency
+                        </Text>
+                        <Text className="text-[12.5px] text-[#8A5A54] mt-0.5">
+                            Humingi ng agarang tulong
                         </Text>
                     </View>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color="#B23A2E"
+                    />
+                </Pressable>
 
-                    <View style={styles.card}>
-                        <View
-                            style={[
-                                styles.iconBadge,
-                                { backgroundColor: "#2F9E8F" },
-                            ]}
+                {/* Section label — plain, sentence case */}
+                <Text className="text-[13px] font-medium text-[#6B6357] mb-2.5 ml-1">
+                    Mabilisang Serbisyo
+                </Text>
+
+                {/* Grouped list — calm, informational, visually different from Emergency */}
+                <View className="bg-[#FDFCF9] rounded-2xl overflow-hidden">
+                    {listItems.map((item, i) => (
+                        <Pressable
+                            key={item.title}
+                            className={`flex-row items-center gap-3 p-4 ${
+                                i < listItems.length - 1
+                                    ? "border-b border-[#EDEAE2]"
+                                    : ""
+                            }`}
                         >
+                            <View
+                                className="w-9 h-9 rounded-full items-center justify-center"
+                                style={{ backgroundColor: item.color }}
+                            >
+                                <Ionicons
+                                    name={item.icon}
+                                    size={17}
+                                    color="#fff"
+                                />
+                            </View>
+                            <View className="flex-1">
+                                <Text className="text-[14.5px] font-semibold text-[#1F2A1F]">
+                                    {item.title}
+                                </Text>
+                                <Text className="text-[12px] text-[#6B6357] mt-0.5">
+                                    {item.subtitle}
+                                </Text>
+                            </View>
                             <Ionicons
-                                name="chatbubbles"
-                                size={20}
-                                color="#fff"
+                                name="chevron-forward"
+                                size={16}
+                                color="#C4BFB2"
                             />
-                        </View>
-                        <Text style={styles.cardTitle}>Messages</Text>
-                        <Text style={styles.cardSubtitle}>
-                            Chat with your family and community
-                        </Text>
-                    </View>
-
-                    <View style={styles.card}>
-                        <View
-                            style={[
-                                styles.iconBadge,
-                                { backgroundColor: "#F0803D" },
-                            ]}
-                        >
-                            <Ionicons name="warning" size={20} color="#fff" />
-                        </View>
-                        <Text style={styles.cardTitle}>Emergency</Text>
-                        <Text style={styles.cardSubtitle}>
-                            Report and get help quickly
-                        </Text>
-                    </View>
-
-                    <View style={styles.card}>
-                        <View
-                            style={[
-                                styles.iconBadge,
-                                { backgroundColor: "#3B6FD1" },
-                            ]}
-                        >
-                            <Ionicons
-                                name="document-text"
-                                size={20}
-                                color="#fff"
-                            />
-                        </View>
-                        <Text style={styles.cardTitle}>Report Incident</Text>
-                        <Text style={styles.cardSubtitle}>
-                            Send a report and track status
-                        </Text>
-                    </View>
+                        </Pressable>
+                    ))}
                 </View>
             </ScrollView>
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: "#F7F4EE" },
-    scrollContent: { padding: 20, paddingBottom: 32 },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 12,
-        marginBottom: 20,
-    },
-    avatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "#4B6B4F",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    greeting: { fontSize: 15, fontWeight: "600", color: "#1F2A1F" },
-    role: { fontSize: 12.5, color: "#6B7280", marginTop: 1 },
-    hero: {
-        height: 160,
-        borderRadius: 20,
-        overflow: "hidden",
-        marginBottom: 20,
-    },
-    heroImage: { borderRadius: 20 },
-    heroOverlay: {
-        flex: 1,
-        justifyContent: "flex-end",
-        padding: 18,
-        backgroundColor: "rgba(20,30,20,0.35)",
-    },
-    heroTitle: {
-        color: "#fff",
-        fontSize: 22,
-        fontWeight: "700",
-        lineHeight: 27,
-    },
-    heroSubtitle: { color: "#EDEDED", fontSize: 13, marginTop: 6 },
-    grid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "space-between",
-    },
-    card: {
-        flexBasis: "48%",
-        backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 14,
-        shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 2,
-    },
-    iconBadge: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 10,
-    },
-    cardTitle: {
-        fontSize: 15,
-        fontWeight: "600",
-        color: "#1F2A1F",
-        marginBottom: 3,
-    },
-    cardSubtitle: { fontSize: 12.5, color: "#6B7280", lineHeight: 17 },
-});
