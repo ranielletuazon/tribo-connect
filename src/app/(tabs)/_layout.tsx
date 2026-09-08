@@ -24,7 +24,7 @@ export default function TabsLayout() {
                     ),
                 }}
             />
-            <Tabs.Screen
+            {/* <Tabs.Screen
                 name="chat"
                 options={{
                     title: "Chat",
@@ -50,7 +50,7 @@ export default function TabsLayout() {
                         <Ionicons name="person" color={color} size={size} />
                     ),
                 }}
-            />
+            /> */}
         </Tabs>
     );
 }
