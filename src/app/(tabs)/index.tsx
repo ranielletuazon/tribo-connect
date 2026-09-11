@@ -82,7 +82,7 @@ const listItems = [
 
 export default function Home() {
     return (
-        <SafeAreaView className="flex-1 bg-[#F1ECE0]" edges={["top"]}>
+        <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView contentContainerClassName="p-5 pb-8">
                 {/* Header */}
                 <View className="flex-row items-center justify-between mb-6">
@@ -179,7 +179,7 @@ export default function Home() {
                     {listItems.map((item) => (
                         <Pressable
                             key={item.title}
-                            className="flex-row items-center gap-3 bg-[#F8F4EA] rounded-[26px] p-4"
+                            className="flex-row items-center gap-3 bg-[--main-white] rounded-[26px] p-4"
                             style={clayRaised}
                         >
                             <View
