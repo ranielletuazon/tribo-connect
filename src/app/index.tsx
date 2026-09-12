@@ -1,11 +1,9 @@
-import { clayRaised, GradientBorderCard } from "@/components/clay";
+import { ClayButton, clayRaised } from "@/components/clay";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Image, ImageBackground, Pressable, Text, View } from "react-native";
+import { Image, ImageBackground, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// TODO: replace with your own illustration, e.g.
-// require("../../assets/images/landing-illustration.png")
 const ILLUSTRATION = require("../../assets/images/bg-login.png");
 
 export default function Landing() {
@@ -21,7 +19,7 @@ export default function Landing() {
                 <View style={clayRaised} className="mb-3">
                     <Image
                         source={require("../../assets/images/logo-triboconnect.png")}
-                        className="w-20 h-20"
+                        className="w-22 h-20"
                         resizeMode="contain"
                     />
                 </View>
@@ -49,34 +47,25 @@ export default function Landing() {
                 <View
                     className="bg-[--main-white] rounded-t-[36px] px-6 pt-10 pb-8"
                     style={{
+                        borderTopWidth: 1.5,
+                        borderTopColor: "rgba(0,0,0,0.06)",
                         shadowColor: "#000",
                         shadowOffset: { width: 0, height: -6 },
+                        shadowOpacity: 0.12,
                         shadowRadius: 16,
                         elevation: 10,
                     }}
                 >
-                    <GradientBorderCard
-                        colors={[
-                            "rgba(255,255,255,0.5)",
-                            "rgba(217,98,46,0.28)",
-                        ]}
+                    <ClayButton
+                        colors={["#F2966A", "#C1501F"]}
                         borderRadius={999}
-                        innerStyle={{ backgroundColor: "#D9622E" }}
+                        onPress={() => router.push("/(auth)/login")}
                     >
-                        <Pressable
-                            className="flex-row items-center justify-center gap-2 py-4"
-                            onPress={() => router.push("/(auth)/login")}
-                        >
-                            <Text className="text-white font-semibold text-[16px]">
-                                Magsimula
-                            </Text>
-                            <Ionicons
-                                name="arrow-forward"
-                                size={18}
-                                color="#fff"
-                            />
-                        </Pressable>
-                    </GradientBorderCard>
+                        <Text className="text-white font-semibold text-[16px]">
+                            Magsimula
+                        </Text>
+                        <Ionicons name="arrow-forward" size={18} color="#fff" />
+                    </ClayButton>
                 </View>
             </ImageBackground>
         </SafeAreaView>
