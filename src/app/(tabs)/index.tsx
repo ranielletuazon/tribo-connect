@@ -62,7 +62,7 @@ export default function Home() {
                         style={clayRaised}
                     >
                         <Ionicons
-                            name="notifications"
+                            name="settings-sharp"
                             size={18}
                             color="#1F2A1F"
                         />
