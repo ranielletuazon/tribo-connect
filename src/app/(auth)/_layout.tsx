@@ -6,6 +6,8 @@ export default function AuthLayout() {
             {/* Add routes here */}
             {/* <Stack.Screen name="index" /> */}
             <Stack.Screen name="login" />
+            <Stack.Screen name="register" />
+            <Stack.Screen name="account-setup" />
         </Stack>
     );
 }
