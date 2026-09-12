@@ -1,5 +1,6 @@
-import { clayRaised, GradientBorderCard } from "@/components/clay";
+import { ClayButton, clayRaised } from "@/components/clay";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
     Image,
@@ -12,11 +13,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Login() {
+    const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
 
     return (
-        <SafeAreaView className="flex-1 bg-main-white" edges={["top"]}>
+        <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView
                 contentContainerClassName="px-6 pt-8 pb-10"
                 keyboardShouldPersistTaps="handled"
@@ -97,19 +99,17 @@ export default function Login() {
                     </Text>
                 </View>
 
-                {/* Login button — primary CTA, gets the gradient border treatment */}
-                <GradientBorderCard
-                    colors={["rgba(255,255,255,0.5)", "rgba(47,82,51,0.25)"]}
+                {/* Login button — clay surface gradient, TEMPORARY route to (tabs) for preview */}
+                <ClayButton
+                    colors={["#4C7350", "#254631"]}
                     borderRadius={20}
                     style={{ marginBottom: 20 }}
-                    innerStyle={{ backgroundColor: "#2F5233" }}
+                    onPress={() => router.push("/(tabs)")}
                 >
-                    <Pressable className="py-4 items-center">
-                        <Text className="text-white font-semibold text-[16px]">
-                            Mag-login
-                        </Text>
-                    </Pressable>
-                </GradientBorderCard>
+                    <Text className="text-white font-semibold text-[16px]">
+                        Mag-login
+                    </Text>
+                </ClayButton>
 
                 {/* Divider */}
                 <Text className="text-center text-[13px] text-[#9C978C] mb-5">

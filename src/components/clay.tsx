@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { View, type ViewStyle } from "react-native";
+import type { ReactNode } from "react";
+import { Pressable, View, type StyleProp, type ViewStyle } from "react-native";
 
-// Shadow-only clay treatment — default for repeated/smaller elements
 export const clayRaised: ViewStyle = {
     shadowColor: "#7A6A50",
     shadowOffset: { width: 0, height: 4 },
@@ -10,8 +10,69 @@ export const clayRaised: ViewStyle = {
     elevation: 6,
 };
 
-// Gradient border wrapper — reserved for high-priority, non-repeated elements only
-// (hero banners, primary CTAs, emergency/alert cards) — not list items or repeated rows.
+export function ClaySurface({
+    colors,
+    borderRadius = 20,
+    style,
+    children,
+}: {
+    colors: [string, string, ...string[]];
+    borderRadius?: number;
+    style?: StyleProp<ViewStyle>;
+    children: ReactNode;
+}) {
+    return (
+        <LinearGradient
+            colors={colors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={[{ borderRadius }, clayRaised, style]}
+        >
+            {children}
+        </LinearGradient>
+    );
+}
+
+export function ClayButton({
+    colors,
+    borderRadius = 20,
+    onPress,
+    disabled,
+    style,
+    children,
+}: {
+    colors: [string, string, ...string[]];
+    borderRadius?: number;
+    onPress?: () => void;
+    disabled?: boolean;
+    style?: StyleProp<ViewStyle>;
+    children: ReactNode;
+}) {
+    return (
+        <Pressable onPress={onPress} disabled={disabled}>
+            {({ pressed }) => (
+                <ClaySurface
+                    colors={colors}
+                    borderRadius={borderRadius}
+                    style={[
+                        {
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 8,
+                            paddingVertical: 16,
+                            opacity: pressed ? 0.85 : disabled ? 0.5 : 1,
+                        },
+                        style,
+                    ]}
+                >
+                    {children}
+                </ClaySurface>
+            )}
+        </Pressable>
+    );
+}
+
 export function GradientBorderCard({
     colors,
     borderRadius,
@@ -23,9 +84,9 @@ export function GradientBorderCard({
     colors: [string, string, ...string[]];
     borderRadius: number;
     borderWidth?: number;
-    style?: ViewStyle;
-    innerStyle?: ViewStyle;
-    children: React.ReactNode;
+    style?: StyleProp<ViewStyle>;
+    innerStyle?: StyleProp<ViewStyle>;
+    children: ReactNode;
 }) {
     return (
         <LinearGradient
