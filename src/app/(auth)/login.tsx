@@ -1,4 +1,5 @@
 import { ClayButton, clayRaised } from "@/components/clay";
+import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -12,10 +13,69 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+function getAuthErrorMessage(error: unknown): string {
+    const code =
+        typeof error === "object" && error !== null && "code" in error
+            ? String((error as { code: unknown }).code)
+            : "";
+
+    switch (code) {
+        case "auth/invalid-email":
+            return "Hindi wastong email address.";
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+        case "auth/invalid-credential":
+            return "Mali ang email o password.";
+        case "auth/too-many-requests":
+            return "Sobra na ang maling pagtatangka. Subukang muli mamaya.";
+        case "auth/network-request-failed":
+            return "Walang koneksyon sa internet. Pakisubukang muli.";
+        default:
+            return "May naganap na error. Pakisubukang muli.";
+    }
+}
+
 export default function Login() {
     const router = useRouter();
+    const { signIn } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState<{
+        email?: string;
+        password?: string;
+        general?: string;
+    }>({});
+
+    const handleSubmit = async () => {
+        if (isSubmitting) return;
+
+        const nextErrors: typeof errors = {};
+        if (email.trim().length === 0) {
+            nextErrors.email = "Ilagay ang iyong email.";
+        }
+        if (password.length === 0) {
+            nextErrors.password = "Ilagay ang iyong password.";
+        }
+
+        if (Object.keys(nextErrors).length > 0) {
+            setErrors(nextErrors);
+            return;
+        }
+
+        setErrors({});
+        setIsSubmitting(true);
+        try {
+            await signIn(email.trim(), password);
+        } catch (error) {
+            console.error("Login error:", error);
+            setErrors({ general: getAuthErrorMessage(error) });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
@@ -39,21 +99,41 @@ export default function Login() {
                     Mag-login sa iyong{"\n"}account
                 </Text>
 
+                {errors.general && (
+                    <View className="mb-3 px-1">
+                        <Text className="text-[13px] text-[#B23A2E]">
+                            {errors.general}
+                        </Text>
+                    </View>
+                )}
+
                 {/* Email/phone input */}
-                <View style={clayRaised} className="mb-3 rounded-2xl">
+                <View style={clayRaised} className="mb-1 rounded-2xl">
                     <TextInput
                         placeholder="Email o Numero ng Telepono"
                         placeholderTextColor="#9C978C"
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
                         className="bg-[#F0EDE6] rounded-2xl px-4 py-3.5 text-[15px] text-[#1F2A1F]"
                     />
                 </View>
+                {errors.email && (
+                    <Text className="text-[12px] text-[#B23A2E] mb-2 ml-1">
+                        {errors.email}
+                    </Text>
+                )}
+                <View className="mb-3" />
 
                 {/* Password input */}
-                <View style={clayRaised} className="relative mb-3 rounded-2xl">
+                <View style={clayRaised} className="relative mb-1 rounded-2xl">
                     <TextInput
                         placeholder="Password"
                         placeholderTextColor="#9C978C"
                         secureTextEntry={!showPassword}
+                        value={password}
+                        onChangeText={setPassword}
                         className="bg-[#F0EDE6] rounded-2xl px-4 py-3.5 pr-11 text-[15px] text-[#1F2A1F]"
                     />
                     <Pressable
@@ -67,6 +147,12 @@ export default function Login() {
                         />
                     </Pressable>
                 </View>
+                {errors.password && (
+                    <Text className="text-[12px] text-[#B23A2E] mb-2 ml-1">
+                        {errors.password}
+                    </Text>
+                )}
+                <View className="mb-3" />
 
                 {/* Remember me + forgot password */}
                 <View className="flex-row items-center justify-between mb-6 px-1">
@@ -99,15 +185,16 @@ export default function Login() {
                     </Text>
                 </View>
 
-                {/* Login button clay surface gradient, TEMPORARY route to (tabs) for preview */}
+                {/* Login button clay surface gradient */}
                 <ClayButton
                     colors={["#4C7350", "#254631"]}
                     borderRadius={20}
                     style={{ marginBottom: 20 }}
-                    onPress={() => router.push("/(tabs)")}
+                    disabled={isSubmitting}
+                    onPress={handleSubmit}
                 >
                     <Text className="text-white font-semibold text-[16px]">
-                        Mag-login
+                        {isSubmitting ? "Sandali lang..." : "Mag-login"}
                     </Text>
                 </ClayButton>
 

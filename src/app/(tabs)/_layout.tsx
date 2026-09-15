@@ -7,6 +7,7 @@ const INACTIVE_COLOR = "#9CA3AF";
 export default function TabsLayout() {
     return (
         <Tabs
+            backBehavior="history"
             screenOptions={{
                 headerShown: false,
                 tabBarActiveTintColor: ACTIVE_COLOR,
