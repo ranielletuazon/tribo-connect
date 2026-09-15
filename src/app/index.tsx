@@ -30,7 +30,7 @@ export default function Landing() {
                 </Text>
 
                 <Text className="text-[16px] font-bold text-[#1F2A1F] text-center leading-6 mb-2">
-                    Mas Malakas na Komunidad,{"\n"}Mas Ligtas na Bukas.
+                    Iyong Komunidad, Iyong Boses.{"\n"}Iyong Kaligtasan.
                 </Text>
 
                 <Text className="text-[13px] text-[#6B7280] text-center leading-5">
@@ -59,7 +59,7 @@ export default function Landing() {
                     <ClayButton
                         colors={["#F2966A", "#C1501F"]}
                         borderRadius={999}
-                        onPress={() => router.push("/(auth)/login")}
+                        onPress={() => router.replace("/(auth)/login")}
                     >
                         <Text className="text-white font-semibold text-[16px]">
                             Magsimula

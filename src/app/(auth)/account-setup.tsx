@@ -1,7 +1,12 @@
+// account-setup.tsx
+
 import { ClayButton, clayRaised } from "@/components/clay";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
+import { doc, updateDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
     Modal,
@@ -16,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AccountSetup() {
     const router = useRouter();
+    const { user } = useAuth();
     const [username, setUsername] = useState("");
     const [birthdate, setBirthdate] = useState<Date | null>(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -23,6 +29,13 @@ export default function AccountSetup() {
     const [barangay, setBarangay] = useState<string | null>(null);
     const [emergencyContact, setEmergencyContact] = useState("");
     const [showBarangayModal, setShowBarangayModal] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState<{
+        username?: string;
+        barangay?: string;
+        birthdate?: string;
+        general?: string;
+    }>({});
 
     const BARANGAYS = [
         "Babo Pangulo",
@@ -54,6 +67,46 @@ export default function AccountSetup() {
         "Sepung Bulaon",
         "Sinura",
     ];
+
+    const handleSubmit = async () => {
+        if (isSubmitting || !user) return;
+
+        const nextErrors: typeof errors = {};
+        if (username.trim().length === 0) {
+            nextErrors.username = "Kailangan ng pangalan ng gumagamit.";
+        }
+        if (!barangay) {
+            nextErrors.barangay = "Piliin ang iyong barangay.";
+        }
+        if (!birthdate) {
+            nextErrors.birthdate = "Piliin ang iyong kaarawan.";
+        }
+
+        if (Object.keys(nextErrors).length > 0) {
+            setErrors(nextErrors);
+            return;
+        }
+
+        setErrors({});
+        setIsSubmitting(true);
+        try {
+            await updateDoc(doc(db, "users", user.uid), {
+                username: username.trim(),
+                birthdate: birthdate!.toISOString(),
+                language,
+                barangay,
+                phoneNumber: emergencyContact.trim() || null,
+                onboardingComplete: true,
+            });
+            router.replace("/(tabs)");
+        } catch {
+            setErrors({
+                general: "Nabigo ang pag-save ng profile. Pakisubukang muli.",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
@@ -94,6 +147,11 @@ export default function AccountSetup() {
                         className="bg-[#F0EDE6] rounded-2xl px-4 py-3.5 text-[15px] text-[#1F2A1F]"
                     />
                 </View>
+                {errors.username && (
+                    <Text className="text-[12px] text-[#B23A2E] mb-3 ml-1 -mt-2">
+                        {errors.username}
+                    </Text>
+                )}
 
                 {/* Emergency contact */}
                 <Text className="text-[13px] font-medium text-[#4B4739] mb-2 ml-1">
@@ -132,6 +190,11 @@ export default function AccountSetup() {
                         color="#6B7280"
                     />
                 </Pressable>
+                {errors.birthdate && (
+                    <Text className="text-[12px] text-[#B23A2E] mb-3 ml-1 -mt-2">
+                        {errors.birthdate}
+                    </Text>
+                )}
                 {showDatePicker && (
                     <DateTimePicker
                         value={birthdate ?? new Date(2000, 0, 1)}
@@ -187,6 +250,11 @@ export default function AccountSetup() {
                     </Text>
                     <Ionicons name="chevron-down" size={18} color="#6B7280" />
                 </Pressable>
+                {errors.barangay && (
+                    <Text className="text-[12px] text-[#B23A2E] mb-3 ml-1 -mt-2">
+                        {errors.barangay}
+                    </Text>
+                )}
 
                 <Modal
                     visible={showBarangayModal}
@@ -241,19 +309,20 @@ export default function AccountSetup() {
                     </Pressable>
                 </Modal>
 
-                {/* Continue TODO: write to Firestore users/{uid} doc, role defaults to "resident" */}
+                {errors.general && (
+                    <Text className="text-[13px] text-[#B23A2E] text-center mb-3">
+                        {errors.general}
+                    </Text>
+                )}
+
                 <ClayButton
                     colors={["#4C7350", "#254631"]}
                     borderRadius={20}
-                    onPress={() =>
-                        router.push({
-                            pathname: "/(auth)/otp-verify",
-                            params: { phone: emergencyContact },
-                        })
-                    }
+                    disabled={isSubmitting}
+                    onPress={handleSubmit}
                 >
                     <Text className="text-white font-semibold text-[16px]">
-                        Tapusin
+                        {isSubmitting ? "Sandali lang..." : "Tapusin"}
                     </Text>
                 </ClayButton>
             </ScrollView>
