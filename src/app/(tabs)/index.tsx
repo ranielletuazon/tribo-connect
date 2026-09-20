@@ -1,5 +1,7 @@
 import { clayRaised, ClaySurface, GradientBorderCard } from "@/components/clay";
+import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
+import { router, type Href } from "expo-router";
 import {
     ImageBackground,
     Pressable,
@@ -9,30 +11,42 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+interface FeatureItem {
+    icon: keyof typeof Ionicons.glyphMap;
+    color: string;
+    title: string;
+    subtitle: string;
+    route: Href;
+}
+
 const HERO_IMAGE = require("../../../assets/images/triboconnect-poster.jpg");
 
-const listItems = [
+const listItems: FeatureItem[] = [
     {
-        icon: "megaphone" as const,
+        icon: "megaphone",
         color: "#C97748",
         title: "Mga Anunsyo",
         subtitle: "Balita mula sa iyong komunidad",
+        route: "/(tabs)/community",
     },
     {
-        icon: "chatbubbles" as const,
+        icon: "chatbubbles",
         color: "#5C7A5F",
         title: "Mensahe",
         subtitle: "Makipag-usap sa pamilya at komunidad",
+        route: "/(tabs)/chat",
     },
     {
-        icon: "document-text" as const,
+        icon: "document-text",
         color: "#5C7A5F",
         title: "Mag-report ng Insidente",
         subtitle: "I-pakalat ang isang pangyayari",
+        route: "/(tabs)/report",
     },
 ];
 
 export default function Home() {
+    const { profile } = useAuth();
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView contentContainerClassName="p-5 pb-8">
@@ -49,28 +63,16 @@ export default function Home() {
                         </View>
                         <View>
                             <Text className="text-[15px] font-semibold text-[#1F2A1F]">
-                                Kumusta! Pangalan
+                                Kumusta! {profile?.username}
                             </Text>
                             <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
-                                Barangay Name · Porac
+                                Barangay {profile?.barangay} · Porac
                             </Text>
                         </View>
                     </View>
-
-                    <Pressable
-                        className="w-10 h-10 rounded-[20px] bg-[#F8F4EA] items-center justify-center"
-                        style={clayRaised}
-                    >
-                        <Ionicons
-                            name="settings-sharp"
-                            size={18}
-                            color="#1F2A1F"
-                        />
-                        <View className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#B23A2E]" />
-                    </Pressable>
                 </View>
 
-                {/* Hero — stays a non-interactive GradientBorderCard */}
+                {/* Hero */}
                 <GradientBorderCard
                     colors={["rgba(255,255,255,0.55)", "rgba(122,106,80,0.15)"]}
                     borderRadius={28}
@@ -100,8 +102,11 @@ export default function Home() {
                     </ImageBackground>
                 </GradientBorderCard>
 
-                {/* Emergency — now a real ClaySurface gradient fill, custom layout, so colors flip for contrast */}
-                <Pressable style={{ marginBottom: 16 }}>
+                {/* Emergency — onPress lives on the outer Pressable, not on ClaySurface */}
+                <Pressable
+                    style={{ marginBottom: 16 }}
+                    onPress={() => router.push("/(tabs)/emergency/" as Href)}
+                >
                     {({ pressed }) => (
                         <ClaySurface
                             colors={["#E0715F", "#9C3A2A"]}
@@ -138,21 +143,20 @@ export default function Home() {
                     Mabilisang Serbisyo
                 </Text>
 
-                {/* List tiles — kept shadow-only on purpose, see note below */}
+                {/* List tiles */}
                 <View className="gap-4">
                     {listItems.map((item) => (
                         <Pressable
                             key={item.title}
                             className="flex-row items-center gap-3 bg-[--main-white] rounded-[26px] p-4"
                             style={clayRaised}
+                            onPress={() => router.push(item.route)}
                         >
                             <View
                                 className="w-10 h-10 rounded-full items-center justify-center"
                                 style={[
                                     clayRaised,
-                                    {
-                                        backgroundColor: item.color,
-                                    },
+                                    { backgroundColor: item.color },
                                 ]}
                             >
                                 <Ionicons

@@ -17,7 +17,7 @@ export function AuthHeader({ title }: { title?: string }) {
             </Pressable>
 
             {title && (
-                <Text className="flex-1 text-center text-[15px] font-semibold text-[#1F2A1F] mr-10">
+                <Text className="flex-1 text-center text-[15px] font-bold text-[#1F2A1F] mr-10">
                     {title}
                 </Text>
             )}

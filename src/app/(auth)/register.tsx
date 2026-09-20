@@ -224,6 +224,7 @@ export default function Register() {
                 )}
 
                 <PasswordStrengthMeter password={password} />
+                <View className="mb-3" />
 
                 {/* Confirm password */}
                 <View style={clayRaised} className="relative mb-1 rounded-2xl">
@@ -259,7 +260,7 @@ export default function Register() {
                     onPress={() => setAgreedToTerms((prev) => !prev)}
                 >
                     <View
-                        className={`w-4.5 h-4.5 mt-0.5 rounded-[4px] border ${
+                        className={`w-[18px] h-[18px] mt-0.5 rounded-[4px] border ${
                             agreedToTerms
                                 ? "bg-[#2F5233] border-[#2F5233]"
                                 : "border-[#C4BFB2]"
