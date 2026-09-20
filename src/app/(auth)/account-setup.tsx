@@ -96,9 +96,8 @@ export default function AccountSetup() {
                 language,
                 barangay,
                 phoneNumber: emergencyContact.trim() || null,
-                onboardingComplete: true,
             });
-            router.replace("/(tabs)");
+            router.push("/(auth)/otp-verify");
         } catch {
             setErrors({
                 general: "Nabigo ang pag-save ng profile. Pakisubukang muli.",
