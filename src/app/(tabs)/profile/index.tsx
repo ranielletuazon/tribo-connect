@@ -1,3 +1,4 @@
+import { AuthHeader } from "@/components/auth-header";
 import { clayRaised } from "@/components/clay";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +17,7 @@ export default function Profile() {
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView contentContainerClassName="px-6 pt-6 pb-10">
                 {/* Header */}
+                <AuthHeader title="Profile" />
                 <View className="items-center mb-8">
                     <View
                         style={clayRaised}
@@ -37,7 +39,7 @@ export default function Profile() {
 
                 {/* Menu */}
                 <View
-                    className="bg-[#F8F4EA] rounded-[24px] overflow-hidden"
+                    className="bg-[--main-white] rounded-[24px] overflow-hidden"
                     style={clayRaised}
                 >
                     <Pressable

@@ -161,7 +161,7 @@ export default function Login() {
                         onPress={() => setRememberMe((prev) => !prev)}
                     >
                         <View
-                            className={`w-4.5 h-4.5 rounded-[4px] border ${
+                            className={`w-[18px] h-[18px] mt-0.5 rounded-[4px] border ${
                                 rememberMe
                                     ? "bg-[#2F5233] border-[#2F5233]"
                                     : "border-[#C4BFB2]"

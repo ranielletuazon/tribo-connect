@@ -25,15 +25,6 @@ export default function TabsLayout() {
                     ),
                 }}
             />
-            {/* <Tabs.Screen
-                name="chat"
-                options={{
-                    title: "Chat",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="chatbubble" color={color} size={size} />
-                    ),
-                }}
-            />
             <Tabs.Screen
                 name="community"
                 options={{
@@ -51,7 +42,12 @@ export default function TabsLayout() {
                         <Ionicons name="person" color={color} size={size} />
                     ),
                 }}
-            /> */}
+            />
+
+            {/* Reachable via router.push, hidden from the tab bar itself */}
+            <Tabs.Screen name="emergency" options={{ href: null }} />
+            <Tabs.Screen name="chat" options={{ href: null }} />
+            <Tabs.Screen name="report" options={{ href: null }} />
         </Tabs>
     );
 }

@@ -7,7 +7,7 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
     const { score, label, color } = getPasswordStrength(password);
 
     return (
-        <View className="mb-3 mt-2 px-1">
+        <View className="mt-2 px-1">
             <View className="flex-row gap-1.5 mb-1.5">
                 {[1, 2, 3, 4].map((segment) => (
                     <View
