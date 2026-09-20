@@ -26,15 +26,6 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="community"
-                options={{
-                    title: "Community",
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="people" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
                 name="profile"
                 options={{
                     title: "Profile",
@@ -45,6 +36,7 @@ export default function TabsLayout() {
             />
 
             {/* Reachable via router.push, hidden from the tab bar itself */}
+            <Tabs.Screen name="community" options={{ href: null }} />
             <Tabs.Screen name="emergency" options={{ href: null }} />
             <Tabs.Screen name="chat" options={{ href: null }} />
             <Tabs.Screen name="report" options={{ href: null }} />

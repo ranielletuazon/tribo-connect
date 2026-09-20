@@ -16,14 +16,20 @@ function RootNavigation() {
         if (isLoading) return;
 
         const inAuthGroup = segments[0] === "(auth)";
-        const needsOnboarding =
-            !!user && (!profile || profile.onboardingComplete === false);
+        const needsAccountSetup = !!user && (!profile || !profile.username);
+        const needsOtpVerification =
+            !!user &&
+            !!profile?.username &&
+            profile.onboardingComplete === false;
+        const fullyOnboarded = !!user && profile?.onboardingComplete === true;
 
         if (!user && segments.length > 0 && !inAuthGroup) {
             router.replace("/(auth)/login");
-        } else if (user && needsOnboarding) {
+        } else if (needsAccountSetup) {
             router.replace("/(auth)/account-setup");
-        } else if (user && !needsOnboarding && inAuthGroup) {
+        } else if (needsOtpVerification) {
+            router.replace("/(auth)/otp-verify");
+        } else if (fullyOnboarded && inAuthGroup) {
             router.replace("/(tabs)");
         }
     }, [user, profile, isLoading, segments, router]);

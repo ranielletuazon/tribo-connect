@@ -1,6 +1,9 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton } from "@/components/clay";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { functions } from "@/lib/firebase";
+import { useAuth } from "@/providers/auth-provider";
+import { useRouter } from "expo-router";
+import { httpsCallable } from "firebase/functions";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,12 +11,52 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 45;
 
+function getSendErrorMessage(error: unknown): string {
+    const code =
+        typeof error === "object" && error !== null && "code" in error
+            ? String((error as { code: unknown }).code)
+            : "";
+
+    switch (code) {
+        case "functions/resource-exhausted":
+            return "Maghintay muna bago humiling ng bagong code.";
+        case "functions/unauthenticated":
+            return "Kailangan mong mag-login bago humiling ng OTP.";
+        default:
+            return "Nabigo ang pagpapadala ng code. Pakisubukang muli.";
+    }
+}
+
+function getVerifyErrorMessage(error: unknown): string {
+    const code =
+        typeof error === "object" && error !== null && "code" in error
+            ? String((error as { code: unknown }).code)
+            : "";
+
+    switch (code) {
+        case "functions/invalid-argument":
+            return "Maling code. Pakisubukang muli.";
+        case "functions/deadline-exceeded":
+            return "Nag-expire na ang code. Mag-resend ng bago.";
+        case "functions/resource-exhausted":
+            return "Sobra na ang maling pagsubok. Humiling ng bagong code.";
+        case "functions/failed-precondition":
+            return "Wala kang naka-pending na verification. Mag-request muna ng code.";
+        default:
+            return "May naganap na error. Pakisubukang muli.";
+    }
+}
+
 export default function OtpVerify() {
     const router = useRouter();
-    const { phone } = useLocalSearchParams<{ phone?: string }>();
+    const { user } = useAuth();
     const [codeSent, setCodeSent] = useState(false);
     const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(""));
     const [secondsLeft, setSecondsLeft] = useState(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [sendError, setSendError] = useState<string | null>(null);
+    const [verifyError, setVerifyError] = useState<string | null>(null);
     const inputRefs = useRef<Array<TextInput | null>>([]);
 
     useEffect(() => {
@@ -25,10 +68,20 @@ export default function OtpVerify() {
         return () => clearInterval(timer);
     }, [codeSent, secondsLeft]);
 
-    const handleSendCode = () => {
-        setCodeSent(true);
-        setSecondsLeft(RESEND_SECONDS);
-        // TODO: trigger actual SMS send once backend exists
+    const handleSendCode = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        setSendError(null);
+        try {
+            await httpsCallable(functions, "requestOtp")();
+            setCodeSent(true);
+            setSecondsLeft(RESEND_SECONDS);
+        } catch (error) {
+            console.error("Request OTP error:", error);
+            setSendError(getSendErrorMessage(error));
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleChangeDigit = (text: string, index: number) => {
@@ -54,6 +107,22 @@ export default function OtpVerify() {
         // TODO: trigger actual resend request once backend exists
     };
 
+    const handleVerify = async () => {
+        if (isVerifying) return;
+        setIsVerifying(true);
+        setVerifyError(null);
+        try {
+            await httpsCallable(functions, "verifyOtp")(digits.join(""));
+        } catch (error) {
+            console.error("Verify OTP error:", error);
+            setVerifyError(getVerifyErrorMessage(error));
+            setDigits(Array(CODE_LENGTH).fill(""));
+            inputRefs.current[0]?.focus();
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
     const formattedTime = `00:${String(secondsLeft).padStart(2, "0")}`;
     const isComplete = digits.every((d) => d !== "");
 
@@ -71,21 +140,31 @@ export default function OtpVerify() {
                         : "Ipapadala namin ang 6-digit code sa"}
                 </Text>
                 <Text className="text-[15px] font-semibold text-[#1F2A1F] text-center mb-8">
-                    {phone || "+63 9XX XXX XXXX"}
+                    {user?.email ?? "iyong email"}
                 </Text>
 
                 {!codeSent ? (
                     /* Nothing sent yet user must explicitly request it */
-                    <ClayButton
-                        colors={["#4C7350", "#254631"]}
-                        borderRadius={999}
-                        style={{ marginBottom: 20 }}
-                        onPress={handleSendCode}
-                    >
-                        <Text className="text-white font-semibold text-[16px]">
-                            Ipadala ang Code
-                        </Text>
-                    </ClayButton>
+                    <>
+                        <ClayButton
+                            colors={["#4C7350", "#254631"]}
+                            borderRadius={999}
+                            disabled={isSubmitting}
+                            style={{ marginBottom: 20 }}
+                            onPress={handleSendCode}
+                        >
+                            <Text className="text-white font-semibold text-[16px]">
+                                {isSubmitting
+                                    ? "Ipinapadala..."
+                                    : "Ipadala ang Code"}
+                            </Text>
+                        </ClayButton>
+                        {sendError && (
+                            <Text className="text-[12px] text-[#B23A2E] text-center -mt-3 mb-4">
+                                {sendError}
+                            </Text>
+                        )}
+                    </>
                 ) : (
                     <>
                         {/* Digit boxes */}
@@ -128,16 +207,21 @@ export default function OtpVerify() {
                             </Text>
                         </Pressable>
 
-                        {/* Verify TODO: replace with real Firebase phone-auth confirmation */}
+                        {verifyError && (
+                            <Text className="text-[12px] text-[#B23A2E] text-center mb-3">
+                                {verifyError}
+                            </Text>
+                        )}
+
                         <ClayButton
                             colors={["#4C7350", "#254631"]}
                             borderRadius={999}
-                            disabled={!isComplete}
+                            disabled={!isComplete || isVerifying}
                             style={{ marginBottom: 20 }}
-                            onPress={() => router.push("/(tabs)")}
+                            onPress={handleVerify}
                         >
                             <Text className="text-white font-semibold text-[16px]">
-                                I-verify
+                                {isVerifying ? "Sandali lang..." : "I-verify"}
                             </Text>
                         </ClayButton>
                     </>
