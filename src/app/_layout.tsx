@@ -2,6 +2,7 @@
 
 import "../global.css";
 
+import { NoInternetModal } from "@/components/no-internet-modal";
 import { AuthProvider, useAuth } from "@/providers/auth-provider";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
@@ -51,6 +52,7 @@ export default function RootLayout() {
     return (
         <AuthProvider>
             <RootNavigation />
+            <NoInternetModal />
         </AuthProvider>
     );
 }
