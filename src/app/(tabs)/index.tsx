@@ -3,6 +3,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
 import {
+    Image,
     ImageBackground,
     Pressable,
     ScrollView,
@@ -20,6 +21,8 @@ interface FeatureItem {
 }
 
 const HERO_IMAGE = require("../../../assets/images/triboconnect-poster.jpg");
+// TODO: confirm this matches your actual saved filename
+const TRIBO_AI_MASCOT = require("../../../assets/images/triboAI.png");
 
 const listItems: FeatureItem[] = [
     {
@@ -50,7 +53,7 @@ export default function Home() {
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView contentContainerClassName="p-5 pb-8">
-                {/* Header — small/repeated elements stay shadow-only */}
+                {/* Header */}
                 <View className="flex-row items-center justify-between mb-6">
                     <View className="flex-row items-center gap-3">
                         <View
@@ -70,6 +73,19 @@ export default function Home() {
                             </Text>
                         </View>
                     </View>
+
+                    {/* TriboAI — route doesn't exist yet, build (tabs)/tribo-ai/ next */}
+                    <Pressable
+                        style={clayRaised}
+                        className="w-14 h-14 rounded-full overflow-hidden bg-[--main-white] p-1.5"
+                        onPress={() => router.push("/(tabs)/tribobot" as Href)}
+                    >
+                        <Image
+                            source={TRIBO_AI_MASCOT}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                        />
+                    </Pressable>
                 </View>
 
                 {/* Hero */}
@@ -102,7 +118,7 @@ export default function Home() {
                     </ImageBackground>
                 </GradientBorderCard>
 
-                {/* Emergency — onPress lives on the outer Pressable, not on ClaySurface */}
+                {/* Emergency */}
                 <Pressable
                     style={{ marginBottom: 16 }}
                     onPress={() => router.push("/(tabs)/emergency/" as Href)}

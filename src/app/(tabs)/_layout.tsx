@@ -40,6 +40,7 @@ export default function TabsLayout() {
             <Tabs.Screen name="emergency" options={{ href: null }} />
             <Tabs.Screen name="chat" options={{ href: null }} />
             <Tabs.Screen name="report" options={{ href: null }} />
+            <Tabs.Screen name="tribobot" options={{ href: null }} />
         </Tabs>
     );
 }
