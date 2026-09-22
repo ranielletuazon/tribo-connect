@@ -1,0 +1,32 @@
+{
+    "cli": {
+        "version": ">= 24.7.0",
+        "appVersionSource": "remote"
+    },
+    "build": {
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal"
+        },
+        "preview": {
+            "distribution": "internal",
+            "android": {
+                "buildType": "apk"
+            },
+            "env": {
+                "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyD9WUDdItsZM0UJRHF7nedpE1--owX9t34",
+                "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "triboconnect-b28e3.firebaseapp.com",
+                "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "triboconnect-b28e3",
+                "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "triboconnect-b28e3.firebasestorage.app",
+                "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "214397287772",
+                "EXPO_PUBLIC_FIREBASE_APP_ID": "1:214397287772:web:f36a9a8c611413c8fb1599"
+            }
+        },
+        "production": {
+            "autoIncrement": true
+        }
+    },
+    "submit": {
+        "production": {}
+    }
+}
