@@ -3,7 +3,7 @@ import { clayRaised } from "@/components/clay";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, type Href } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface MenuItem {
@@ -21,7 +21,11 @@ const MENU_SECTIONS: MenuSection[] = [
     {
         label: "Account",
         items: [
-            { icon: "person-outline", label: "I-edit ang Profile" },
+            {
+                icon: "person-outline",
+                label: "I-edit ang Profile",
+                route: "/(tabs)/profile/edit-profile",
+            },
             {
                 icon: "settings-outline",
                 label: "Mga Setting",
@@ -69,9 +73,17 @@ export default function Profile() {
                         style={clayRaised}
                         className="w-20 h-20 rounded-full bg-[#3F5C42] items-center justify-center mb-3"
                     >
-                        <Text className="text-white text-[22px] font-bold">
-                            {initials}
-                        </Text>
+                        {profile?.photoURL ? (
+                            <Image
+                                source={{ uri: profile.photoURL }}
+                                className="w-full h-full rounded-full"
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <Text className="text-white text-[22px] font-bold">
+                                {initials}
+                            </Text>
+                        )}
                     </View>
                     <Text className="text-[17px] font-bold text-[#1F2A1F]">
                         {displayName}
