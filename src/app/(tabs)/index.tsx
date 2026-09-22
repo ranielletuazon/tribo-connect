@@ -60,8 +60,10 @@ export default function Home() {
                             className="w-11 h-11 rounded-[22px] bg-[#5C7A5F] items-center justify-center"
                             style={clayRaised}
                         >
-                            <Text className="text-white text-[13px] font-semibold">
-                                Pp
+                            <Text className="text-white text-[12px] font-semibold">
+                                {(profile?.username ?? "U")
+                                    .slice(0, 2)
+                                    .toUpperCase()}
                             </Text>
                         </View>
                         <View>

@@ -1,19 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const ACTIVE_COLOR = "#4B6B4F"; // deep sage green, matches brand accent
 const INACTIVE_COLOR = "#9CA3AF";
 
 export default function TabsLayout() {
+    const insets = useSafeAreaInsets();
+
     return (
         <Tabs
             backBehavior="history"
             screenOptions={{
                 headerShown: false,
+                tabBarShowLabel: false,
                 tabBarActiveTintColor: ACTIVE_COLOR,
                 tabBarInactiveTintColor: INACTIVE_COLOR,
-                tabBarStyle: { paddingTop: 6, height: 60 },
-                tabBarLabelStyle: { fontSize: 12, fontWeight: "500" },
+                tabBarStyle: {
+                    paddingTop: 10,
+                    paddingBottom: insets.bottom + 8,
+                    height: 38 + insets.bottom,
+                },
             }}
         >
             <Tabs.Screen
@@ -21,7 +28,16 @@ export default function TabsLayout() {
                 options={{
                     title: "Home",
                     tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="home" color={color} size={size} />
+                        <Ionicons name="home" color={color} size={size + 2} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="feed"
+                options={{
+                    title: "Feed",
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="albums" color={color} size={size + 2} />
                     ),
                 }}
             />
@@ -30,7 +46,7 @@ export default function TabsLayout() {
                 options={{
                     title: "Profile",
                     tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="person" color={color} size={size} />
+                        <Ionicons name="person" color={color} size={size + 2} />
                     ),
                 }}
             />
