@@ -19,7 +19,7 @@ export default function TabsLayout() {
                 tabBarStyle: {
                     paddingTop: 10,
                     paddingBottom: insets.bottom + 8,
-                    height: 38 + insets.bottom,
+                    height: 48 + insets.bottom,
                 },
             }}
         >

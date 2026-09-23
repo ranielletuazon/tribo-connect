@@ -65,6 +65,7 @@ export default function CreatePost() {
                 authorId: user.uid,
                 authorName: profile.username,
                 authorBarangay: profile.barangay,
+                authorPhotoURL: profile.photoURL ?? null,
                 content: content.trim(),
                 imageUrl,
                 likeCount: 0,
@@ -73,10 +74,6 @@ export default function CreatePost() {
 
             await setDoc(postRef, { ...newPost, createdAt: serverTimestamp() });
 
-            // Hand the new post back to Feed via route params — no context,
-            // no provider, just Expo Router's built-in return-data mechanism.
-            // createdAt approximated with the device clock since serverTimestamp()
-            // only resolves on Firestore's server, not available synchronously here.
             router.back();
             router.setParams({
                 newPostJson: JSON.stringify({ ...newPost, createdAt: null }),
@@ -128,12 +125,20 @@ export default function CreatePost() {
                     </Text>
                 )}
 
-                {/* Author row */}
+                {/* Author row — now shows the real profile photo if one exists */}
                 <View className="flex-row items-center gap-3 mb-3">
-                    <View className="w-11 h-11 rounded-full bg-[#5C7A5F] items-center justify-center">
-                        <Text className="text-white text-[13px] font-semibold">
-                            {initials}
-                        </Text>
+                    <View className="w-11 h-11 rounded-full bg-[#5C7A5F] items-center justify-center overflow-hidden">
+                        {profile?.photoURL ? (
+                            <Image
+                                source={{ uri: profile.photoURL }}
+                                className="w-full h-full"
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <Text className="text-white text-[13px] font-semibold">
+                                {initials}
+                            </Text>
+                        )}
                     </View>
                     <View>
                         <Text className="text-[14.5px] font-bold text-[#1F2A1F]">

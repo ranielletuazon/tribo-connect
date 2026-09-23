@@ -60,11 +60,19 @@ export default function Home() {
                             className="w-11 h-11 rounded-[22px] bg-[#5C7A5F] items-center justify-center"
                             style={clayRaised}
                         >
-                            <Text className="text-white text-[12px] font-semibold">
-                                {(profile?.username ?? "U")
-                                    .slice(0, 2)
-                                    .toUpperCase()}
-                            </Text>
+                            {profile?.photoURL ? (
+                                <Image
+                                    source={{ uri: profile.photoURL }}
+                                    className="w-full h-full rounded-full"
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <Text className="text-white text-[22px] font-bold">
+                                    {(profile?.username ?? "U")
+                                        .slice(0, 2)
+                                        .toUpperCase()}
+                                </Text>
+                            )}
                         </View>
                         <View>
                             <Text className="text-[15px] font-semibold text-[#1F2A1F]">
