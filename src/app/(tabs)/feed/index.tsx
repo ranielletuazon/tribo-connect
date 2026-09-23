@@ -4,12 +4,16 @@ import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import {
+    arrayRemove,
+    arrayUnion,
     collection,
+    doc,
     getDocs,
     limit,
     orderBy,
     query,
     startAfter,
+    updateDoc,
     type DocumentData,
     type QueryDocumentSnapshot,
     type Timestamp,
@@ -31,10 +35,6 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const PLACEHOLDER_AVATAR = {
-    uri: "https://placehold.co/80x80/4a5d43/ffffff?text=%20",
-};
-
 const COMPOSER_HEIGHT = 64;
 const POSTS_PER_PAGE = 5;
 
@@ -43,9 +43,10 @@ interface Post {
     authorId: string;
     authorName: string;
     authorBarangay: string;
+    authorPhotoURL: string | null;
     content: string;
     imageUrl: string | null;
-    likeCount: number;
+    likes: string[];
     commentCount: number;
     createdAt: Timestamp | null;
 }
@@ -70,18 +71,18 @@ function mapDocToPost(docSnap: QueryDocumentSnapshot<DocumentData>): Post {
         authorId: data.authorId,
         authorName: data.authorName,
         authorBarangay: data.authorBarangay,
+        authorPhotoURL: data.authorPhotoURL ?? null,
         content: data.content,
         imageUrl: data.imageUrl ?? null,
-        likeCount: data.likeCount ?? 0,
+        likes: data.likes ?? [],
         commentCount: data.commentCount ?? 0,
         createdAt: data.createdAt ?? null,
     };
 }
 
 export default function Feed() {
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
     const { newPostJson } = useLocalSearchParams<{ newPostJson?: string }>();
-    const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
     const lastScrollY = useRef(0);
 
     const [posts, setPosts] = useState<Post[]>([]);
@@ -95,13 +96,12 @@ export default function Feed() {
     const composerHeight = useSharedValue(COMPOSER_HEIGHT);
     const composerOpacity = useSharedValue(1);
 
+    const initials = (profile?.username ?? "U").slice(0, 2).toUpperCase();
+
     useEffect(() => {
         fetchInitialPosts();
     }, []);
 
-    // Catches a post handed back from create-post.tsx via router.setParams —
-    // prepend it locally, no extra Firestore read, then clear the param so
-    // it doesn't re-trigger on the next render or re-navigation.
     useEffect(() => {
         if (!newPostJson) return;
         try {
@@ -188,13 +188,49 @@ export default function Feed() {
         marginBottom: composerHeight.value > 4 ? 16 : 0,
     }));
 
-    const toggleLike = (postId: string) => {
-        setLikedPosts((prev) => {
-            const next = new Set(prev);
-            if (next.has(postId)) next.delete(postId);
-            else next.add(postId);
-            return next;
-        });
+    // Real, Firestore-backed toggle — optimistic local update first for a
+    // snappy feel, then the actual atomic write, with rollback on failure.
+    const toggleLike = async (postId: string) => {
+        if (!user) return;
+        const target = posts.find((p) => p.id === postId);
+        if (!target) return;
+        const alreadyLiked = target.likes.includes(user.uid);
+
+        setPosts((prev) =>
+            prev.map((p) =>
+                p.id === postId
+                    ? {
+                          ...p,
+                          likes: alreadyLiked
+                              ? p.likes.filter((id) => id !== user.uid)
+                              : [...p.likes, user.uid],
+                      }
+                    : p,
+            ),
+        );
+
+        try {
+            await updateDoc(doc(db, "posts", postId), {
+                likes: alreadyLiked
+                    ? arrayRemove(user.uid)
+                    : arrayUnion(user.uid),
+            });
+        } catch (err) {
+            console.error("Toggle like error:", err);
+            // Roll back the optimistic update on failure
+            setPosts((prev) =>
+                prev.map((p) =>
+                    p.id === postId
+                        ? {
+                              ...p,
+                              likes: alreadyLiked
+                                  ? [...p.likes, user.uid]
+                                  : p.likes.filter((id) => id !== user.uid),
+                          }
+                        : p,
+                ),
+            );
+        }
     };
 
     return (
@@ -204,16 +240,6 @@ export default function Feed() {
                 <Text className="text-[18px] font-bold text-[#1F2A1F]">
                     Feed
                 </Text>
-                <Pressable
-                    style={clayRaised}
-                    className="w-9 h-9 rounded-full bg-[#F8F4EA] items-center justify-center"
-                >
-                    <Ionicons
-                        name="notifications-outline"
-                        size={17}
-                        color="#1F2A1F"
-                    />
-                </Pressable>
             </View>
 
             {/* Composer */}
@@ -228,12 +254,18 @@ export default function Feed() {
                     className="flex-row items-center gap-3 bg-[--main-white] rounded-2xl p-3"
                     onPress={() => router.push("/(tabs)/feed/create-post")}
                 >
-                    <View className="w-9 h-9 rounded-full bg-[#5C7A5F] items-center justify-center">
-                        <Text className="text-white text-[12px] font-semibold">
-                            {(profile?.username ?? "U")
-                                .slice(0, 2)
-                                .toUpperCase()}
-                        </Text>
+                    <View className="w-9 h-9 rounded-full bg-[#5C7A5F] items-center justify-center overflow-hidden">
+                        {profile?.photoURL ? (
+                            <Image
+                                source={{ uri: profile.photoURL }}
+                                className="w-full h-full"
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <Text className="text-white text-[12px] font-semibold">
+                                {initials}
+                            </Text>
+                        )}
                     </View>
                     <View className="flex-1 bg-[#F0EDE6] rounded-full px-4 py-2.5">
                         <Text className="text-[13.5px] text-[#9C978C]">
@@ -271,7 +303,10 @@ export default function Feed() {
                     </Text>
                 ) : (
                     posts.map((post) => {
-                        const isLiked = likedPosts.has(post.id);
+                        const isLiked = !!user && post.likes.includes(user.uid);
+                        const authorInitials = post.authorName
+                            .slice(0, 2)
+                            .toUpperCase();
                         return (
                             <View
                                 key={post.id}
@@ -279,11 +314,21 @@ export default function Feed() {
                                 className="bg-[--main-white] rounded-2xl overflow-hidden"
                             >
                                 <View className="flex-row items-center gap-3 p-4 pb-3">
-                                    <Image
-                                        source={PLACEHOLDER_AVATAR}
-                                        className="w-11 h-11 rounded-full bg-[#5C7A5F]"
-                                        resizeMode="cover"
-                                    />
+                                    <View className="w-11 h-11 rounded-full bg-[#5C7A5F] items-center justify-center overflow-hidden">
+                                        {post.authorPhotoURL ? (
+                                            <Image
+                                                source={{
+                                                    uri: post.authorPhotoURL,
+                                                }}
+                                                className="w-full h-full"
+                                                resizeMode="cover"
+                                            />
+                                        ) : (
+                                            <Text className="text-white text-[13px] font-semibold">
+                                                {authorInitials}
+                                            </Text>
+                                        )}
+                                    </View>
                                     <View className="flex-1">
                                         <Text className="text-[14px] font-semibold text-[#1F2A1F]">
                                             {post.authorName}
@@ -314,8 +359,7 @@ export default function Feed() {
 
                                 <View className="flex-row items-center justify-between px-4 pt-3 pb-1">
                                     <Text className="text-[11.5px] text-[#9C978C]">
-                                        {post.likeCount + (isLiked ? 1 : 0)}{" "}
-                                        gusto
+                                        {post.likes.length} gusto
                                     </Text>
                                     <Text className="text-[11.5px] text-[#9C978C]">
                                         {post.commentCount} komento
