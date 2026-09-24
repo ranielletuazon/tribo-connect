@@ -227,7 +227,7 @@ export default function OtpVerify() {
                     </>
                 )}
 
-                <Pressable onPress={() => router.back()}>
+                <Pressable onPress={() => router.push("/(auth)/account-setup")}>
                     <Text className="text-center text-[13px] text-[#6B7280]">
                         Gumamit ng ibang numero
                     </Text>
