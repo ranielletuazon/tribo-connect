@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// TODO: confirm this matches your actual saved filename
+// TODO: check if this is the right file name
 const TRIBO_AI_MASCOT = require("../../../../assets/images/triboAI.png");
 
 interface Topic {
@@ -21,7 +21,7 @@ const TOPICS: Topic[] = [
     { key: "report", label: "I-report ang Isyu", color: "#5C7A5F" },
 ];
 
-// TODO: these are placeholder answers — replace once real content is decided.
+// TODO: placeholder answers for now, change these later
 const CANNED_RESPONSES: Record<string, string> = {
     anunsyo:
         "Makikita mo ang mga pinakabagong anunsyo ng iyong barangay sa Community tab. Gusto mo bang pumunta doon?",
@@ -96,7 +96,7 @@ export default function TriboBot() {
                 </Pressable>
             </View>
 
-            {/* Chat thread — mascot AND suggestion chips now scroll with the messages */}
+            {/* Chat messages, mascot and suggestion chips */}
             <ScrollView
                 ref={scrollRef}
                 contentContainerClassName="px-6 pb-6 gap-3"
@@ -144,7 +144,7 @@ export default function TriboBot() {
                     ),
                 )}
 
-                {/* Suggestion chips — now inline, reappears after every exchange */}
+                {/* Suggestion chips */}
                 <View className="mt-2">
                     <Text className="text-[12.5px] text-[#7A6D5C] mb-3">
                         Puwede mo pa akong tanungin tungkol sa:

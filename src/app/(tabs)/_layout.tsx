@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const ACTIVE_COLOR = "#4B6B4F"; // deep sage green, matches brand accent
+const ACTIVE_COLOR = "#4B6B4F"; // green color for the active tab
 const INACTIVE_COLOR = "#9CA3AF";
 
 export default function TabsLayout() {
@@ -52,7 +52,7 @@ export default function TabsLayout() {
                 }}
             />
 
-            {/* Reachable via router.push, hidden from the tab bar itself */}
+            {/* hidden from the tab bar but can still be opened with router.push */}
             <Tabs.Screen name="community" options={{ href: null }} />
             <Tabs.Screen name="emergency" options={{ href: null }} />
             <Tabs.Screen name="chat" options={{ href: null }} />

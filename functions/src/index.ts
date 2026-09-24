@@ -25,3 +25,4 @@ setGlobalOptions({maxInstances: 10});
 admin.initializeApp();
 
 export {requestOtp, verifyOtp} from "./otp";
+export {submitReport} from "./report";

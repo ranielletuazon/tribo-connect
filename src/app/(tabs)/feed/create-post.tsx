@@ -125,7 +125,7 @@ export default function CreatePost() {
                     </Text>
                 )}
 
-                {/* Author row — now shows the real profile photo if one exists */}
+                {/* Author name and profile photo */}
                 <View className="flex-row items-center gap-3 mb-3">
                     <View className="w-11 h-11 rounded-full bg-[#5C7A5F] items-center justify-center overflow-hidden">
                         {profile?.photoURL ? (

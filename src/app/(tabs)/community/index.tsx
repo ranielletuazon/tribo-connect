@@ -18,8 +18,7 @@ const PLACEHOLDER_THUMB = {
     uri: "https://placehold.co/120x120/4a5d43/ffffff?text=%20",
 };
 
-// Dummy data — no Firestore wiring yet, matches the design-first convention
-// used for every other screen so far.
+// dummy data for now, not connected to Firestore yet
 const ANNOUNCEMENTS = [
     {
         id: "1",
@@ -47,7 +46,7 @@ export default function Community() {
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <View className="px-6 pt-4">
-                {/* Header — no back arrow, this is a tab root */}
+                {/* Header */}
                 <View className="flex-row items-center justify-between mb-5">
                     <Text className="text-[18px] font-bold text-[#1F2A1F]">
                         Mga Anunsyo
@@ -112,7 +111,7 @@ export default function Community() {
                             key={item.id}
                             style={clayRaised}
                             className="flex-row items-center gap-3 bg-[--main-white] rounded-2xl p-3"
-                            // TODO: wire once (tabs)/community/[postId].tsx exists
+                            // TODO: add this once the post details page is made
                             // onPress={() => router.push(`/(tabs)/community/${item.id}`)}
                         >
                             <Image
