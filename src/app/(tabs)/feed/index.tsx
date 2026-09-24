@@ -188,8 +188,7 @@ export default function Feed() {
         marginBottom: composerHeight.value > 4 ? 16 : 0,
     }));
 
-    // Real, Firestore-backed toggle — optimistic local update first for a
-    // snappy feel, then the actual atomic write, with rollback on failure.
+    // update the like on screen first so it feels fast, then save it to Firestore
     const toggleLike = async (postId: string) => {
         if (!user) return;
         const target = posts.find((p) => p.id === postId);
@@ -217,7 +216,7 @@ export default function Feed() {
             });
         } catch (err) {
             console.error("Toggle like error:", err);
-            // Roll back the optimistic update on failure
+            // if saving failed, undo the like
             setPosts((prev) =>
                 prev.map((p) =>
                     p.id === postId

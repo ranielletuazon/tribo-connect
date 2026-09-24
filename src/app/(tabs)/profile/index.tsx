@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 interface MenuItem {
     icon: keyof typeof Ionicons.glyphMap;
     label: string;
-    route?: Href; // omitted = not built yet, row is inert
+    route?: Href; // no route means the page isn't made yet
 }
 
 interface MenuSection {

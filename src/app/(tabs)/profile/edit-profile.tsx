@@ -118,9 +118,8 @@ export default function EditProfile() {
         try {
             let photoURL = profile?.photoURL ?? null;
 
-            // Only re-upload if the image actually changed — a local file://
-            // URI means a new photo was picked; the existing photoURL is
-            // already an https:// Storage URL, so they'll never match.
+            // only upload the photo if the user picked a new one
+            // (new photos start with file://, old ones are already a link)
             if (imageUri && imageUri !== profile?.photoURL) {
                 const response = await fetch(imageUri);
                 const blob = await response.blob();

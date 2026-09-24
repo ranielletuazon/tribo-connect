@@ -185,7 +185,7 @@ export default function Login() {
                     </Text>
                 </View>
 
-                {/* Login button clay surface gradient */}
+                {/* Login button */}
                 <ClayButton
                     colors={["#4C7350", "#254631"]}
                     borderRadius={20}

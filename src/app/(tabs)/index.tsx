@@ -21,7 +21,7 @@ interface FeatureItem {
 }
 
 const HERO_IMAGE = require("../../../assets/images/triboconnect-poster.jpg");
-// TODO: confirm this matches your actual saved filename
+// TODO: check if this is the right file name
 const TRIBO_AI_MASCOT = require("../../../assets/images/triboAI.png");
 
 const listItems: FeatureItem[] = [
@@ -84,7 +84,7 @@ export default function Home() {
                         </View>
                     </View>
 
-                    {/* TriboAI — route doesn't exist yet, build (tabs)/tribo-ai/ next */}
+                    {/* TriboAI (page not made yet) */}
                     <Pressable
                         style={clayRaised}
                         className="w-14 h-14 rounded-full overflow-hidden bg-[--main-white] p-1.5"

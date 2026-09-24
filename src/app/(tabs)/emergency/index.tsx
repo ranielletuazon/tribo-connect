@@ -33,8 +33,8 @@ const NATIONAL_HOTLINES = [
     },
 ];
 
-// TODO: fill in real per-barangay hotline numbers as they're collected.
-// Keys must match the exact BARANGAYS list used in account-setup.tsx.
+// TODO: add the real hotline numbers for each barangay
+// the names here should be the same as the BARANGAYS list in account-setup.tsx
 const BARANGAY_HOTLINES: Record<string, string> = {
     "Babo Pangulo": "0923 000 0001",
     "Babo Sacan (Guanson)": "0923 000 0002",
@@ -83,7 +83,7 @@ export default function Emergency() {
             <ScrollView contentContainerClassName="px-6 pt-4 pb-10">
                 <AuthHeader title="Emergency" />
 
-                {/* Decorative SOS badge with static halo — cosmetic only */}
+                {/* SOS badge (just for design) */}
                 <View
                     className="items-center justify-center mt-6 mb-2"
                     style={{ width: 180, height: 180, alignSelf: "center" }}

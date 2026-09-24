@@ -27,8 +27,7 @@ try {
         persistence: getReactNativePersistence(AsyncStorage),
     });
 } catch {
-    // Fast Refresh re-runs this file without restarting the app —
-    // initializeAuth throws the second time, so fall back to the existing instance.
+    // initializeAuth throws an error on Fast Refresh, so just use the existing auth
     auth = getAuth(app);
 }
 

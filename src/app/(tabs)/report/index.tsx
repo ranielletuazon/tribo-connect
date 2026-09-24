@@ -1,7 +1,8 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton, ClaySurface, clayRaised } from "@/components/clay";
-import { useAuth } from "@/providers/auth-provider";
+import { functions } from "@/lib/firebase";
 import { Ionicons } from "@expo/vector-icons";
+import { httpsCallable } from "firebase/functions";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
@@ -69,33 +70,20 @@ const CATEGORIES: ReportCategory[] = [
     },
 ];
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SUBJECT_MAX = 120;
 const DESCRIPTION_MAX = 2000;
-
-// This app's single recurring accent mark — the small bar shown before every
-// section heading, matching emergency.tsx. Kept as one constant so both
-// screens stay in sync; worth moving to a shared theme/tokens file once a
-// third screen needs it.
 const BRAND_ACCENT = "#3F5C42";
-
-// A small, consistent type scale — matches the one used on the Emergency
-// screen.
-const type = {
-    micro: 11, // fine print, helper text
-    small: 12, // category tile labels
-    label: 13, // section labels
-    body: 14, // field micro-labels, contact helper text
-    input: 15, // text input font size
-    button: 16, // primary button label
-};
-
 const ERROR_COLOR = "#B23A2E";
 
-// A bordered, headered panel used for every form section on this screen.
-// The tinted header strip + hairline divider is the "border for the
-// heading" treatment — the heading is part of the card, not a floating
-// label sitting above it.
+const type = {
+    micro: 11,
+    small: 12,
+    label: 13,
+    body: 14,
+    input: 15,
+    button: 16,
+};
+
 function FormSection({
     title,
     hint,
@@ -150,25 +138,17 @@ interface ReportPayload {
     categories: string[];
     subject: string;
     description: string;
-    email: string;
-    reporterUid?: string;
-    timestamp: number;
 }
 
-// TODO(backend): replace with a real network call (Cloud Function or email
-// service). Isolated as its own function so wiring the real endpoint later
-// requires no changes to the component below — only this function's body.
 async function submitReport(payload: ReportPayload): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    void payload;
+    const callable = httpsCallable(functions, "submitReport");
+    await callable(payload);
 }
 
 export default function Report() {
-    const { user } = useAuth();
     const [categories, setCategories] = useState<string[]>([]);
     const [subject, setSubject] = useState("");
     const [description, setDescription] = useState("");
-    const [email, setEmail] = useState(user?.email ?? "");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
@@ -182,9 +162,7 @@ export default function Report() {
     const categoriesValid = categories.length > 0;
     const subjectValid = subject.trim().length > 0;
     const descriptionValid = description.trim().length > 0;
-    const emailValid = EMAIL_REGEX.test(email.trim());
-    const isValid =
-        categoriesValid && subjectValid && descriptionValid && emailValid;
+    const isValid = categoriesValid && subjectValid && descriptionValid;
 
     const showError = (fieldValid: boolean) => attemptedSubmit && !fieldValid;
 
@@ -198,9 +176,6 @@ export default function Report() {
                 categories,
                 subject: subject.trim(),
                 description: description.trim(),
-                email: email.trim(),
-                reporterUid: user?.uid,
-                timestamp: Date.now(),
             });
             Alert.alert(
                 "Naipadala ang Ulat",
@@ -209,9 +184,9 @@ export default function Report() {
             setCategories([]);
             setSubject("");
             setDescription("");
-            setEmail(user?.email ?? "");
             setAttemptedSubmit(false);
-        } catch {
+        } catch (err) {
+            console.error("Submit report error:", err);
             Alert.alert(
                 "Hindi Naipadala",
                 "May problema sa pagpapadala ng ulat. Pakisubukang muli.",
@@ -241,7 +216,6 @@ export default function Report() {
                         iyong barangay.
                     </Text>
 
-                    {/* Category grid — multi-select, tap again to deselect */}
                     <FormSection
                         title="Uri ng Ulat"
                         hint="(pumili ng isa o higit pa)"
@@ -259,9 +233,7 @@ export default function Report() {
                                             checked: selected,
                                             disabled: isSubmitting,
                                         }}
-                                        accessibilityLabel={`${cat.label}, ${
-                                            selected ? "napili" : "hindi napili"
-                                        }`}
+                                        accessibilityLabel={`${cat.label}, ${selected ? "napili" : "hindi napili"}`}
                                         style={{
                                             width: "31%",
                                             marginBottom: 12,
@@ -352,7 +324,6 @@ export default function Report() {
                         )}
                     </FormSection>
 
-                    {/* Subject + description */}
                     <FormSection title="Detalye ng Ulat" hint="(kinakailangan)">
                         <View className="flex-row items-center justify-between mb-2">
                             <View className="flex-row items-center gap-2">
@@ -447,47 +418,13 @@ export default function Report() {
                         )}
                     </FormSection>
 
-                    {/* Contact card */}
-                    <FormSection title="Contact Info" hint="(kinakailangan)">
-                        <View className="flex-row items-center gap-2.5">
-                            <Ionicons
-                                name="mail-outline"
-                                size={16}
-                                color="#9C978C"
-                            />
-                            <TextInput
-                                placeholder="juan@email.com"
-                                placeholderTextColor="#B5AFA0"
-                                value={email}
-                                onChangeText={setEmail}
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                                editable={!isSubmitting}
-                                accessibilityLabel="Email address para sa contact"
-                                style={{ fontSize: type.input }}
-                                className="flex-1 text-[#1F2A1F] py-1"
-                            />
-                        </View>
-                        {showError(emailValid) ? (
-                            <Text
-                                style={{
-                                    fontSize: type.body,
-                                    color: ERROR_COLOR,
-                                }}
-                                className="mt-2"
-                            >
-                                Maglagay ng wastong email address.
-                            </Text>
-                        ) : (
-                            <Text
-                                style={{ fontSize: type.micro }}
-                                className="text-[#9C978C] mt-2"
-                            >
-                                Gagamitin lang ito para makipag-ugnayan tungkol
-                                sa ulat na ito.
-                            </Text>
-                        )}
-                    </FormSection>
+                    <Text
+                        style={{ fontSize: type.micro }}
+                        className="text-[#9C978C] text-center mb-5 px-4"
+                    >
+                        Gagamitin ang email ng iyong naka-log in na account para
+                        makipag-ugnayan tungkol sa ulat na ito.
+                    </Text>
 
                     <ClayButton
                         colors={

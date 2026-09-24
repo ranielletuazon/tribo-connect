@@ -6,9 +6,8 @@ export function useNetworkStatus() {
 
     useEffect(() => {
         const unsubscribe = NetInfo.addEventListener((state) => {
-            // isInternetReachable can briefly be `null` while still checking
-            // (e.g. right at cold launch) — treat that as "not yet known to
-            // be offline" rather than blocking on a false positive.
+            // isInternetReachable can be null while it's still checking,
+            // so we don't count that as offline
             setIsConnected(
                 state.isConnected === true &&
                     state.isInternetReachable !== false,

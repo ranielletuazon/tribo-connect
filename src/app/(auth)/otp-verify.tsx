@@ -104,7 +104,7 @@ export default function OtpVerify() {
     const handleResend = () => {
         if (secondsLeft > 0) return;
         setSecondsLeft(RESEND_SECONDS);
-        // TODO: trigger actual resend request once backend exists
+        // TODO: actually resend the code here
     };
 
     const handleVerify = async () => {
@@ -144,7 +144,7 @@ export default function OtpVerify() {
                 </Text>
 
                 {!codeSent ? (
-                    /* Nothing sent yet user must explicitly request it */
+                    /* code not sent yet, user has to press the button first */
                     <>
                         <ClayButton
                             colors={["#4C7350", "#254631"]}

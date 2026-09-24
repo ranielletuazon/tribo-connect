@@ -55,11 +55,8 @@ export default function ConversationThread() {
         }>();
     const { user, profile } = useAuth();
 
-    // Tracks which conversation we're actually showing. Starts as the route
-    // param, but once a "new" conversation gets created we flip this to the
-    // real id ourselves instead of navigating — router.replace would remount
-    // this whole screen (reset state, flash the loading spinner) even though
-    // visually nothing should change.
+    // the current conversation id. for a new chat we just update this after
+    // creating it, because router.replace would reload the whole screen
     const [activeConversationId, setActiveConversationId] =
         useState(conversationId);
 
@@ -83,8 +80,7 @@ export default function ConversationThread() {
     >(null);
     const scrollRef = useRef<ScrollView>(null);
 
-    // One listener covers everything — other user's info, the whole message
-    // list, and clearing my own unread flag — since it's all one document.
+    // one listener for the whole conversation (other user info, messages and my unread flag)
     useEffect(() => {
         if (isNew || !user || !activeConversationId) return;
         const convRef = doc(db, "conversations", activeConversationId);
@@ -137,7 +133,7 @@ export default function ConversationThread() {
             id: makeMessageId(),
             senderId: user.uid,
             message: toSend,
-            dateSent: Timestamp.now(), // NOT serverTimestamp() — unsupported inside arrays
+            dateSent: Timestamp.now(), // serverTimestamp() doesn't work inside arrays
         };
 
         try {
@@ -199,8 +195,7 @@ export default function ConversationThread() {
         }
     };
 
-    // Live header — always shows the other person's CURRENT name/photo,
-    // overriding the possibly-stale participantsInfo snapshot once resolved.
+    // use the other user's latest name and photo
     useEffect(() => {
         const uidToWatch = isNew ? targetUid : otherUidFromConversation;
         if (!uidToWatch) return;

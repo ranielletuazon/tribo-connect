@@ -218,7 +218,7 @@ export default function Chat() {
 
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
-            {/* Header + search bar — stays fixed at top, unchanged */}
+            {/* Header and search bar */}
             <View className="px-6 pt-4">
                 <View className="flex-row items-center justify-between mb-5">
                     <Text className="text-[18px] font-bold text-[#1F2A1F]">
@@ -255,7 +255,7 @@ export default function Chat() {
                 </View>
             </View>
 
-            {/* Everything below is one normal scroll flow — no overlay, no absolute positioning */}
+            {/* Scrollable content */}
             <ScrollView contentContainerClassName="px-6 pt-5 pb-8 gap-3">
                 {showSearchUI && newUserResults.length > 0 && (
                     <>
