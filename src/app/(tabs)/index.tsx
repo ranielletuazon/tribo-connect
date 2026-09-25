@@ -78,9 +78,15 @@ export default function Home() {
                             <Text className="text-[15px] font-semibold text-[#1F2A1F]">
                                 Kumusta! {profile?.username}
                             </Text>
-                            <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
-                                Barangay {profile?.barangay} · Porac
-                            </Text>
+                            {profile?.role === "admin" ? (
+                                <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
+                                    Admin ng {profile?.barangay} · Porac
+                                </Text>
+                            ) : (
+                                <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
+                                    Barangay {profile?.barangay} · Porac
+                                </Text>
+                            )}
                         </View>
                     </View>
 

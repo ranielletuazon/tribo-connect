@@ -31,6 +31,11 @@ const MENU_SECTIONS: MenuSection[] = [
                 label: "Mga Setting",
                 route: "/(tabs)/profile/settings",
             },
+            {
+                icon: "settings-outline",
+                label: "I-Verify ang Account",
+                route: "/(tabs)/profile/settings",
+            },
         ],
     },
     {
@@ -56,12 +61,28 @@ const MENU_SECTIONS: MenuSection[] = [
     },
 ];
 
+// only shown to users with role: "admin"
+const ADMIN_SECTION: MenuSection = {
+    label: "Admin Settings",
+    items: [
+        {
+            icon: "person-add-outline",
+            label: "I-verify ang mga User",
+            route: "/(tabs)/profile/verify-users",
+        },
+    ],
+};
+
 export default function Profile() {
     const router = useRouter();
     const { user, profile } = useAuth();
 
     const displayName = profile?.username ?? user?.email ?? "Gumagamit";
     const initials = displayName.slice(0, 2).toUpperCase();
+    const menuSections =
+        profile?.role === "admin"
+            ? [MENU_SECTIONS[0], ADMIN_SECTION, ...MENU_SECTIONS.slice(1)]
+            : MENU_SECTIONS;
 
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
@@ -85,17 +106,35 @@ export default function Profile() {
                             </Text>
                         )}
                     </View>
-                    <Text className="text-[17px] font-bold text-[#1F2A1F]">
-                        {displayName}
-                    </Text>
-                    {profile?.barangay && (
+                    <View className="flex-row items-center gap-1.5">
+                        <Text className="text-[17px] font-bold text-[#1F2A1F]">
+                            {displayName}
+                        </Text>
+                        {profile?.role === "admin" && (
+                            <View className="flex-row items-center gap-1 bg-[#9C3A2A] rounded-full px-2 py-0.5">
+                                <Ionicons
+                                    name="shield-checkmark"
+                                    size={11}
+                                    color="#fff"
+                                />
+                                <Text className="text-[10.5px] font-bold text-white tracking-wider">
+                                    ADMIN
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                    {profile?.role === "admin" ? (
                         <Text className="text-[13px] text-[#7A6D5C] mt-0.5">
-                            Barangay {profile.barangay}
+                            {profile?.barangay}
+                        </Text>
+                    ) : (
+                        <Text className="text-[13px] text-[#7A6D5C] mt-0.5">
+                            Barangay {profile?.barangay}
                         </Text>
                     )}
                 </View>
 
-                {MENU_SECTIONS.map((section) => (
+                {menuSections.map((section) => (
                     <View key={section.label} className="mb-6">
                         <Text className="text-[13px] font-medium text-[#7A6D5C] mb-2 ml-1">
                             {section.label}

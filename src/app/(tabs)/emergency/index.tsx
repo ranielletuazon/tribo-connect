@@ -217,41 +217,49 @@ export default function Emergency() {
                 </View>
 
                 {/* Dynamic barangay hotline */}
-                <Text className="text-[13px] font-medium text-[#7A6D5C] mb-3 ml-1">
-                    Barangay Hotline
-                </Text>
-                <Pressable onPress={() => callNumber(barangayHotline)}>
-                    {({ pressed }) => (
-                        <ClaySurface
-                            colors={["#7A9B7D", "#3F5C42"]}
-                            borderRadius={20}
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: 12,
-                                padding: 16,
-                                opacity: pressed ? 0.9 : 1,
-                            }}
-                        >
-                            <View className="w-11 h-11 rounded-full bg-white/20 items-center justify-center">
-                                <Ionicons name="call" size={20} color="#fff" />
-                            </View>
-                            <View className="flex-1">
-                                <Text className="text-[14.5px] font-bold text-white">
-                                    {barangayHotline}
-                                </Text>
-                                <Text className="text-[12px] text-white/75 mt-0.5">
-                                    Barangay {barangay ?? "Hotline"}
-                                </Text>
-                            </View>
-                            <Ionicons
-                                name="chevron-forward"
-                                size={18}
-                                color="rgba(255,255,255,0.7)"
-                            />
-                        </ClaySurface>
-                    )}
-                </Pressable>
+                {profile?.role !== "admin" && (
+                    <>
+                        <Text className="text-[13px] font-medium text-[#7A6D5C] mb-3 ml-1">
+                            Barangay Hotline
+                        </Text>
+                        <Pressable onPress={() => callNumber(barangayHotline)}>
+                            {({ pressed }) => (
+                                <ClaySurface
+                                    colors={["#7A9B7D", "#3F5C42"]}
+                                    borderRadius={20}
+                                    style={{
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        gap: 12,
+                                        padding: 16,
+                                        opacity: pressed ? 0.9 : 1,
+                                    }}
+                                >
+                                    <View className="w-11 h-11 rounded-full bg-white/20 items-center justify-center">
+                                        <Ionicons
+                                            name="call"
+                                            size={20}
+                                            color="#fff"
+                                        />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-[14.5px] font-bold text-white">
+                                            {barangayHotline}
+                                        </Text>
+                                        <Text className="text-[12px] text-white/75 mt-0.5">
+                                            Barangay {barangay ?? "Hotline"}
+                                        </Text>
+                                    </View>
+                                    <Ionicons
+                                        name="chevron-forward"
+                                        size={18}
+                                        color="rgba(255,255,255,0.7)"
+                                    />
+                                </ClaySurface>
+                            )}
+                        </Pressable>
+                    </>
+                )}
             </ScrollView>
         </SafeAreaView>
     );

@@ -1,9 +1,32 @@
 import { clayRaised } from "@/components/clay";
-import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
 import {
-    Image,
+    CATEGORIES,
+    SEVERITIES,
+    mapDocToAnnouncement,
+    type Announcement,
+} from "@/lib/announcements";
+import { db } from "@/lib/firebase";
+import { formatTimeAgo } from "@/lib/posts";
+import { useAuth } from "@/providers/auth-provider";
+import { Ionicons } from "@expo/vector-icons";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import {
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    limit,
+    orderBy,
+    query,
+    startAfter,
+    type DocumentData,
+    type QueryDocumentSnapshot,
+} from "firebase/firestore";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+    ActivityIndicator,
     Pressable,
+    RefreshControl,
     ScrollView,
     Text,
     TextInput,
@@ -14,32 +37,142 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const FILTERS = ["Lahat", "Barangay", "Emergency"] as const;
 type Filter = (typeof FILTERS)[number];
 
-const PLACEHOLDER_THUMB = {
-    uri: "https://placehold.co/120x120/4a5d43/ffffff?text=%20",
-};
-
-// dummy data for now, not connected to Firestore yet
-const ANNOUNCEMENTS = [
-    {
-        id: "1",
-        title: "Barangay Meeting",
-        date: "May 16, 2025",
-        time: "8:00 AM",
-        location: "Barangay Hall",
-        category: "Barangay" as Filter,
-    },
-];
+const ANNOUNCEMENTS_PER_PAGE = 5;
 
 export default function Community() {
+    const { profile } = useAuth();
+    const isAdmin = profile?.role === "admin";
+    const userBarangay = profile?.barangay as string | undefined;
+
+    const { newAnnouncementJson } = useLocalSearchParams<{
+        newAnnouncementJson?: string;
+    }>();
+    // the announcement that was opened in [emergencyId], refreshed when we come back
+    const openedAnnouncementId = useRef<string | null>(null);
+
     const [activeFilter, setActiveFilter] = useState<Filter>("Lahat");
     const [searchQuery, setSearchQuery] = useState("");
 
-    const filtered = ANNOUNCEMENTS.filter((item) => {
+    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+    const [lastDoc, setLastDoc] =
+        useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    useEffect(() => {
+        fetchInitialAnnouncements();
+    }, []);
+
+    useEffect(() => {
+        if (!newAnnouncementJson) return;
+        try {
+            const newAnnouncement: Announcement =
+                JSON.parse(newAnnouncementJson);
+            setAnnouncements((prev) => [newAnnouncement, ...prev]);
+        } catch (err) {
+            console.error("Failed to parse returned announcement:", err);
+        }
+        router.setParams({ newAnnouncementJson: undefined });
+    }, [newAnnouncementJson]);
+
+    // after coming back from [emergencyId], reload that announcement
+    // so it disappears here if an admin deleted it there
+    useFocusEffect(
+        useCallback(() => {
+            const announcementId = openedAnnouncementId.current;
+            if (!announcementId) return;
+            openedAnnouncementId.current = null;
+
+            getDoc(doc(db, "announcements", announcementId))
+                .then((snap) => {
+                    if (!snap.exists()) {
+                        setAnnouncements((prev) =>
+                            prev.filter((a) => a.id !== announcementId),
+                        );
+                        return;
+                    }
+                    const fresh = mapDocToAnnouncement(snap);
+                    setAnnouncements((prev) =>
+                        prev.map((a) => (a.id === announcementId ? fresh : a)),
+                    );
+                })
+                .catch((err) =>
+                    console.error("Refresh announcement error:", err),
+                );
+        }, []),
+    );
+
+    const openAnnouncement = (announcementId: string) => {
+        openedAnnouncementId.current = announcementId;
+        router.push({
+            pathname: "/(tabs)/community/[emergencyId]",
+            params: { emergencyId: announcementId },
+        });
+    };
+
+    const fetchInitialAnnouncements = async () => {
+        setIsInitialLoading(true);
+        try {
+            const q = query(
+                collection(db, "announcements"),
+                orderBy("createdAt", "desc"),
+                limit(ANNOUNCEMENTS_PER_PAGE),
+            );
+            const snapshot = await getDocs(q);
+            setAnnouncements(snapshot.docs.map(mapDocToAnnouncement));
+            setLastDoc(snapshot.docs[snapshot.docs.length - 1] ?? null);
+            setHasMore(snapshot.docs.length === ANNOUNCEMENTS_PER_PAGE);
+        } catch (err) {
+            console.error("Fetch announcements error:", err);
+        } finally {
+            setIsInitialLoading(false);
+        }
+    };
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await fetchInitialAnnouncements();
+        setIsRefreshing(false);
+    };
+
+    const loadMoreAnnouncements = async () => {
+        if (!lastDoc || isLoadingMore) return;
+        setIsLoadingMore(true);
+        try {
+            const q = query(
+                collection(db, "announcements"),
+                orderBy("createdAt", "desc"),
+                startAfter(lastDoc),
+                limit(ANNOUNCEMENTS_PER_PAGE),
+            );
+            const snapshot = await getDocs(q);
+            setAnnouncements((prev) => [
+                ...prev,
+                ...snapshot.docs.map(mapDocToAnnouncement),
+            ]);
+            setLastDoc(snapshot.docs[snapshot.docs.length - 1] ?? lastDoc);
+            setHasMore(snapshot.docs.length === ANNOUNCEMENTS_PER_PAGE);
+        } catch (err) {
+            console.error("Load more announcements error:", err);
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
+
+    // filter and search only go through the announcements already loaded
+    // "Barangay" is the ones meant for the user's own barangay
+    // "Emergency" is every announcement for now, since all of them are emergency ones
+    const search = searchQuery.trim().toLowerCase();
+    const filtered = announcements.filter((item) => {
         const matchesFilter =
-            activeFilter === "Lahat" || item.category === activeFilter;
-        const matchesSearch = item.title
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase());
+            activeFilter !== "Barangay" ||
+            (!!userBarangay && item.targetBarangay === userBarangay);
+        const matchesSearch =
+            search.length === 0 ||
+            item.title.toLowerCase().includes(search) ||
+            item.content.toLowerCase().includes(search);
         return matchesFilter && matchesSearch;
     });
 
@@ -51,6 +184,21 @@ export default function Community() {
                     <Text className="text-[18px] font-bold text-[#1F2A1F]">
                         Mga Anunsyo
                     </Text>
+                    {/* only admins see this */}
+                    {isAdmin && (
+                        <Pressable
+                            onPress={() =>
+                                router.push("/(tabs)/community/create-emergency")
+                            }
+                            style={clayRaised}
+                            className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2 bg-[#9C3A2A]"
+                        >
+                            <Ionicons name="megaphone" size={15} color="#fff" />
+                            <Text className="text-[13px] font-semibold text-white">
+                                Mag-anunsyo
+                            </Text>
+                        </Pressable>
+                    )}
                 </View>
 
                 {/* Search */}
@@ -100,57 +248,149 @@ export default function Community() {
             </View>
 
             {/* List */}
-            <ScrollView contentContainerClassName="px-6 pb-8 gap-3.5">
-                {filtered.length === 0 ? (
+            <ScrollView
+                contentContainerClassName="px-6 pb-8 gap-3.5"
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={handleRefresh}
+                        tintColor="#2F5233"
+                        colors={["#2F5233"]}
+                    />
+                }
+            >
+                {isInitialLoading ? (
+                    <ActivityIndicator
+                        color="#2F5233"
+                        style={{ marginTop: 40 }}
+                    />
+                ) : filtered.length === 0 ? (
                     <Text className="text-center text-[13px] text-[#9C978C] mt-10">
                         Walang nahanap na anunsyo.
                     </Text>
                 ) : (
-                    filtered.map((item) => (
-                        <Pressable
-                            key={item.id}
-                            style={clayRaised}
-                            className="flex-row items-center gap-3 bg-[--main-white] rounded-2xl p-3"
-                            // TODO: add this once the post details page is made
-                            // onPress={() => router.push(`/(tabs)/community/${item.id}`)}
-                        >
-                            <Image
-                                source={PLACEHOLDER_THUMB}
-                                className="w-14 h-14 rounded-xl"
-                                resizeMode="cover"
-                            />
-                            <View className="flex-1">
-                                <Text className="text-[14.5px] font-semibold text-[#1F2A1F] mb-1">
-                                    {item.title}
-                                </Text>
-                                <View className="flex-row items-center gap-1 mb-0.5">
-                                    <Ionicons
-                                        name="calendar-outline"
-                                        size={12}
-                                        color="#7A6D5C"
-                                    />
-                                    <Text className="text-[12px] text-[#7A6D5C]">
-                                        {item.date} · {item.time}
-                                    </Text>
-                                </View>
-                                <View className="flex-row items-center gap-1">
-                                    <Ionicons
-                                        name="location-outline"
-                                        size={12}
-                                        color="#7A6D5C"
-                                    />
-                                    <Text className="text-[12px] text-[#7A6D5C]">
-                                        {item.location}
-                                    </Text>
-                                </View>
-                            </View>
-                            <Ionicons
-                                name="chevron-forward"
-                                size={18}
-                                color="#C4BFB2"
-                            />
-                        </Pressable>
-                    ))
+                    filtered.map((announcement) => {
+                        const level = SEVERITIES[announcement.severity];
+                        const category = CATEGORIES[announcement.category];
+                        return (
+                            <Pressable
+                                key={announcement.id}
+                                onPress={() => openAnnouncement(announcement.id)}
+                            >
+                                {({ pressed }) => (
+                                    <View
+                                        style={[
+                                            clayRaised,
+                                            { opacity: pressed ? 0.9 : 1 },
+                                        ]}
+                                        className="bg-[--main-white] rounded-2xl overflow-hidden flex-row"
+                                    >
+                                        {/* severity color strip */}
+                                        <View
+                                            style={{
+                                                width: 5,
+                                                backgroundColor:
+                                                    level.colorDark,
+                                            }}
+                                        />
+                                        <View className="flex-1 p-4">
+                                            <View className="flex-row items-center gap-2 mb-2">
+                                                <View
+                                                    className="w-8 h-8 rounded-full items-center justify-center"
+                                                    style={{
+                                                        backgroundColor:
+                                                            level.tint,
+                                                    }}
+                                                >
+                                                    <Ionicons
+                                                        name={category.icon}
+                                                        size={16}
+                                                        color={level.colorDark}
+                                                    />
+                                                </View>
+                                                <View
+                                                    className="rounded-full px-2 py-0.5"
+                                                    style={{
+                                                        backgroundColor:
+                                                            level.colorDark,
+                                                    }}
+                                                >
+                                                    <Text className="text-[10px] font-bold text-white tracking-wider">
+                                                        {level.label.toUpperCase()}
+                                                    </Text>
+                                                </View>
+                                                <Text className="text-[11.5px] font-medium text-[#7A6D5C]">
+                                                    {category.label}
+                                                </Text>
+                                                <Text className="flex-1 text-right text-[11px] text-[#9C978C]">
+                                                    {formatTimeAgo(
+                                                        announcement.createdAt,
+                                                    )}
+                                                </Text>
+                                            </View>
+
+                                            <Text
+                                                className="text-[14.5px] font-bold text-[#1F2A1F]"
+                                                numberOfLines={2}
+                                            >
+                                                {announcement.title}
+                                            </Text>
+                                            <Text
+                                                className="text-[12.5px] text-[#7A6D5C] leading-[18px] mt-1"
+                                                numberOfLines={2}
+                                            >
+                                                {announcement.content}
+                                            </Text>
+
+                                            <View className="flex-row items-center gap-1 mt-2.5">
+                                                <Ionicons
+                                                    name={
+                                                        announcement.targetBarangay
+                                                            ? "location"
+                                                            : "earth"
+                                                    }
+                                                    size={12}
+                                                    color="#9C978C"
+                                                />
+                                                <Text
+                                                    className="flex-1 text-[11.5px] text-[#9C978C]"
+                                                    numberOfLines={1}
+                                                >
+                                                    {announcement.targetBarangay
+                                                        ? `Barangay ${announcement.targetBarangay}`
+                                                        : "Lahat ng Barangay"}
+                                                </Text>
+                                                {announcement.imageUrl && (
+                                                    <Ionicons
+                                                        name="image-outline"
+                                                        size={13}
+                                                        color="#9C978C"
+                                                    />
+                                                )}
+                                            </View>
+                                        </View>
+                                    </View>
+                                )}
+                            </Pressable>
+                        );
+                    })
+                )}
+
+                {!isInitialLoading && hasMore && announcements.length > 0 && (
+                    <Pressable
+                        onPress={loadMoreAnnouncements}
+                        disabled={isLoadingMore}
+                        style={clayRaised}
+                        className="bg-[#F8F4EA] rounded-2xl py-3 items-center"
+                    >
+                        {isLoadingMore ? (
+                            <ActivityIndicator color="#2F5233" />
+                        ) : (
+                            <Text className="text-[13.5px] font-semibold text-[#2F5233]">
+                                Mag-load ng Higit Pa
+                            </Text>
+                        )}
+                    </Pressable>
                 )}
             </ScrollView>
         </SafeAreaView>
