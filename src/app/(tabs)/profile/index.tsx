@@ -27,13 +27,13 @@ const MENU_SECTIONS: MenuSection[] = [
                 route: "/(tabs)/profile/edit-profile",
             },
             {
-                icon: "settings-outline",
-                label: "Mga Setting",
-                route: "/(tabs)/profile/settings",
+                icon: "shield-checkmark-outline",
+                label: "I-verify ang Account",
+                route: "/(tabs)/profile/verify",
             },
             {
                 icon: "settings-outline",
-                label: "I-Verify ang Account",
+                label: "Mga Setting",
                 route: "/(tabs)/profile/settings",
             },
         ],

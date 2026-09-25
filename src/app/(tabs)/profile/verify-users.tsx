@@ -1,38 +1,11 @@
 import { AuthHeader } from "@/components/auth-header";
 import { clayRaised } from "@/components/clay";
+import { VERIFICATION_TYPES, type VerificationType } from "@/lib/verification";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-type VerificationType =
-    | "barangay-id"
-    | "aeta-id"
-    | "drivers-license"
-    | "national-id"
-    | "national-id-egov"
-    | "iba-pa";
-
-const VERIFICATION_TYPES: Record<
-    VerificationType,
-    { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }
-> = {
-    "barangay-id": { label: "Barangay ID", icon: "home", color: "#3F5C42" },
-    "aeta-id": { label: "Aeta ID", icon: "people", color: "#A85A30" },
-    "drivers-license": {
-        label: "Driver's License",
-        icon: "car",
-        color: "#2A4F9E",
-    },
-    "national-id": { label: "National ID", icon: "card", color: "#6B4F94" },
-    "national-id-egov": {
-        label: "National ID (eGov)",
-        icon: "phone-portrait",
-        color: "#2A7F8F",
-    },
-    "iba-pa": { label: "Iba Pa", icon: "document-text", color: "#7A6D5C" },
-};
 
 // placeholder data for now, not connected to Firestore yet
 const VERIFICATION_REQUESTS: {
@@ -56,7 +29,7 @@ const VERIFICATION_REQUESTS: {
     {
         id: "3",
         username: "pedro.reyes",
-        type: "aeta-id",
+        type: "barangay-id",
         submittedAt: "1 oras ang nakalipas",
     },
     {
