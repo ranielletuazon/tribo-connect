@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useIsFocused, useLocalSearchParams } from "expo-router";
 import {
     arrayRemove,
     arrayUnion,
@@ -78,6 +78,8 @@ export default function ConversationThread() {
     const [otherUidFromConversation, setOtherUidFromConversation] = useState<
         string | null
     >(null);
+    const [isUnreadForMe, setIsUnreadForMe] = useState(false);
+    const isFocused = useIsFocused();
     const scrollRef = useRef<ScrollView>(null);
 
     // one listener for the whole conversation (other user info, messages and my unread flag)
@@ -103,14 +105,19 @@ export default function ConversationThread() {
 
             setMessages(data.messages ?? []);
             setIsLoading(false);
-
-            if ((data.unread ?? []).includes(user.uid)) {
-                updateDoc(convRef, { unread: arrayRemove(user.uid) }).catch(
-                    (err) => console.error("Clear unread error:", err),
-                );
-            }
+            setIsUnreadForMe((data.unread ?? []).includes(user.uid));
         });
     }, [isNew, activeConversationId, user]);
+
+    // only mark as read while this screen is actually on screen. the chat tab
+    // stays mounted in the background, so the listener above keeps running
+    useEffect(() => {
+        if (isNew || !user || !isFocused || !isUnreadForMe || !activeConversationId)
+            return;
+        updateDoc(doc(db, "conversations", activeConversationId), {
+            unread: arrayRemove(user.uid),
+        }).catch((err) => console.error("Clear unread error:", err));
+    }, [isNew, isFocused, isUnreadForMe, activeConversationId, user]);
 
     useEffect(() => {
         const timeout = setTimeout(
