@@ -1,10 +1,10 @@
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { uploadImage } from "@/lib/upload-image";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useState } from "react";
 import {
     Image,
@@ -53,11 +53,10 @@ export default function CreatePost() {
 
             let imageUrl: string | null = null;
             if (imageUri) {
-                const response = await fetch(imageUri);
-                const blob = await response.blob();
-                const storageRef = ref(storage, `posts/${postRef.id}.jpg`);
-                await uploadBytes(storageRef, blob);
-                imageUrl = await getDownloadURL(storageRef);
+                imageUrl = await uploadImage(
+                    imageUri,
+                    `posts/${postRef.id}.jpg`,
+                );
             }
 
             const newPost = {

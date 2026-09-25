@@ -4,6 +4,8 @@ export default function CommunityLayout() {
     return (
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
+            <Stack.Screen name="create-emergency" />
+            <Stack.Screen name="[emergencyId]" />
         </Stack>
     );
 }

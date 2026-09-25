@@ -1,13 +1,13 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton, clayRaised } from "@/components/clay";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { uploadImage } from "@/lib/upload-image";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { doc, updateDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useState } from "react";
 import {
     Image,
@@ -121,14 +121,10 @@ export default function EditProfile() {
             // only upload the photo if the user picked a new one
             // (new photos start with file://, old ones are already a link)
             if (imageUri && imageUri !== profile?.photoURL) {
-                const response = await fetch(imageUri);
-                const blob = await response.blob();
-                const storageRef = ref(
-                    storage,
+                photoURL = await uploadImage(
+                    imageUri,
                     `users/${user.uid}/profile-image`,
                 );
-                await uploadBytes(storageRef, blob);
-                photoURL = await getDownloadURL(storageRef);
             }
 
             await updateDoc(doc(db, "users", user.uid), {

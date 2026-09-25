@@ -5,6 +5,7 @@ export default function FeedLayout() {
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="create-post" />
+            <Stack.Screen name="view-feed" />
         </Stack>
     );
 }

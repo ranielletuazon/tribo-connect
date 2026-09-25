@@ -1,13 +1,15 @@
 import { clayRaised } from "@/components/clay";
 import { db } from "@/lib/firebase";
+import { formatTimeAgo, mapDocToPost, type Post } from "@/lib/posts";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
     arrayRemove,
     arrayUnion,
     collection,
     doc,
+    getDoc,
     getDocs,
     limit,
     orderBy,
@@ -16,12 +18,12 @@ import {
     updateDoc,
     type DocumentData,
     type QueryDocumentSnapshot,
-    type Timestamp,
 } from "firebase/firestore";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Image,
+    Modal,
     Pressable,
     RefreshControl,
     Text,
@@ -38,52 +40,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const COMPOSER_HEIGHT = 64;
 const POSTS_PER_PAGE = 5;
 
-interface Post {
-    id: string;
-    authorId: string;
-    authorName: string;
-    authorBarangay: string;
-    authorPhotoURL: string | null;
-    content: string;
-    imageUrl: string | null;
-    likes: string[];
-    commentCount: number;
-    createdAt: Timestamp | null;
-}
-
-function formatTimeAgo(timestamp: Timestamp | null): string {
-    if (!timestamp) return "";
-    const diffMins = Math.floor(
-        (Date.now() - timestamp.toDate().getTime()) / 60000,
-    );
-    if (diffMins < 1) return "Ngayon lang";
-    if (diffMins < 60) return `${diffMins} minuto ang nakalipas`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} oras ang nakalipas`;
-    const diffDays = Math.floor(diffHours / 24);
-    return diffDays === 1 ? "Kahapon" : `${diffDays} araw ang nakalipas`;
-}
-
-function mapDocToPost(docSnap: QueryDocumentSnapshot<DocumentData>): Post {
-    const data = docSnap.data();
-    return {
-        id: docSnap.id,
-        authorId: data.authorId,
-        authorName: data.authorName,
-        authorBarangay: data.authorBarangay,
-        authorPhotoURL: data.authorPhotoURL ?? null,
-        content: data.content,
-        imageUrl: data.imageUrl ?? null,
-        likes: data.likes ?? [],
-        commentCount: data.commentCount ?? 0,
-        createdAt: data.createdAt ?? null,
-    };
-}
-
 export default function Feed() {
     const { user, profile } = useAuth();
     const { newPostJson } = useLocalSearchParams<{ newPostJson?: string }>();
     const lastScrollY = useRef(0);
+    // the post that was opened in view-feed, refreshed when we come back
+    const openedPostId = useRef<string | null>(null);
 
     const [posts, setPosts] = useState<Post[]>([]);
     const [lastDoc, setLastDoc] =
@@ -92,6 +54,10 @@ export default function Feed() {
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // popover state: which post it's for, and where the tap happened
+    const [menuPost, setMenuPost] = useState<Post | null>(null);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, right: 24 });
 
     const composerHeight = useSharedValue(COMPOSER_HEIGHT);
     const composerOpacity = useSharedValue(1);
@@ -112,6 +78,37 @@ export default function Feed() {
         }
         router.setParams({ newPostJson: undefined });
     }, [newPostJson]);
+
+    // after coming back from view-feed, reload that post so its
+    // likes and comment count match what the user just did there
+    useFocusEffect(
+        useCallback(() => {
+            const postId = openedPostId.current;
+            if (!postId) return;
+            openedPostId.current = null;
+
+            getDoc(doc(db, "posts", postId))
+                .then((snap) => {
+                    if (!snap.exists()) {
+                        setPosts((prev) => prev.filter((p) => p.id !== postId));
+                        return;
+                    }
+                    const fresh = mapDocToPost(snap);
+                    setPosts((prev) =>
+                        prev.map((p) => (p.id === postId ? fresh : p)),
+                    );
+                })
+                .catch((err) => console.error("Refresh post error:", err));
+        }, []),
+    );
+
+    const openPost = (postId: string, focusComment = false) => {
+        openedPostId.current = postId;
+        router.push({
+            pathname: "/(tabs)/feed/view-feed",
+            params: focusComment ? { postId, focusComment: "1" } : { postId },
+        });
+    };
 
     const fetchInitialPosts = async () => {
         setIsInitialLoading(true);
@@ -232,6 +229,37 @@ export default function Feed() {
         }
     };
 
+    // opens the small popover right where the ellipsis was tapped
+    // does nothing for your own post, no menu items exist for it yet
+    const openPostMenu = (post: Post, pageY: number) => {
+        if (post.authorId === user?.uid) return;
+        setMenuPosition({ top: pageY + 10, right: 24 });
+        setMenuPost(post);
+    };
+
+    // reuses the same lookup as the chat search screen
+    // opens the existing conversation instead of starting a duplicate one
+    const handleChatWithAuthor = () => {
+        if (!menuPost) return;
+        const authorId = menuPost.authorId;
+        const authorName = menuPost.authorName;
+        const authorPhotoURL = menuPost.authorPhotoURL;
+        setMenuPost(null);
+
+        const existingConversationId: string | undefined =
+            profile?.messages?.[authorId];
+
+        router.push({
+            pathname: "/(tabs)/chat/[conversationId]",
+            params: {
+                conversationId: existingConversationId ?? "new",
+                targetUid: authorId,
+                targetName: authorName,
+                targetPhotoURL: authorPhotoURL ?? "",
+            },
+        });
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             {/* Header */}
@@ -337,33 +365,45 @@ export default function Feed() {
                                             {formatTimeAgo(post.createdAt)}
                                         </Text>
                                     </View>
-                                    <Ionicons
-                                        name="ellipsis-horizontal"
-                                        size={18}
-                                        color="#C4BFB2"
-                                    />
+                                    <Pressable
+                                        hitSlop={10}
+                                        onPress={(e) =>
+                                            openPostMenu(
+                                                post,
+                                                e.nativeEvent.pageY,
+                                            )
+                                        }
+                                    >
+                                        <Ionicons
+                                            name="ellipsis-horizontal"
+                                            size={18}
+                                            color="#C4BFB2"
+                                        />
+                                    </Pressable>
                                 </View>
 
-                                <Text className="text-[13.5px] text-[#1F2A1F] leading-5 px-4 pb-3">
-                                    {post.content}
-                                </Text>
-
-                                {post.imageUrl && (
-                                    <Image
-                                        source={{ uri: post.imageUrl }}
-                                        className="w-full h-48 bg-[#EDEAE2]"
-                                        resizeMode="cover"
-                                    />
-                                )}
-
-                                <View className="flex-row items-center justify-between px-4 pt-3 pb-1">
-                                    <Text className="text-[11.5px] text-[#9C978C]">
-                                        {post.likes.length} gusto
+                                <Pressable onPress={() => openPost(post.id)}>
+                                    <Text className="text-[13.5px] text-[#1F2A1F] leading-5 px-4 pb-3">
+                                        {post.content}
                                     </Text>
-                                    <Text className="text-[11.5px] text-[#9C978C]">
-                                        {post.commentCount} komento
-                                    </Text>
-                                </View>
+
+                                    {post.imageUrl && (
+                                        <Image
+                                            source={{ uri: post.imageUrl }}
+                                            className="w-full h-48 bg-[#EDEAE2]"
+                                            resizeMode="cover"
+                                        />
+                                    )}
+
+                                    <View className="flex-row items-center justify-between px-4 pt-3 pb-1">
+                                        <Text className="text-[11.5px] text-[#9C978C]">
+                                            {post.likes.length} gusto
+                                        </Text>
+                                        <Text className="text-[11.5px] text-[#9C978C]">
+                                            {post.commentCount} komento
+                                        </Text>
+                                    </View>
+                                </Pressable>
 
                                 <View className="h-px bg-[#EDEAE2] mx-4 mt-2" />
 
@@ -395,7 +435,10 @@ export default function Feed() {
                                         </Text>
                                     </Pressable>
 
-                                    <Pressable className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5">
+                                    <Pressable
+                                        className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5"
+                                        onPress={() => openPost(post.id, true)}
+                                    >
                                         <Ionicons
                                             name="chatbubble-outline"
                                             size={17}
@@ -428,6 +471,42 @@ export default function Feed() {
                     </Pressable>
                 )}
             </Animated.ScrollView>
+
+            {/* small popover near the tapped ellipsis, not a full sheet */}
+            <Modal
+                visible={!!menuPost}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMenuPost(null)}
+            >
+                <Pressable className="flex-1" onPress={() => setMenuPost(null)}>
+                    <View
+                        style={[
+                            clayRaised,
+                            {
+                                position: "absolute",
+                                top: menuPosition.top,
+                                right: menuPosition.right,
+                            },
+                        ]}
+                        className="bg-[--main-white] rounded-xl overflow-hidden min-w-[130px]"
+                    >
+                        <Pressable
+                            className="flex-row items-center gap-2 px-4 py-3"
+                            onPress={handleChatWithAuthor}
+                        >
+                            <Ionicons
+                                name="chatbubble-ellipses-outline"
+                                size={16}
+                                color="#1F2A1F"
+                            />
+                            <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
+                                I-Chat
+                            </Text>
+                        </Pressable>
+                    </View>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
