@@ -35,7 +35,14 @@
           "imageWidth": 76
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kailangan ng TriboConnect ang iyong mga larawan para makapag-upload ng litrato at ID.",
+          "cameraPermission": "Kailangan ng TriboConnect ang camera para makunan ang iyong ID para sa beripikasyon."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
