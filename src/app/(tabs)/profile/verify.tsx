@@ -70,6 +70,10 @@ const STEPS: { title: string; description: string }[] = [
             "Babasahin ng app ang iyong pangalan, kaarawan at tirahan mula sa ID.",
     },
     {
+        title: "Kumuha ng Selfie",
+        description: "Kunan ang iyong mukha para maitugma sa larawan sa ID.",
+    },
+    {
         title: "Suriin ang Detalye",
         description: 'Itama kung may mali, saka pindutin ang "I-Verify".',
     },

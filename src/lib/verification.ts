@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { DocumentSnapshot, Timestamp } from "firebase/firestore";
 
 // keep this list the same as ID_TYPES in functions/src/verification.ts
 export type VerificationType =
@@ -96,4 +97,72 @@ export type ScanResult =
 export function callableErrorMessage(err: unknown, fallback: string): string {
     const message = err instanceof Error ? err.message : "";
     return /\s/.test(message) ? message : fallback;
+}
+
+export interface PersonalInfo extends ExtractedFields {
+    barangay: string;
+}
+
+// a doc in the verification collection, written by submitVerification
+export interface VerificationRequest {
+    uid: string;
+    email: string | null;
+    username: string;
+    photoURL: string | null;
+    idType: VerificationType;
+    imagePath: string;
+    // older requests were made before the selfie step
+    selfiePath: string | null;
+    personalInfo: PersonalInfo;
+    ocr: {
+        fields: ExtractedFields;
+        rawText: string;
+        confidence: number;
+        blurScore: number;
+        typeMatch: boolean;
+    };
+    status: VerificationStatus;
+    attempts: number;
+    submittedAt: Timestamp | null;
+    reviewedAt: Timestamp | null;
+    reviewedByName: string | null;
+    rejectionReason: string | null;
+}
+
+export function mapDocToVerification(
+    docSnap: DocumentSnapshot,
+): VerificationRequest {
+    const data = docSnap.data() ?? {};
+    const emptyFields: ExtractedFields = {
+        lastName: "",
+        firstName: "",
+        middleName: "",
+        birthDate: "",
+        sex: "",
+        address: "",
+        idNumber: "",
+    };
+    return {
+        uid: docSnap.id,
+        email: data.email ?? null,
+        username: data.username ?? "Gumagamit",
+        photoURL: data.photoURL ?? null,
+        idType: data.idType in VERIFICATION_TYPES ? data.idType : "iba-pa",
+        imagePath: data.imagePath ?? "",
+        selfiePath: data.selfiePath ?? null,
+        personalInfo: { ...emptyFields, barangay: "", ...data.personalInfo },
+        ocr: {
+            fields: { ...emptyFields, ...data.ocr?.fields },
+            rawText: data.ocr?.rawText ?? "",
+            confidence: data.ocr?.confidence ?? 0,
+            blurScore: data.ocr?.blurScore ?? 0,
+            typeMatch: data.ocr?.typeMatch ?? true,
+        },
+        status: data.status ?? "pending",
+        attempts: data.attempts ?? 1,
+        submittedAt: data.submittedAt ?? null,
+        reviewedAt: data.reviewedAt ?? null,
+        reviewedByName: data.reviewedByName ?? null,
+        rejectionReason: data.rejectionReason ?? null,
+    };
 }

@@ -6,6 +6,8 @@ export interface Post {
     authorName: string;
     authorBarangay: string;
     authorPhotoURL: string | null;
+    // saved when the post is made, so older posts don't have it
+    authorVerified: boolean;
     content: string;
     imageUrl: string | null;
     likes: string[];
@@ -18,6 +20,7 @@ export interface PostComment {
     authorId: string;
     authorName: string;
     authorPhotoURL: string | null;
+    authorVerified: boolean;
     content: string;
     createdAt: Timestamp | null;
 }
@@ -43,6 +46,7 @@ export function mapDocToPost(docSnap: DocumentSnapshot): Post {
         authorName: data.authorName ?? "Gumagamit",
         authorBarangay: data.authorBarangay,
         authorPhotoURL: data.authorPhotoURL ?? null,
+        authorVerified: data.authorVerified === true,
         content: data.content ?? "",
         imageUrl: data.imageUrl ?? null,
         likes: data.likes ?? [],
@@ -59,6 +63,7 @@ export function mapDocToComment(docSnap: DocumentSnapshot): PostComment {
         authorId: data.authorId,
         authorName: data.authorName ?? "Gumagamit",
         authorPhotoURL: data.authorPhotoURL ?? null,
+        authorVerified: data.authorVerified === true,
         content: data.content ?? "",
         createdAt: data.createdAt ?? null,
     };

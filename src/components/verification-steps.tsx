@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Fragment } from "react";
 import { Text, View } from "react-native";
 
-const STEPS = ["Kunan ang ID", "Suriin ang Detalye", "Isumite"];
+const STEPS = ["Kunan ang ID", "Selfie", "Suriin ang Detalye"];
 
 // progress bar at the top of the verification screens, current is 0-based
 export function VerificationSteps({ current }: { current: number }) {

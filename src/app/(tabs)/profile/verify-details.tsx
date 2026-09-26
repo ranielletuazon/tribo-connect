@@ -135,6 +135,7 @@ export default function VerifyDetails() {
     const params = useLocalSearchParams<{
         idType: VerificationType;
         imagePath: string;
+        selfiePath: string;
         fieldsJson?: string;
         typeMatch?: string;
     }>();
@@ -192,6 +193,7 @@ export default function VerifyDetails() {
             await submitVerification({
                 idType,
                 imagePath: params.imagePath,
+                selfiePath: params.selfiePath,
                 lastName: lastName.trim(),
                 firstName: firstName.trim(),
                 middleName: middleName.trim(),
@@ -259,7 +261,7 @@ export default function VerifyDetails() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <AuthHeader title="Beripikasyon" />
-                    <VerificationSteps current={1} />
+                    <VerificationSteps current={2} />
 
                     <Text className="text-[13.5px] text-[#7A6D5C] leading-5 mb-4 px-1">
                         Nabasa namin ang iyong ID. Suriing mabuti ang bawat
@@ -317,7 +319,9 @@ export default function VerifyDetails() {
                             </View>
                         </View>
                         <Pressable
-                            onPress={() => router.back()}
+                            onPress={() =>
+                                router.dismissTo("/(tabs)/profile/verify-id")
+                            }
                             disabled={isSubmitting}
                             className="px-3 py-1.5 rounded-full bg-[#F0EDE6]"
                         >

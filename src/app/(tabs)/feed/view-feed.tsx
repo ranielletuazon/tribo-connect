@@ -1,3 +1,4 @@
+import { VerifiedBadge } from "@/components/verified-badge";
 import { db } from "@/lib/firebase";
 import {
     formatTimeAgo,
@@ -188,6 +189,7 @@ export default function ViewFeed() {
                 authorId: user.uid,
                 authorName: profile.username,
                 authorPhotoURL: profile.photoURL ?? null,
+                authorVerified: profile.isVerified === true,
                 content: trimmed,
                 createdAt: serverTimestamp(),
             });
@@ -235,8 +237,8 @@ export default function ViewFeed() {
                             color="#C4BFB2"
                         />
                         <Text className="text-center text-[13.5px] text-[#9C978C] mt-3">
-                            Hindi na makita ang post na ito. Maaaring binura
-                            na ito.
+                            Hindi na makita ang post na ito. Maaaring binura na
+                            ito.
                         </Text>
                     </View>
                 ) : (
@@ -254,9 +256,17 @@ export default function ViewFeed() {
                                     size={44}
                                 />
                                 <View className="flex-1">
-                                    <Text className="text-[14px] font-semibold text-[#1F2A1F]">
-                                        {post.authorName}
-                                    </Text>
+                                    <View className="flex-row items-center gap-1">
+                                        <Text
+                                            className="text-[14px] font-semibold text-[#1F2A1F] shrink"
+                                            numberOfLines={1}
+                                        >
+                                            {post.authorName}
+                                        </Text>
+                                        {post.authorVerified && (
+                                            <VerifiedBadge />
+                                        )}
+                                    </View>
                                     <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
                                         Barangay {post.authorBarangay} ·{" "}
                                         {formatTimeAgo(post.createdAt)}
@@ -296,7 +306,9 @@ export default function ViewFeed() {
                                     onPress={toggleLike}
                                 >
                                     <Ionicons
-                                        name={isLiked ? "heart" : "heart-outline"}
+                                        name={
+                                            isLiked ? "heart" : "heart-outline"
+                                        }
                                         size={18}
                                         color={isLiked ? "#B23A2E" : "#7A6D5C"}
                                     />
@@ -348,14 +360,23 @@ export default function ViewFeed() {
                                         >
                                             <Avatar
                                                 name={comment.authorName}
-                                                photoURL={comment.authorPhotoURL}
+                                                photoURL={
+                                                    comment.authorPhotoURL
+                                                }
                                                 size={34}
                                             />
                                             <View className="flex-1 items-start">
                                                 <View className="bg-[#F0EDE6] rounded-2xl px-3.5 py-2 max-w-full">
-                                                    <Text className="text-[13px] font-semibold text-[#1F2A1F]">
-                                                        {comment.authorName}
-                                                    </Text>
+                                                    <View className="flex-row items-center gap-1">
+                                                        <Text className="text-[13px] font-semibold text-[#1F2A1F] shrink">
+                                                            {comment.authorName}
+                                                        </Text>
+                                                        {comment.authorVerified && (
+                                                            <VerifiedBadge
+                                                                size={12}
+                                                            />
+                                                        )}
+                                                    </View>
                                                     <Text className="text-[14px] text-[#1F2A1F] leading-5 mt-0.5">
                                                         {comment.content}
                                                     </Text>
