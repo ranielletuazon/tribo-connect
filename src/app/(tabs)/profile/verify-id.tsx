@@ -72,7 +72,7 @@ export default function VerifyId() {
 
             setStage("idle");
             router.push({
-                pathname: "/(tabs)/profile/verify-details",
+                pathname: "/(tabs)/profile/verify-selfie",
                 params: {
                     idType: type,
                     imagePath,

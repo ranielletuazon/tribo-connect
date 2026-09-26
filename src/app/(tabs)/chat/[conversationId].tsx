@@ -1,3 +1,4 @@
+import { VerifiedBadge } from "@/components/verified-badge";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -46,13 +47,19 @@ function formatTime(timestamp: Timestamp | null): string {
 }
 
 export default function ConversationThread() {
-    const { conversationId, targetUid, targetName, targetPhotoURL } =
-        useLocalSearchParams<{
-            conversationId: string;
-            targetUid?: string;
-            targetName?: string;
-            targetPhotoURL?: string;
-        }>();
+    const {
+        conversationId,
+        targetUid,
+        targetName,
+        targetPhotoURL,
+        targetVerified,
+    } = useLocalSearchParams<{
+        conversationId: string;
+        targetUid?: string;
+        targetName?: string;
+        targetPhotoURL?: string;
+        targetVerified?: string;
+    }>();
     const { user, profile } = useAuth();
 
     // the current conversation id. for a new chat we just update this after
@@ -69,6 +76,9 @@ export default function ConversationThread() {
     const [otherName, setOtherName] = useState(targetName ?? "");
     const [otherPhotoURL, setOtherPhotoURL] = useState<string | null>(
         targetPhotoURL || null,
+    );
+    const [otherVerified, setOtherVerified] = useState(
+        targetVerified === "1",
     );
     const [messages, setMessages] = useState<StoredMessage[]>([]);
     const [isLoading, setIsLoading] = useState(!isNew);
@@ -202,7 +212,7 @@ export default function ConversationThread() {
         }
     };
 
-    // use the other user's latest name and photo
+    // use the other user's latest name, photo and verified status
     useEffect(() => {
         const uidToWatch = isNew ? targetUid : otherUidFromConversation;
         if (!uidToWatch) return;
@@ -212,6 +222,7 @@ export default function ConversationThread() {
             if (!data) return;
             setOtherName(data.username ?? "Gumagamit");
             setOtherPhotoURL(data.photoURL ?? null);
+            setOtherVerified(data.isVerified === true);
         });
     }, [isNew, targetUid, otherUidFromConversation]);
 
@@ -238,12 +249,15 @@ export default function ConversationThread() {
                             </Text>
                         )}
                     </View>
-                    <Text
-                        className="flex-1 text-[15.5px] font-bold text-[#1F2A1F]"
-                        numberOfLines={1}
-                    >
-                        {otherName}
-                    </Text>
+                    <View className="flex-1 flex-row items-center gap-1">
+                        <Text
+                            className="text-[15.5px] font-bold text-[#1F2A1F] shrink"
+                            numberOfLines={1}
+                        >
+                            {otherName}
+                        </Text>
+                        {otherVerified && <VerifiedBadge size={15} />}
+                    </View>
                 </View>
 
                 {isLoading ? (

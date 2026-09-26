@@ -1,4 +1,5 @@
 import { clayRaised } from "@/components/clay";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,6 +32,7 @@ interface UserResult {
     username: string;
     photoURL: string | null;
     barangay: string | null;
+    isVerified: boolean;
 }
 
 interface ConversationSummary {
@@ -38,6 +40,7 @@ interface ConversationSummary {
     otherUid: string;
     otherName: string;
     otherPhotoURL: string | null;
+    otherVerified: boolean;
     lastMessage: string;
     lastMessageAt: Timestamp | null;
     isUnread: boolean;
@@ -85,6 +88,7 @@ export default function Chat() {
                         otherUid,
                         otherName: otherInfo.name ?? "Gumagamit",
                         otherPhotoURL: otherInfo.photoURL ?? null,
+                        otherVerified: false,
                         lastMessage: data.lastMessage ?? "",
                         lastMessageAt: data.lastMessageAt ?? null,
                         isUnread: (data.unread ?? []).includes(user.uid),
@@ -112,6 +116,7 @@ export default function Chat() {
                                 {
                                     name: d.data().username,
                                     photoURL: d.data().photoURL ?? null,
+                                    isVerified: d.data().isVerified === true,
                                 },
                             ]),
                         );
@@ -123,6 +128,7 @@ export default function Chat() {
                                           ...c,
                                           otherName: fresh.name,
                                           otherPhotoURL: fresh.photoURL,
+                                          otherVerified: fresh.isVerified,
                                       }
                                     : c;
                             }),
@@ -169,6 +175,7 @@ export default function Chat() {
                             username: data.username,
                             photoURL: data.photoURL ?? null,
                             barangay: data.barangay ?? null,
+                            isVerified: data.isVerified === true,
                         };
                     })
                     .filter((r) => r.uid !== user?.uid);
@@ -200,6 +207,7 @@ export default function Chat() {
                 targetUid: result.uid,
                 targetName: result.username,
                 targetPhotoURL: result.photoURL ?? "",
+                targetVerified: result.isVerified ? "1" : "",
             },
         });
     };
@@ -285,9 +293,15 @@ export default function Chat() {
                                     )}
                                 </View>
                                 <View className="flex-1">
-                                    <Text className="text-[14px] font-semibold text-[#1F2A1F]">
-                                        {result.username}
-                                    </Text>
+                                    <View className="flex-row items-center gap-1">
+                                        <Text
+                                            className="text-[14px] font-semibold text-[#1F2A1F] shrink"
+                                            numberOfLines={1}
+                                        >
+                                            {result.username}
+                                        </Text>
+                                        {result.isVerified && <VerifiedBadge />}
+                                    </View>
                                     {result.barangay && (
                                         <Text className="text-[11.5px] text-[#9C978C]">
                                             Barangay {result.barangay}
@@ -348,9 +362,15 @@ export default function Chat() {
                             </View>
 
                             <View className="flex-1">
-                                <Text className="text-[14.5px] font-semibold text-[#1F2A1F] mb-0.5">
-                                    {item.otherName}
-                                </Text>
+                                <View className="flex-row items-center gap-1 mb-0.5">
+                                    <Text
+                                        className="text-[14.5px] font-semibold text-[#1F2A1F] shrink"
+                                        numberOfLines={1}
+                                    >
+                                        {item.otherName}
+                                    </Text>
+                                    {item.otherVerified && <VerifiedBadge />}
+                                </View>
                                 <Text
                                     className={`text-[12.5px] ${item.isUnread ? "text-[#1F2A1F] font-semibold" : "text-[#7A6D5C]"}`}
                                     numberOfLines={1}

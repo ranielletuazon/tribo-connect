@@ -40,7 +40,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Kailangan ng TriboConnect ang iyong mga larawan para makapag-upload ng litrato at ID.",
-          "cameraPermission": "Kailangan ng TriboConnect ang camera para makunan ang iyong ID para sa beripikasyon."
+          "cameraPermission": "Kailangan ng TriboConnect ang camera para makunan ang iyong ID at selfie para sa beripikasyon."
         }
       ]
     ],

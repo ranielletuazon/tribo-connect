@@ -65,6 +65,7 @@ export default function CreatePost() {
                 authorName: profile.username,
                 authorBarangay: profile.barangay,
                 authorPhotoURL: profile.photoURL ?? null,
+                authorVerified: profile.isVerified === true,
                 content: content.trim(),
                 imageUrl,
                 likeCount: 0,

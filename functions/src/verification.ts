@@ -601,6 +601,16 @@ export const submitVerification = onCall(async (request) => {
   if (!ID_TYPES.includes(idType) || !isOwnImagePath(imagePath, uid)) {
     throw new HttpsError("invalid-argument", "Mali ang ipinadalang ID.");
   }
+  const selfiePath = data.selfiePath;
+  if (
+    !isOwnImagePath(selfiePath, uid) ||
+    !(selfiePath as string).includes("/selfie-")
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Kumuha muna ng selfie bago magpatuloy.",
+    );
+  }
 
   const personalInfo = {
     lastName: readString(data, "lastName", 60, true),
@@ -655,6 +665,16 @@ export const submitVerification = onCall(async (request) => {
     );
   }
 
+  // make sure the selfie was really uploaded
+  const [selfieExists] = await admin.storage().bucket()
+    .file(selfiePath as string).exists();
+  if (!selfieExists) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Hindi makita ang iyong selfie. Pakikuha muli.",
+    );
+  }
+
   const user = userSnap.data() ?? {};
   const now = admin.firestore.FieldValue.serverTimestamp();
   const batch = db.batch();
@@ -667,6 +687,7 @@ export const submitVerification = onCall(async (request) => {
     photoURL: user.photoURL ?? null,
     idType,
     imagePath,
+    selfiePath,
     personalInfo,
     // what the OCR read, for the admin to compare with personalInfo
     ocr: {
@@ -686,6 +707,81 @@ export const submitVerification = onCall(async (request) => {
   });
   batch.update(userSnap.ref, {verificationStatus: "pending"});
   await batch.commit();
+
+  return {success: true};
+});
+
+export const reviewVerification = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Kailangan mag-login muna.");
+  }
+  const adminUid = request.auth.uid;
+  const {uid, decision, reason} = (request.data ?? {}) as {
+    uid?: unknown;
+    decision?: unknown;
+    reason?: unknown;
+  };
+
+  if (typeof uid !== "string" || uid.length === 0) {
+    throw new HttpsError("invalid-argument", "Walang napiling user.");
+  }
+  if (decision !== "approve" && decision !== "reject") {
+    throw new HttpsError("invalid-argument", "Mali ang desisyon.");
+  }
+  const rejectionReason = typeof reason === "string" ? reason.trim() : "";
+  if (
+    decision === "reject" &&
+    (rejectionReason.length < 5 || rejectionReason.length > 300)
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Maglagay ng dahilan ng pagtanggi (5 hanggang 300 letra).",
+    );
+  }
+
+  const db = admin.firestore();
+  const adminSnap = await db.collection("users").doc(adminUid).get();
+  if (adminSnap.data()?.role !== "admin") {
+    throw new HttpsError(
+      "permission-denied",
+      "Ang mga admin lamang ang maaaring magsuri ng beripikasyon.",
+    );
+  }
+
+  const verificationRef = db.collection("verification").doc(uid);
+  const userRef = db.collection("users").doc(uid);
+
+  // a transaction so two admins can't review the same request at once
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(verificationRef);
+    if (!snap.exists) {
+      throw new HttpsError("not-found", "Hindi makita ang beripikasyon.");
+    }
+    if (snap.data()?.status !== "pending") {
+      throw new HttpsError(
+        "failed-precondition",
+        "Nasuri na ng ibang admin ang beripikasyong ito.",
+      );
+    }
+
+    const now = admin.firestore.FieldValue.serverTimestamp();
+    const approved = decision === "approve";
+
+    tx.update(verificationRef, {
+      status: approved ? "approved" : "rejected",
+      reviewedBy: adminUid,
+      reviewedByName: adminSnap.data()?.username ?? null,
+      reviewedAt: now,
+      rejectionReason: approved ? null : rejectionReason,
+      updatedAt: now,
+    });
+    tx.update(userRef, {
+      verificationStatus: approved ? "approved" : "rejected",
+      isVerified: approved,
+      verifiedAt: approved ? now : null,
+      verifiedIdType: approved ? snap.data()?.idType ?? null : null,
+    });
+  });
 
   return {success: true};
 });

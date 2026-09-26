@@ -1,5 +1,6 @@
 import { AuthHeader } from "@/components/auth-header";
 import { clayRaised } from "@/components/clay";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, type Href } from "expo-router";
@@ -110,6 +111,9 @@ export default function Profile() {
                         <Text className="text-[17px] font-bold text-[#1F2A1F]">
                             {displayName}
                         </Text>
+                        {profile?.isVerified === true && (
+                            <VerifiedBadge size={18} />
+                        )}
                         {profile?.role === "admin" && (
                             <View className="flex-row items-center gap-1 bg-[#9C3A2A] rounded-full px-2 py-0.5">
                                 <Ionicons

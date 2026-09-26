@@ -8,8 +8,10 @@ export default function ProfileLayout() {
             <Stack.Screen name="edit-profile" />
             <Stack.Screen name="verify" />
             <Stack.Screen name="verify-id" />
+            <Stack.Screen name="verify-selfie" />
             <Stack.Screen name="verify-details" />
-            <Stack.Screen name="verify-users" />
+            <Stack.Screen name="verify-users/index" />
+            <Stack.Screen name="verify-users/[verificationId]" />
         </Stack>
     );
 }

@@ -1,4 +1,5 @@
 import { clayRaised } from "@/components/clay";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { db } from "@/lib/firebase";
 import { formatTimeAgo, mapDocToPost, type Post } from "@/lib/posts";
 import { useAuth } from "@/providers/auth-provider";
@@ -357,9 +358,17 @@ export default function Feed() {
                                         )}
                                     </View>
                                     <View className="flex-1">
-                                        <Text className="text-[14px] font-semibold text-[#1F2A1F]">
-                                            {post.authorName}
-                                        </Text>
+                                        <View className="flex-row items-center gap-1">
+                                            <Text
+                                                className="text-[14px] font-semibold text-[#1F2A1F] shrink"
+                                                numberOfLines={1}
+                                            >
+                                                {post.authorName}
+                                            </Text>
+                                            {post.authorVerified && (
+                                                <VerifiedBadge />
+                                            )}
+                                        </View>
                                         <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
                                             Barangay {post.authorBarangay} ·{" "}
                                             {formatTimeAgo(post.createdAt)}

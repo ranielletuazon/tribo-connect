@@ -1,4 +1,5 @@
 import { clayRaised, ClaySurface, GradientBorderCard } from "@/components/clay";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
@@ -55,7 +56,7 @@ export default function Home() {
             <ScrollView contentContainerClassName="p-5 pb-8">
                 {/* Header */}
                 <View className="flex-row items-center justify-between mb-6">
-                    <View className="flex-row items-center gap-3">
+                    <View className="flex-1 flex-row items-center gap-3 mr-3">
                         <View
                             className="w-11 h-11 rounded-[22px] bg-[#5C7A5F] items-center justify-center"
                             style={clayRaised}
@@ -74,10 +75,18 @@ export default function Home() {
                                 </Text>
                             )}
                         </View>
-                        <View>
-                            <Text className="text-[15px] font-semibold text-[#1F2A1F]">
-                                Kumusta! {profile?.username}
-                            </Text>
+                        <View className="flex-1">
+                            <View className="flex-row items-center gap-1">
+                                <Text
+                                    className="text-[15px] font-semibold text-[#1F2A1F] shrink"
+                                    numberOfLines={1}
+                                >
+                                    Kumusta! {profile?.username}
+                                </Text>
+                                {profile?.isVerified === true && (
+                                    <VerifiedBadge size={15} />
+                                )}
+                            </View>
                             {profile?.role === "admin" ? (
                                 <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
                                     Admin ng {profile?.barangay} · Porac
