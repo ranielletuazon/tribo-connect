@@ -11,11 +11,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 45;
 
+function getErrorCode(error: unknown): string {
+    return typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code: unknown }).code)
+        : "";
+}
+
 function getSendErrorMessage(error: unknown): string {
-    const code =
-        typeof error === "object" && error !== null && "code" in error
-            ? String((error as { code: unknown }).code)
-            : "";
+    const code = getErrorCode(error);
 
     switch (code) {
         case "functions/resource-exhausted":
@@ -28,10 +31,7 @@ function getSendErrorMessage(error: unknown): string {
 }
 
 function getVerifyErrorMessage(error: unknown): string {
-    const code =
-        typeof error === "object" && error !== null && "code" in error
-            ? String((error as { code: unknown }).code)
-            : "";
+    const code = getErrorCode(error);
 
     switch (code) {
         case "functions/invalid-argument":
@@ -101,10 +101,27 @@ export default function OtpVerify() {
         }
     };
 
-    const handleResend = () => {
-        if (secondsLeft > 0) return;
-        setSecondsLeft(RESEND_SECONDS);
-        // TODO: actually resend the code here
+    const handleResend = async () => {
+        if (secondsLeft > 0 || isSubmitting || isVerifying) return;
+        setIsSubmitting(true);
+        setSendError(null);
+        setVerifyError(null);
+        try {
+            // requestOtp replaces the old code and resets the attempt count
+            await httpsCallable(functions, "requestOtp")();
+            setDigits(Array(CODE_LENGTH).fill(""));
+            setSecondsLeft(RESEND_SECONDS);
+            inputRefs.current[0]?.focus();
+        } catch (error) {
+            console.error("Resend OTP error:", error);
+            setSendError(getSendErrorMessage(error));
+            // Server-side cooldown still active, restart the timer to match
+            if (getErrorCode(error) === "functions/resource-exhausted") {
+                setSecondsLeft(RESEND_SECONDS);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleVerify = async () => {
@@ -129,7 +146,9 @@ export default function OtpVerify() {
     return (
         <SafeAreaView className="flex-1 bg-main-white" edges={["top"]}>
             <View className="flex-1 px-6 pt-4">
-                <AuthHeader />
+                <AuthHeader
+                    onBack={() => router.replace("/(auth)/account-setup")}
+                />
 
                 <Text className="text-[20px] font-bold text-[#1F2A1F] text-center mt-4 mb-2">
                     I-verify ang iyong OTP
@@ -193,11 +212,15 @@ export default function OtpVerify() {
                         {/* Resend timer / action */}
                         <Pressable
                             onPress={handleResend}
-                            disabled={secondsLeft > 0}
-                            className="mb-10"
+                            disabled={
+                                secondsLeft > 0 || isSubmitting || isVerifying
+                            }
+                            className={sendError ? "mb-2" : "mb-10"}
                         >
                             <Text className="text-center text-[13px] text-[#9C978C]">
-                                {secondsLeft > 0 ? (
+                                {isSubmitting ? (
+                                    "Ipinapadala..."
+                                ) : secondsLeft > 0 ? (
                                     `Resend code sa ${formattedTime}`
                                 ) : (
                                     <Text className="text-[#2F5233] font-semibold">
@@ -206,6 +229,12 @@ export default function OtpVerify() {
                                 )}
                             </Text>
                         </Pressable>
+
+                        {sendError && (
+                            <Text className="text-[12px] text-[#B23A2E] text-center mb-8">
+                                {sendError}
+                            </Text>
+                        )}
 
                         {verifyError && (
                             <Text className="text-[12px] text-[#B23A2E] text-center mb-3">
@@ -216,7 +245,7 @@ export default function OtpVerify() {
                         <ClayButton
                             colors={["#4C7350", "#254631"]}
                             borderRadius={999}
-                            disabled={!isComplete || isVerifying}
+                            disabled={!isComplete || isVerifying || isSubmitting}
                             style={{ marginBottom: 20 }}
                             onPress={handleVerify}
                         >
@@ -227,9 +256,11 @@ export default function OtpVerify() {
                     </>
                 )}
 
-                <Pressable onPress={() => router.push("/(auth)/account-setup")}>
+                <Pressable
+                    onPress={() => router.replace("/(auth)/account-setup")}
+                >
                     <Text className="text-center text-[13px] text-[#6B7280]">
-                        Gumamit ng ibang numero
+                        Bumalik
                     </Text>
                 </Pressable>
             </View>

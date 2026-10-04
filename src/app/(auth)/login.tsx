@@ -110,7 +110,7 @@ export default function Login() {
                 {/* Email/phone input */}
                 <View style={clayRaised} className="mb-1 rounded-2xl">
                     <TextInput
-                        placeholder="Email o Numero ng Telepono"
+                        placeholder="Email"
                         placeholderTextColor="#9C978C"
                         value={email}
                         onChangeText={setEmail}
@@ -218,7 +218,7 @@ export default function Login() {
                 </View>
 
                 {/* OTP button */}
-                <View style={clayRaised} className="mb-8 rounded-2xl">
+                {/* <View style={clayRaised} className="mb-8 rounded-2xl">
                     <Pressable className="flex-row items-center justify-center gap-2.5 bg-[#F0EDE6] rounded-2xl py-3.5">
                         <Ionicons
                             name="call-outline"
@@ -229,7 +229,7 @@ export default function Login() {
                             Numero ng Telepono (OTP)
                         </Text>
                     </Pressable>
-                </View>
+                </View> */}
 
                 {/* Sign up link */}
                 <Pressable onPress={() => router.push("/(auth)/register")}>

@@ -9,6 +9,7 @@ import { useRouter } from "expo-router";
 import { doc, updateDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
+    Alert,
     Modal,
     Platform,
     Pressable,
@@ -21,13 +22,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AccountSetup() {
     const router = useRouter();
-    const { user } = useAuth();
-    const [username, setUsername] = useState("");
-    const [birthdate, setBirthdate] = useState<Date | null>(null);
+    const { user, profile, logOut } = useAuth();
+    // Prefill from the saved profile in case the user came back from OTP
+    const [username, setUsername] = useState<string>(profile?.username ?? "");
+    const [birthdate, setBirthdate] = useState<Date | null>(
+        profile?.birthdate ? new Date(profile.birthdate) : null,
+    );
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [language, setLanguage] = useState<"tl" | "en">("tl");
-    const [barangay, setBarangay] = useState<string | null>(null);
-    const [emergencyContact, setEmergencyContact] = useState("");
+    const [language, setLanguage] = useState<"tl" | "en">(
+        profile?.language ?? "tl",
+    );
+    const [barangay, setBarangay] = useState<string | null>(
+        profile?.barangay ?? null,
+    );
+    const [emergencyContact, setEmergencyContact] = useState<string>(
+        profile?.phoneNumber ?? "",
+    );
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [showBarangayModal, setShowBarangayModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<{
@@ -107,6 +118,37 @@ export default function AccountSetup() {
         }
     };
 
+    const handleLogout = () => {
+        if (isLoggingOut) return;
+        Alert.alert(
+            "Mag-logout?",
+            "Hindi mase-save ang mga hindi pa natatapos na detalye. Maaari kang mag-login o gumawa ng bagong account gamit ang ibang email.",
+            [
+                { text: "Kanselahin", style: "cancel" },
+                {
+                    text: "Mag-logout",
+                    style: "destructive",
+                    onPress: async () => {
+                        setIsLoggingOut(true);
+                        try {
+                            await logOut();
+                            // The root guard doesn't redirect while inside (auth),
+                            // so navigate to login explicitly.
+                            router.replace("/(auth)/login");
+                        } catch {
+                            setErrors({
+                                general:
+                                    "Nabigo ang pag-logout. Pakisubukang muli.",
+                            });
+                        } finally {
+                            setIsLoggingOut(false);
+                        }
+                    },
+                },
+            ],
+        );
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView
@@ -114,6 +156,26 @@ export default function AccountSetup() {
                 keyboardShouldPersistTaps="handled"
             >
                 {/* <AuthHeader /> */}
+
+                {/* Logout - fail-safe for accounts registered with an invalid email */}
+                <View className="flex-row justify-end mb-2">
+                    <Pressable
+                        onPress={handleLogout}
+                        disabled={isLoggingOut}
+                        hitSlop={8}
+                        className="flex-row items-center gap-1 px-3 py-2 rounded-full bg-[#F0EDE6]"
+                        style={clayRaised}
+                    >
+                        <Ionicons
+                            name="log-out-outline"
+                            size={16}
+                            color="#B23A2E"
+                        />
+                        <Text className="text-[13px] font-medium text-[#B23A2E]">
+                            {isLoggingOut ? "Sandali..." : "Mag-logout"}
+                        </Text>
+                    </Pressable>
+                </View>
 
                 {/* Avatar placeholder */}
                 <View className="items-center mb-6">
