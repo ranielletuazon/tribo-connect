@@ -29,7 +29,7 @@ const listItems: FeatureItem[] = [
     {
         icon: "megaphone",
         color: "#C97748",
-        title: "Mga Anunsyo",
+        title: "Mga Anunsiyo",
         subtitle: "Balita mula sa iyong komunidad",
         route: "/(tabs)/community",
     },

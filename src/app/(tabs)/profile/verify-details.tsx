@@ -226,12 +226,12 @@ export default function VerifyDetails() {
                     </View>
                 </View>
                 <Text className="text-[20px] font-bold text-[#1F2A1F] text-center">
-                    Naipadala na!
+                    Verified ka na!
                 </Text>
                 <Text className="text-[13.5px] text-[#7A6D5C] text-center leading-5 mt-2 mb-8">
-                    Susuriin ng admin ng barangay ang iyong impormasyon.
-                    Makikita mo ang status nito sa Beripikasyon page ng iyong
-                    profile.
+                    Makikita na ng lahat ang tsek sa tabi ng iyong pangalan.
+                    Maaari itong bawiin ng admin ng barangay kung may mali sa
+                    iyong impormasyon.
                 </Text>
                 <View className="self-stretch">
                     <ClayButton

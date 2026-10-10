@@ -17,6 +17,10 @@ function RootNavigation() {
         if (isLoading) return;
 
         const inAuthGroup = segments[0] === "(auth)";
+        // Users stuck at OTP may go back to account-setup (e.g. to log out
+        // and re-register with a valid email), so don't bounce them from it.
+        const onAccountSetup =
+            (segments as string[])[1] === "account-setup";
         const needsAccountSetup = !!user && (!profile || !profile.username);
         const needsOtpVerification =
             !!user &&
@@ -28,7 +32,7 @@ function RootNavigation() {
             router.replace("/(auth)/login");
         } else if (needsAccountSetup) {
             router.replace("/(auth)/account-setup");
-        } else if (needsOtpVerification) {
+        } else if (needsOtpVerification && !onAccountSetup) {
             router.replace("/(auth)/otp-verify");
         } else if (fullyOnboarded && inAuthGroup) {
             router.replace("/(tabs)");

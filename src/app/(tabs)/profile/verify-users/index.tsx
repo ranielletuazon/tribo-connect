@@ -11,7 +11,13 @@ import {
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import {
+    Timestamp,
+    collection,
+    onSnapshot,
+    query,
+    where,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -23,21 +29,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const TABS: { status: VerificationStatus; label: string; empty: string }[] = [
-    {
-        status: "pending",
-        label: "Nakabinbin",
-        empty: "Walang user na naghihintay ng beripikasyon.",
-    },
+// users are verified right away, so admins only watch and revoke
+type Tab = "approved" | "revoked";
+
+const TABS: { status: Tab; label: string; empty: string }[] = [
     {
         status: "approved",
-        label: "Naaprubahan",
-        empty: "Wala pang naaprubahang beripikasyon.",
+        label: "Verified",
+        empty: "Wala pang verified na user.",
     },
     {
-        status: "rejected",
-        label: "Tinanggihan",
-        empty: "Wala pang tinanggihang beripikasyon.",
+        status: "revoked",
+        label: "Binawi",
+        empty: "Wala pang binawing verified badge.",
     },
 ];
 
@@ -45,22 +49,26 @@ const STATUS_PILLS: Record<
     VerificationStatus,
     { label: string; color: string; tint: string }
 > = {
+    approved: { label: "Verified", color: "#2A6FDB", tint: "#EAF1FC" },
+    revoked: { label: "Binawi", color: "#9C3A2A", tint: "#FBECE9" },
     pending: { label: "Nakabinbin", color: "#A85A30", tint: "#FBF1E8" },
-    approved: { label: "Naaprubahan", color: "#2A6FDB", tint: "#EAF1FC" },
     rejected: { label: "Tinanggihan", color: "#9C3A2A", tint: "#FBECE9" },
 };
+
+// verifications from the last day, so admins can tell what's new
+const NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export default function VerifyUsers() {
     const router = useRouter();
     const { profile } = useAuth();
     const isAdmin = profile?.role === "admin";
 
-    const [activeTab, setActiveTab] = useState<VerificationStatus>("pending");
+    const [activeTab, setActiveTab] = useState<Tab>("approved");
     const [requests, setRequests] = useState<VerificationRequest[]>([]);
-    const [pendingCount, setPendingCount] = useState(0);
+    const [newCount, setNewCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
 
-    // live list, so a request disappears from "Nakabinbin" once reviewed.
+    // live list, so a revoked user moves to "Binawi" right away.
     // sorted here instead of with orderBy so no composite index is needed
     useEffect(() => {
         if (!isAdmin) return;
@@ -73,12 +81,12 @@ export default function VerifyUsers() {
             q,
             (snapshot) => {
                 const list = snapshot.docs.map(mapDocToVerification);
-                if (activeTab === "pending") {
-                    // oldest first, so no one waits too long
+                if (activeTab === "approved") {
+                    // newest first, so fresh verifications get checked
                     list.sort(
                         (a, b) =>
-                            (a.submittedAt?.toMillis() ?? Date.now()) -
-                            (b.submittedAt?.toMillis() ?? Date.now()),
+                            (b.submittedAt?.toMillis() ?? Date.now()) -
+                            (a.submittedAt?.toMillis() ?? Date.now()),
                     );
                 } else {
                     list.sort(
@@ -97,16 +105,24 @@ export default function VerifyUsers() {
         );
     }, [activeTab, isAdmin]);
 
-    // the count on the "Nakabinbin" tab stays live on every tab
+    // the count of new verifications on the "Verified" tab stays live
     useEffect(() => {
         if (!isAdmin) return;
         return onSnapshot(
             query(
                 collection(db, "verification"),
-                where("status", "==", "pending"),
+                where(
+                    "submittedAt",
+                    ">=",
+                    Timestamp.fromMillis(Date.now() - NEW_WINDOW_MS),
+                ),
             ),
-            (snapshot) => setPendingCount(snapshot.size),
-            (err) => console.error("Count pending error:", err),
+            (snapshot) =>
+                setNewCount(
+                    snapshot.docs.filter((d) => d.data().status === "approved")
+                        .length,
+                ),
+            (err) => console.error("Count new verifications error:", err),
         );
     }, [isAdmin]);
 
@@ -163,28 +179,27 @@ export default function VerifyUsers() {
                                 >
                                     {tab.label}
                                 </Text>
-                                {tab.status === "pending" &&
-                                    pendingCount > 0 && (
-                                        <View
-                                            className="rounded-full px-1.5 min-w-[18px] items-center"
+                                {tab.status === "approved" && newCount > 0 && (
+                                    <View
+                                        className="rounded-full px-1.5 min-w-[18px] items-center"
+                                        style={{
+                                            backgroundColor: isActive
+                                                ? "#fff"
+                                                : "#9C3A2A",
+                                        }}
+                                    >
+                                        <Text
+                                            className="text-[10.5px] font-bold"
                                             style={{
-                                                backgroundColor: isActive
-                                                    ? "#fff"
-                                                    : "#9C3A2A",
+                                                color: isActive
+                                                    ? "#2F5233"
+                                                    : "#fff",
                                             }}
                                         >
-                                            <Text
-                                                className="text-[10.5px] font-bold"
-                                                style={{
-                                                    color: isActive
-                                                        ? "#2F5233"
-                                                        : "#fff",
-                                                }}
-                                            >
-                                                {pendingCount}
-                                            </Text>
-                                        </View>
-                                    )}
+                                            {newCount} bago
+                                        </Text>
+                                    </View>
+                                )}
                             </Pressable>
                         );
                     })}
@@ -309,9 +324,9 @@ export default function VerifyUsers() {
                                         </View>
                                         <Text className="text-[10.5px] text-[#9C978C]">
                                             {formatTimeAgo(
-                                                request.status === "pending"
-                                                    ? request.submittedAt
-                                                    : request.reviewedAt,
+                                                request.status === "revoked"
+                                                    ? request.reviewedAt
+                                                    : request.submittedAt,
                                             )}
                                         </Text>
                                         {request.attempts > 1 && (
@@ -332,8 +347,9 @@ export default function VerifyUsers() {
                 </View>
 
                 <Text className="text-[11.5px] text-[#9C978C] text-center mt-4 px-4">
-                    Pindutin ang isang user para makita ang kanyang ID at
-                    aprubahan o tanggihan ang beripikasyon.
+                    Awtomatikong nave-verify ang mga user. Pindutin ang isang
+                    user para makita ang kanyang ID at bawiin ang verified badge
+                    kung may mali.
                 </Text>
             </ScrollView>
         </SafeAreaView>

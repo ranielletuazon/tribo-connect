@@ -321,7 +321,7 @@ export default function Register() {
                 </View>
 
                 {/* Phone OTP */}
-                <View style={clayRaised} className="mb-8 rounded-2xl">
+                {/* <View style={clayRaised} className="mb-8 rounded-2xl">
                     <Pressable className="flex-row items-center justify-center gap-2.5 bg-[#F0EDE6] rounded-2xl py-3.5">
                         <Ionicons
                             name="call-outline"
@@ -332,7 +332,7 @@ export default function Register() {
                             Numero ng Telepono (OTP)
                         </Text>
                     </Pressable>
-                </View>
+                </View> */}
 
                 {/* Back to login */}
                 <Pressable onPress={() => router.push("/(auth)/login")}>

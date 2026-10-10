@@ -9,7 +9,10 @@ export type VerificationType =
     | "national-id-egov"
     | "iba-pa";
 
-export type VerificationStatus = "pending" | "approved" | "rejected";
+// new requests are approved right away and admins can revoke them.
+// "pending" and "rejected" only exist on requests from before auto-verify
+export type VerificationStatus =
+    "approved" | "revoked" | "pending" | "rejected";
 
 // the IDs a user can verify their account with
 export const VERIFICATION_TYPES: Record<
@@ -124,9 +127,10 @@ export interface VerificationRequest {
     status: VerificationStatus;
     attempts: number;
     submittedAt: Timestamp | null;
+    // the admin who last revoked or restored the badge
     reviewedAt: Timestamp | null;
     reviewedByName: string | null;
-    rejectionReason: string | null;
+    revokeReason: string | null;
 }
 
 export function mapDocToVerification(
@@ -158,11 +162,12 @@ export function mapDocToVerification(
             blurScore: data.ocr?.blurScore ?? 0,
             typeMatch: data.ocr?.typeMatch ?? true,
         },
-        status: data.status ?? "pending",
+        status: data.status ?? "approved",
         attempts: data.attempts ?? 1,
         submittedAt: data.submittedAt ?? null,
         reviewedAt: data.reviewedAt ?? null,
         reviewedByName: data.reviewedByName ?? null,
-        rejectionReason: data.rejectionReason ?? null,
+        // older requests stored the reason as rejectionReason
+        revokeReason: data.revokeReason ?? data.rejectionReason ?? null,
     };
 }

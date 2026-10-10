@@ -78,8 +78,9 @@ const STEPS: { title: string; description: string }[] = [
         description: 'Itama kung may mali, saka pindutin ang "I-Verify".',
     },
     {
-        title: "Hintayin ang Pagsusuri",
-        description: "Susuriin ng admin ng barangay ang iyong impormasyon.",
+        title: "Verified Agad",
+        description:
+            "Makukuha mo agad ang verified badge. Babantayan ito ng admin ng barangay.",
     },
 ];
 
@@ -93,20 +94,29 @@ const STATUS_CARDS: Record<
         tint: string;
     }
 > = {
-    pending: {
-        icon: "hourglass",
-        title: "Naghihintay ng Pagsusuri",
-        description:
-            "Naipadala na ang iyong beripikasyon. Susuriin ito ng admin ng barangay.",
-        color: "#A85A30",
-        tint: "#FBF1E8",
-    },
     approved: {
         icon: "checkmark-circle",
         title: "Verified na ang iyong Account",
         description: "Makikita na ng lahat ang tsek sa tabi ng iyong pangalan.",
         color: VERIFIED_BLUE,
         tint: "#EAF1FC",
+    },
+    revoked: {
+        icon: "close-circle",
+        title: "Binawi ang Verified Badge",
+        description:
+            "Binawi ng admin ng barangay ang iyong verified badge. Makipag-ugnayan sa kanila para maibalik ito.",
+        color: "#9C3A2A",
+        tint: "#FBECE9",
+    },
+    // only on requests from before auto-verify, these users can submit again
+    pending: {
+        icon: "refresh-circle",
+        title: "Kailangang Magsumite Muli",
+        description:
+            "Awtomatiko na ang beripikasyon. Pakisumite muli ang iyong ID para ma-verify agad.",
+        color: "#A85A30",
+        tint: "#FBF1E8",
     },
     rejected: {
         icon: "close-circle",
@@ -130,21 +140,28 @@ export default function Verify() {
     const displayName = profile?.username ?? user?.email ?? "Gumagamit";
     const initials = displayName.slice(0, 2).toUpperCase();
 
-    // set by the submitVerification function, and later by the admin
+    // set by the submitVerification function, and by an admin revoking it
     const status = profile?.verificationStatus as
         VerificationStatus | undefined;
     const statusCard = status ? STATUS_CARDS[status] : null;
-    const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+    const [reason, setReason] = useState<string | null>(null);
+    const hasReason = status === "revoked" || status === "rejected";
+    // revoked users can't submit again, only an admin can restore the badge
+    const canSubmit = status !== "approved" && status !== "revoked";
 
     // the reason is only on the verification doc, not the profile
     useEffect(() => {
-        if (status !== "rejected" || !user) return;
+        if (!hasReason || !user) return;
         getDoc(doc(db, "verification", user.uid))
             .then((snap) =>
-                setRejectionReason(snap.data()?.rejectionReason ?? null),
+                setReason(
+                    snap.data()?.revokeReason ??
+                        snap.data()?.rejectionReason ??
+                        null,
+                ),
             )
             .catch((err) => console.error("Load verification error:", err));
-    }, [status, user]);
+    }, [hasReason, user]);
 
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
@@ -211,12 +228,12 @@ export default function Verify() {
                             <Text className="text-[12.5px] text-[#7A6D5C] leading-[18px] mt-0.5">
                                 {statusCard.description}
                             </Text>
-                            {status === "rejected" && rejectionReason && (
+                            {hasReason && reason && (
                                 <Text className="text-[12.5px] text-[#1F2A1F] leading-[18px] mt-2">
                                     <Text className="font-semibold">
                                         Dahilan:{" "}
                                     </Text>
-                                    {rejectionReason}
+                                    {reason}
                                 </Text>
                             )}
                         </View>
@@ -364,37 +381,26 @@ export default function Verify() {
                 </View>
             </ScrollView>
 
-            {/* Start button, always visible until the account is verified */}
-            {status !== "approved" && (
+            {/* Start button, until the account is verified or revoked */}
+            {canSubmit && (
                 <View className="px-6 pt-3 pb-4 border-t border-[#EDEAE2] bg-[--main-white]">
                     <ClayButton
                         colors={["#4C7350", "#254631"]}
                         borderRadius={20}
-                        disabled={status === "pending"}
                         onPress={() => router.push("/(tabs)/profile/verify-id")}
                     >
                         <Ionicons
-                            name={
-                                status === "pending"
-                                    ? "hourglass"
-                                    : "shield-checkmark"
-                            }
+                            name="shield-checkmark"
                             size={19}
                             color="#fff"
                         />
                         <Text className="text-white font-semibold text-[16px]">
-                            {status === "pending"
-                                ? "Naghihintay ng Pagsusuri"
-                                : status === "rejected"
-                                  ? "Subukang Muli"
-                                  : "I-Verify ang Account"}
+                            {status ? "Subukang Muli" : "I-Verify ang Account"}
                         </Text>
                     </ClayButton>
-                    {status !== "pending" && (
-                        <Text className="text-[11.5px] text-[#9C978C] text-center mt-2">
-                            Aabutin lamang ng ilang minuto
-                        </Text>
-                    )}
+                    <Text className="text-[11.5px] text-[#9C978C] text-center mt-2">
+                        Aabutin lamang ng ilang minuto
+                    </Text>
                 </View>
             )}
         </SafeAreaView>

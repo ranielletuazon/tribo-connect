@@ -3,13 +3,25 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 
-export function AuthHeader({ title }: { title?: string }) {
+export function AuthHeader({
+    title,
+    onBack,
+}: {
+    title?: string;
+    onBack?: () => void;
+}) {
     const router = useRouter();
+
+    const handleBack = () => {
+        if (onBack) return onBack();
+        // Screens reached via router.replace (e.g. auth redirects) have no history
+        if (router.canGoBack()) router.back();
+    };
 
     return (
         <View className="flex-row items-center mb-4">
             <Pressable
-                onPress={() => router.back()}
+                onPress={handleBack}
                 className="w-10 h-10 rounded-full bg-[#F0EDE6] items-center justify-center"
                 style={clayRaised}
             >
