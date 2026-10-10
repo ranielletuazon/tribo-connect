@@ -9,10 +9,11 @@ import {
     mapDocToVerification,
     type ExtractedFields,
     type VerificationRequest,
+    type VerificationStatus,
 } from "@/lib/verification";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { doc, onSnapshot } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { getDownloadURL, ref } from "firebase/storage";
@@ -36,11 +37,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const REASON_MAX = 300;
 
 const QUICK_REASONS = [
-    "Malabo o hindi mabasa ang larawan ng ID.",
+    "Hindi tugma ang selfie sa larawan sa ID.",
     "Hindi tugma ang inilagay na detalye sa ID.",
-    "Expired o hindi valid ang ID.",
-    "Hindi buo ang ID sa larawan.",
+    "Malabo, peke o hindi valid ang ID.",
+    "Hindi residente ng barangay.",
 ];
+
+const STATUS_TITLES: Record<VerificationStatus, string> = {
+    approved: "Ibinalik ang verified badge",
+    revoked: "Binawi ang verified badge",
+    // only on requests from before auto-verify
+    pending: "Hindi pa verified",
+    rejected: "Tinanggihan",
+};
 
 // the rows of the comparison table, in the order they show
 const COMPARE_ROWS: { key: keyof ExtractedFields; label: string }[] = [
@@ -53,10 +62,10 @@ const COMPARE_ROWS: { key: keyof ExtractedFields; label: string }[] = [
     { key: "idNumber", label: "Numero ng ID" },
 ];
 
-const reviewVerification = httpsCallable<
-    { uid: string; decision: "approve" | "reject"; reason?: string },
+const setVerification = httpsCallable<
+    { uid: string; action: "revoke" | "restore"; reason?: string },
     unknown
->(functions, "reviewVerification");
+>(functions, "setVerification");
 
 // ignores case, spaces and punctuation, since OCR and typing differ in those
 function normalize(value: string): string {
@@ -120,11 +129,11 @@ export default function ReviewVerification() {
     const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
     const [showRawText, setShowRawText] = useState(false);
 
-    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [showRevokeModal, setShowRevokeModal] = useState(false);
     const [reason, setReason] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // live, so if another admin reviews it first this screen updates
+    // live, so if another admin revokes it first this screen updates
     useEffect(() => {
         if (!verificationId || !isAdmin) return;
         return onSnapshot(
@@ -165,24 +174,24 @@ export default function ReviewVerification() {
             .catch((err) => console.error("Load selfie error:", err));
     }, [request?.selfiePath]);
 
-    const submitReview = async (decision: "approve" | "reject") => {
+    const submitAction = async (action: "revoke" | "restore") => {
         if (!request || isSubmitting) return;
         setIsSubmitting(true);
         try {
-            await reviewVerification({
+            await setVerification({
                 uid: request.uid,
-                decision,
-                reason: decision === "reject" ? reason.trim() : undefined,
+                action,
+                reason: action === "revoke" ? reason.trim() : undefined,
             });
-            setShowRejectModal(false);
-            router.back();
+            setShowRevokeModal(false);
+            setReason("");
         } catch (err) {
-            console.error("Review verification error:", err);
+            console.error("Set verification error:", err);
             Alert.alert(
                 "Nabigo",
                 callableErrorMessage(
                     err,
-                    "Hindi naisumite ang desisyon. Pakisubukang muli.",
+                    "Hindi naisumite ang pagbabago. Pakisubukang muli.",
                 ),
             );
         } finally {
@@ -190,14 +199,14 @@ export default function ReviewVerification() {
         }
     };
 
-    const handleApprove = () => {
+    const handleRestore = () => {
         if (!request) return;
         Alert.alert(
-            "Aprubahan ang beripikasyon?",
-            `Magiging verified ang account ni ${request.username} at makikita ng lahat ang verified badge.`,
+            "Ibalik ang verified badge?",
+            `Magiging verified muli ang account ni ${request.username} at makikita ng lahat ang verified badge.`,
             [
                 { text: "Kanselahin", style: "cancel" },
-                { text: "Aprubahan", onPress: () => submitReview("approve") },
+                { text: "Ibalik", onPress: () => submitAction("restore") },
             ],
         );
     };
@@ -240,7 +249,7 @@ export default function ReviewVerification() {
     }
 
     const type = VERIFICATION_TYPES[request.idType];
-    const isPending = request.status === "pending";
+    const isVerified = request.status === "approved";
     const info = request.personalInfo;
     const fullName = [info.firstName, info.middleName, info.lastName]
         .filter(Boolean)
@@ -249,7 +258,7 @@ export default function ReviewVerification() {
         const scanned = request.ocr.fields[key];
         return scanned && normalize(scanned) !== normalize(info[key]);
     }).length;
-    const canReject =
+    const canRevoke =
         reason.trim().length >= 5 && reason.trim().length <= REASON_MAX;
 
     return (
@@ -294,7 +303,7 @@ export default function ReviewVerification() {
                             </Text>
                         )}
                         <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
-                            Isinumite {formatTimeAgo(request.submittedAt)}
+                            Na-verify {formatTimeAgo(request.submittedAt)}
                             {request.attempts > 1
                                 ? ` · Ika-${request.attempts} pagsumite`
                                 : ""}
@@ -302,48 +311,39 @@ export default function ReviewVerification() {
                     </View>
                 </View>
 
-                {/* Result, once reviewed */}
-                {!isPending && (
+                {/* Who last changed it, once an admin has */}
+                {(!isVerified || request.reviewedByName) && (
                     <View
                         className="flex-row gap-3 rounded-2xl p-4 mb-5"
                         style={{
-                            backgroundColor:
-                                request.status === "approved"
-                                    ? "#EAF1FC"
-                                    : "#FBECE9",
+                            backgroundColor: isVerified ? "#EAF1FC" : "#FBECE9",
                         }}
                     >
                         <Ionicons
                             name={
-                                request.status === "approved"
-                                    ? "checkmark-circle"
-                                    : "close-circle"
+                                isVerified ? "checkmark-circle" : "close-circle"
                             }
                             size={20}
-                            color={
-                                request.status === "approved"
-                                    ? "#2A6FDB"
-                                    : "#9C3A2A"
-                            }
+                            color={isVerified ? "#2A6FDB" : "#9C3A2A"}
                         />
                         <View className="flex-1">
                             <Text className="text-[13.5px] font-bold text-[#1F2A1F]">
-                                {request.status === "approved"
-                                    ? "Naaprubahan"
-                                    : "Tinanggihan"}
+                                {STATUS_TITLES[request.status]}
                                 {request.reviewedByName
                                     ? ` ni ${request.reviewedByName}`
                                     : ""}
                             </Text>
-                            <Text className="text-[11.5px] text-[#7A6D5C] mt-0.5">
-                                {formatTimeAgo(request.reviewedAt)}
-                            </Text>
-                            {request.rejectionReason && (
+                            {request.reviewedAt && (
+                                <Text className="text-[11.5px] text-[#7A6D5C] mt-0.5">
+                                    {formatTimeAgo(request.reviewedAt)}
+                                </Text>
+                            )}
+                            {!isVerified && request.revokeReason && (
                                 <Text className="text-[12.5px] text-[#1F2A1F] leading-[18px] mt-2">
                                     <Text className="font-semibold">
                                         Dahilan:{" "}
                                     </Text>
-                                    {request.rejectionReason}
+                                    {request.revokeReason}
                                 </Text>
                             )}
                         </View>
@@ -631,43 +631,40 @@ export default function ReviewVerification() {
                 )}
             </ScrollView>
 
-            {/* Decision buttons, only while pending */}
-            {isPending && (
-                <View className="flex-row gap-3 px-6 pt-3 pb-4 border-t border-[#EDEAE2] bg-[--main-white]">
+            {/* Revoke a verified user, or give the badge back */}
+            <View className="px-6 pt-3 pb-4 border-t border-[#EDEAE2] bg-[--main-white]">
+                {isVerified ? (
                     <Pressable
-                        onPress={() => setShowRejectModal(true)}
+                        onPress={() => setShowRevokeModal(true)}
                         disabled={isSubmitting}
-                        className="flex-1 flex-row items-center justify-center gap-2 rounded-[20px] border-2 border-[#9C3A2A]"
+                        className="flex-row items-center justify-center gap-2 rounded-[20px] border-2 border-[#9C3A2A] py-3"
                         style={{ opacity: isSubmitting ? 0.5 : 1 }}
                     >
                         <Ionicons name="close" size={19} color="#9C3A2A" />
                         <Text className="text-[15px] font-semibold text-[#9C3A2A]">
-                            Tanggihan
+                            Bawiin ang Verified Badge
                         </Text>
                     </Pressable>
-                    <View className="flex-1">
-                        <ClayButton
-                            colors={["#4C7350", "#254631"]}
-                            borderRadius={20}
-                            disabled={isSubmitting}
-                            onPress={handleApprove}
-                        >
-                            {isSubmitting && !showRejectModal ? (
-                                <ActivityIndicator color="#fff" size="small" />
-                            ) : (
-                                <Ionicons
-                                    name="checkmark"
-                                    size={19}
-                                    color="#fff"
-                                />
-                            )}
-                            <Text className="text-white font-semibold text-[15px]">
-                                Aprubahan
-                            </Text>
-                        </ClayButton>
-                    </View>
-                </View>
-            )}
+                ) : (
+                    <ClayButton
+                        colors={["#4C7350", "#254631"]}
+                        borderRadius={20}
+                        disabled={isSubmitting}
+                        onPress={handleRestore}
+                    >
+                        {isSubmitting ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                            <Ionicons name="checkmark" size={19} color="#fff" />
+                        )}
+                        <Text className="text-white font-semibold text-[15px]">
+                            {request.status === "revoked"
+                                ? "Ibalik ang Verified Badge"
+                                : "I-verify ang User"}
+                        </Text>
+                    </ClayButton>
+                )}
+            </View>
 
             {/* Full screen ID or selfie */}
             <Modal
@@ -693,13 +690,13 @@ export default function ReviewVerification() {
                 </Pressable>
             </Modal>
 
-            {/* Rejection reason */}
+            {/* Revoke reason */}
             <Modal
-                visible={showRejectModal}
+                visible={showRevokeModal}
                 transparent
                 animationType="slide"
                 onRequestClose={() =>
-                    !isSubmitting && setShowRejectModal(false)
+                    !isSubmitting && setShowRevokeModal(false)
                 }
             >
                 <KeyboardAvoidingView
@@ -709,7 +706,7 @@ export default function ReviewVerification() {
                     <Pressable
                         className="flex-1 bg-black/40 justify-end"
                         onPress={() =>
-                            !isSubmitting && setShowRejectModal(false)
+                            !isSubmitting && setShowRevokeModal(false)
                         }
                     >
                         <Pressable
@@ -720,11 +717,13 @@ export default function ReviewVerification() {
                                 <View className="w-10 h-1.5 rounded-full bg-[#E5E1D8]" />
                             </View>
                             <Text className="text-[17px] font-bold text-[#1F2A1F]">
-                                Tanggihan ang beripikasyon
+                                Bawiin ang verified badge
                             </Text>
                             <Text className="text-[12.5px] text-[#7A6D5C] leading-[18px] mt-1 mb-4">
-                                Makikita ni {request.username} ang dahilang ito
-                                para maitama niya bago magsumite muli.
+                                Mawawala ang badge ni {request.username} sa
+                                kanyang profile at mga post, at makikita niya
+                                ang dahilang ito. Maibabalik mo ito anumang
+                                oras.
                             </Text>
 
                             <View className="flex-row flex-wrap gap-2 mb-3">
@@ -774,8 +773,8 @@ export default function ReviewVerification() {
                             <ClayButton
                                 colors={["#E0715F", "#9C3A2A"]}
                                 borderRadius={20}
-                                disabled={!canReject || isSubmitting}
-                                onPress={() => submitReview("reject")}
+                                disabled={!canRevoke || isSubmitting}
+                                onPress={() => submitAction("revoke")}
                             >
                                 {isSubmitting && (
                                     <ActivityIndicator
@@ -784,9 +783,7 @@ export default function ReviewVerification() {
                                     />
                                 )}
                                 <Text className="text-white font-semibold text-[16px]">
-                                    {isSubmitting
-                                        ? "Ipinapadala..."
-                                        : "Tanggihan"}
+                                    {isSubmitting ? "Ipinapadala..." : "Bawiin"}
                                 </Text>
                             </ClayButton>
                         </Pressable>

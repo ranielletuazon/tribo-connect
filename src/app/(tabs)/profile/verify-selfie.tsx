@@ -87,8 +87,8 @@ export default function VerifySelfie() {
                 </Text>
                 <Text className="text-[13.5px] text-[#7A6D5C] text-center leading-5 mt-2 px-2">
                     Para matiyak na ikaw ang may-ari ng ID, kumuha ng malinaw na
-                    larawan ng iyong mukha. Ihahambing ito ng admin sa larawan
-                    sa iyong ID.
+                    larawan ng iyong mukha. Maaari itong ihambing ng admin sa
+                    larawan sa iyong ID.
                 </Text>
 
                 {/* Face circle */}

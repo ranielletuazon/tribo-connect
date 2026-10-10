@@ -27,7 +27,7 @@ admin.initializeApp();
 export {requestOtp, verifyOtp} from "./otp";
 export {submitReport} from "./report";
 export {
-  reviewVerification,
   scanIdImage,
+  setVerification,
   submitVerification,
 } from "./verification";

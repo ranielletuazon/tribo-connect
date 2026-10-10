@@ -647,12 +647,15 @@ export const submitVerification = onCall(async (request) => {
   ]);
 
   const currentStatus = existing.data()?.status;
-  if (currentStatus === "pending" || currentStatus === "approved") {
+  if (currentStatus === "approved") {
+    throw new HttpsError("already-exists", "Verified na ang iyong account.");
+  }
+  // only an admin can give back a badge they took away
+  if (currentStatus === "revoked") {
     throw new HttpsError(
-      "already-exists",
-      currentStatus === "pending" ?
-        "May nakabinbin ka nang beripikasyon." :
-        "Verified na ang iyong account.",
+      "permission-denied",
+      "Binawi ng admin ang iyong verified badge. " +
+        "Makipag-ugnayan sa admin ng barangay.",
     );
   }
 
@@ -679,6 +682,7 @@ export const submitVerification = onCall(async (request) => {
   const now = admin.firestore.FieldValue.serverTimestamp();
   const batch = db.batch();
 
+  // approved right away, admins check it afterwards and can revoke it.
   // doc id is the uid, so each user has at most one request
   batch.set(verificationRef, {
     uid,
@@ -697,45 +701,81 @@ export const submitVerification = onCall(async (request) => {
       blurScore: lastScan.blurScore,
       typeMatch: lastScan.typeMatch,
     },
-    status: "pending",
+    status: "approved",
     submittedAt: now,
     updatedAt: now,
     attempts: (existing.data()?.attempts ?? 0) + 1,
     reviewedBy: null,
+    reviewedByName: null,
     reviewedAt: null,
-    rejectionReason: null,
+    revokeReason: null,
   });
-  batch.update(userSnap.ref, {verificationStatus: "pending"});
+  batch.update(userSnap.ref, {
+    verificationStatus: "approved",
+    isVerified: true,
+    verifiedAt: now,
+    verifiedIdType: idType,
+  });
   await batch.commit();
+  await syncPostBadges(uid, true);
 
   return {success: true};
 });
 
-export const reviewVerification = onCall(async (request) => {
+/**
+ * Sets authorVerified on the user's posts, since the badge is copied onto
+ * each post when it's made. Comments keep the badge they were made with.
+ * @param {string} uid The post author.
+ * @param {boolean} verified The new badge state.
+ */
+async function syncPostBadges(uid: string, verified: boolean) {
+  const db = admin.firestore();
+  try {
+    const posts = await db.collection("posts")
+      .where("authorId", "==", uid)
+      .get();
+    // a batch holds at most 500 writes
+    for (let i = 0; i < posts.docs.length; i += 500) {
+      const batch = db.batch();
+      posts.docs.slice(i, i + 500).forEach((post) => {
+        if (post.data().authorVerified !== verified) {
+          batch.update(post.ref, {authorVerified: verified});
+        }
+      });
+      await batch.commit();
+    }
+  } catch (err) {
+    // the verification itself already went through, so don't fail it
+    console.error("Sync post badges error:", err);
+  }
+}
+
+// admins take away a verified badge, or give it back
+export const setVerification = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Kailangan mag-login muna.");
   }
   const adminUid = request.auth.uid;
-  const {uid, decision, reason} = (request.data ?? {}) as {
+  const {uid, action, reason} = (request.data ?? {}) as {
     uid?: unknown;
-    decision?: unknown;
+    action?: unknown;
     reason?: unknown;
   };
 
   if (typeof uid !== "string" || uid.length === 0) {
     throw new HttpsError("invalid-argument", "Walang napiling user.");
   }
-  if (decision !== "approve" && decision !== "reject") {
-    throw new HttpsError("invalid-argument", "Mali ang desisyon.");
+  if (action !== "revoke" && action !== "restore") {
+    throw new HttpsError("invalid-argument", "Mali ang aksyon.");
   }
-  const rejectionReason = typeof reason === "string" ? reason.trim() : "";
+  const revokeReason = typeof reason === "string" ? reason.trim() : "";
   if (
-    decision === "reject" &&
-    (rejectionReason.length < 5 || rejectionReason.length > 300)
+    action === "revoke" &&
+    (revokeReason.length < 5 || revokeReason.length > 300)
   ) {
     throw new HttpsError(
       "invalid-argument",
-      "Maglagay ng dahilan ng pagtanggi (5 hanggang 300 letra).",
+      "Maglagay ng dahilan ng pagbawi (5 hanggang 300 letra).",
     );
   }
 
@@ -744,44 +784,48 @@ export const reviewVerification = onCall(async (request) => {
   if (adminSnap.data()?.role !== "admin") {
     throw new HttpsError(
       "permission-denied",
-      "Ang mga admin lamang ang maaaring magsuri ng beripikasyon.",
+      "Ang mga admin lamang ang maaaring magbago ng beripikasyon.",
     );
   }
 
   const verificationRef = db.collection("verification").doc(uid);
   const userRef = db.collection("users").doc(uid);
+  const revoke = action === "revoke";
 
-  // a transaction so two admins can't review the same request at once
+  // a transaction so two admins can't change the same user at once
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(verificationRef);
     if (!snap.exists) {
       throw new HttpsError("not-found", "Hindi makita ang beripikasyon.");
     }
-    if (snap.data()?.status !== "pending") {
+    const status = snap.data()?.status;
+    // older requests made before auto-verify can still be pending
+    if (revoke ? status === "revoked" : status === "approved") {
       throw new HttpsError(
         "failed-precondition",
-        "Nasuri na ng ibang admin ang beripikasyong ito.",
+        revoke ?
+          "Nabawi na ng ibang admin ang verified badge na ito." :
+          "Verified na ang user na ito.",
       );
     }
 
     const now = admin.firestore.FieldValue.serverTimestamp();
-    const approved = decision === "approve";
-
     tx.update(verificationRef, {
-      status: approved ? "approved" : "rejected",
+      status: revoke ? "revoked" : "approved",
       reviewedBy: adminUid,
       reviewedByName: adminSnap.data()?.username ?? null,
       reviewedAt: now,
-      rejectionReason: approved ? null : rejectionReason,
+      revokeReason: revoke ? revokeReason : null,
       updatedAt: now,
     });
     tx.update(userRef, {
-      verificationStatus: approved ? "approved" : "rejected",
-      isVerified: approved,
-      verifiedAt: approved ? now : null,
-      verifiedIdType: approved ? snap.data()?.idType ?? null : null,
+      verificationStatus: revoke ? "revoked" : "approved",
+      isVerified: !revoke,
+      verifiedAt: revoke ? null : now,
+      verifiedIdType: revoke ? null : snap.data()?.idType ?? null,
     });
   });
+  await syncPostBadges(uid, !revoke);
 
   return {success: true};
 });
