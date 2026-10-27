@@ -1,11 +1,24 @@
 import { clayRaised, ClaySurface, GradientBorderCard } from "@/components/clay";
+import {
+    NotificationPermissionModal,
+    type NotificationPromptMode,
+} from "@/components/notification-permission-modal";
 import { VerifiedBadge } from "@/components/verified-badge";
+import {
+    getNotificationPermission,
+    requestNotificationPermission,
+    savePushToken,
+    setupNotificationChannel,
+} from "@/lib/push-notifications";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
+    AppState,
     Image,
     ImageBackground,
+    Linking,
     Pressable,
     ScrollView,
     Text,
@@ -50,9 +63,107 @@ const listItems: FeatureItem[] = [
 ];
 
 export default function Home() {
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
+    const uid = user?.uid;
+
+    const [notificationPrompt, setNotificationPrompt] =
+        useState<NotificationPromptMode | null>(null);
+    const [isEnablingNotifications, setIsEnablingNotifications] =
+        useState(false);
+    // the system prompt sends the app to the background on Android,
+    // so skip the re-check that happens when it comes back
+    const isRequestingRef = useRef(false);
+
+    // keep asking until notifications are allowed and this device's token is saved.
+    // runs when the user lands here and every time the app is opened again
+    useEffect(() => {
+        if (!uid) return;
+        let cancelled = false;
+
+        const checkNotifications = async () => {
+            try {
+                await setupNotificationChannel();
+                const permission = await getNotificationPermission();
+                if (cancelled) return;
+
+                if (permission === "granted") {
+                    try {
+                        // refresh the token every time since it can change
+                        await savePushToken(uid);
+                        if (!cancelled) setNotificationPrompt(null);
+                    } catch (err) {
+                        // allowed but no token saved yet, ask again
+                        console.error("Save push token error:", err);
+                        if (!cancelled) setNotificationPrompt("enable");
+                    }
+                } else if (permission === "ask") {
+                    setNotificationPrompt("enable");
+                } else if (permission === "blocked") {
+                    setNotificationPrompt("settings");
+                }
+            } catch (err) {
+                console.error("Notification permission check error:", err);
+            }
+        };
+
+        checkNotifications();
+
+        let previousState = AppState.currentState;
+        const subscription = AppState.addEventListener("change", (state) => {
+            if (
+                previousState === "background" &&
+                state === "active" &&
+                !isRequestingRef.current
+            ) {
+                checkNotifications();
+            }
+            previousState = state;
+        });
+
+        return () => {
+            cancelled = true;
+            subscription.remove();
+        };
+    }, [uid]);
+
+    const handleEnableNotifications = async () => {
+        if (!uid) return;
+
+        // Android won't show the prompt anymore, the user has to turn it on
+        // in settings. it gets checked again when they come back to the app
+        if (notificationPrompt === "settings") {
+            setNotificationPrompt(null);
+            await Linking.openSettings();
+            return;
+        }
+
+        setIsEnablingNotifications(true);
+        isRequestingRef.current = true;
+        try {
+            const granted = await requestNotificationPermission();
+            if (granted) {
+                await savePushToken(uid);
+            }
+        } catch (err) {
+            console.error("Enable notifications error:", err);
+        } finally {
+            setIsEnablingNotifications(false);
+            setNotificationPrompt(null);
+            setTimeout(() => {
+                isRequestingRef.current = false;
+            }, 1000);
+        }
+    };
+
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
+            <NotificationPermissionModal
+                visible={notificationPrompt !== null}
+                mode={notificationPrompt ?? "enable"}
+                isEnabling={isEnablingNotifications}
+                onEnable={handleEnableNotifications}
+                onDismiss={() => setNotificationPrompt(null)}
+            />
             <ScrollView contentContainerClassName="p-5 pb-8">
                 {/* Header */}
                 <View className="flex-row items-center justify-between mb-6">

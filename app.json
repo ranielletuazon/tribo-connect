@@ -11,6 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -37,12 +38,20 @@
       ],
       "@react-native-community/datetimepicker",
       [
+        "expo-notifications",
+        {
+          "color": "#C97748"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Kailangan ng TriboConnect ang iyong mga larawan para makapag-upload ng litrato at ID.",
           "cameraPermission": "Kailangan ng TriboConnect ang camera para makunan ang iyong ID at selfie para sa beripikasyon."
         }
-      ]
+      ],
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

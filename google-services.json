@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "214397287772",
+    "project_id": "triboconnect-b28e3",
+    "storage_bucket": "triboconnect-b28e3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:214397287772:android:7426c49d95923927fb1599",
+        "android_client_info": {
+          "package_name": "com.triboconnect.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASn3xv6sJtoh6QIaed614WOfwPaHQeBl0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
