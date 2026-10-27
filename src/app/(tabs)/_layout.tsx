@@ -1,3 +1,4 @@
+import { useAnnouncementNotificationTap } from "@/lib/push-notifications";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,6 +8,8 @@ const INACTIVE_COLOR = "#9CA3AF";
 
 export default function TabsLayout() {
     const insets = useSafeAreaInsets();
+    // tabs only mount after login, so it's safe to navigate from here
+    useAnnouncementNotificationTap();
 
     return (
         <Tabs
