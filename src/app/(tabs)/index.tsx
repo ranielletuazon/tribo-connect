@@ -1,4 +1,9 @@
-import { clayRaised, ClaySurface, GradientBorderCard } from "@/components/clay";
+import {
+    BackgroundBlobs,
+    clayRaised,
+    pressScale,
+    PulseRing,
+} from "@/components/clay";
 import {
     NotificationPermissionModal,
     type NotificationPromptMode,
@@ -10,8 +15,10 @@ import {
     savePushToken,
     setupNotificationChannel,
 } from "@/lib/push-notifications";
+import { PALETTE as COLORS } from "@/constants/palette";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, type Href } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -26,41 +33,115 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface FeatureItem {
+interface ServiceItem {
     icon: keyof typeof Ionicons.glyphMap;
-    color: string;
+    colors: [string, string];
     title: string;
     subtitle: string;
     route: Href;
 }
 
 const HERO_IMAGE = require("../../../assets/images/triboconnect-poster.jpg");
-// TODO: check if this is the right file name
 const TRIBO_AI_MASCOT = require("../../../assets/images/triboAI.png");
 
-const listItems: FeatureItem[] = [
-    {
-        icon: "megaphone",
-        color: "#C97748",
-        title: "Mga Anunsiyo",
-        subtitle: "Balita mula sa iyong komunidad",
-        route: "/(tabs)/community",
-    },
-    {
-        icon: "chatbubbles",
-        color: "#5C7A5F",
-        title: "Mensahe",
-        subtitle: "Makipag-usap sa pamilya at komunidad",
-        route: "/(tabs)/chat",
-    },
-    {
-        icon: "document-text",
-        color: "#5C7A5F",
-        title: "Mag-report ng Insidente",
-        subtitle: "I-pakalat ang isang pangyayari",
-        route: "/(tabs)/report",
-    },
-];
+const announcements: ServiceItem = {
+    icon: "megaphone",
+    colors: ["#E8894F", COLORS.clay],
+    title: "Mga Anunsiyo",
+    subtitle: "Balita mula sa komunidad",
+    route: "/(tabs)/community",
+};
+
+const messages: ServiceItem = {
+    icon: "chatbubbles",
+    colors: ["#56A06A", "#2F6540"],
+    title: "Mensahe",
+    subtitle: "Pamilya at komunidad",
+    route: "/(tabs)/chat",
+};
+
+const report: ServiceItem = {
+    icon: "document-text",
+    colors: ["#F2BD4E", "#C9821F"],
+    title: "Mag-report ng Insidente",
+    subtitle: "I-pakalat ang isang pangyayari",
+    route: "/(tabs)/report",
+};
+
+function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Magandang umaga";
+    if (hour < 18) return "Magandang hapon";
+    return "Magandang gabi";
+}
+
+function ServiceTile({ item, wide }: { item: ServiceItem; wide?: boolean }) {
+    return (
+        <Pressable
+            className={wide ? "w-full" : "flex-1"}
+            onPress={() => router.push(item.route)}
+        >
+            {({ pressed }) => (
+                <LinearGradient
+                    colors={item.colors}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[
+                        clayRaised,
+                        pressScale(pressed),
+                        {
+                            borderRadius: 26,
+                            overflow: "hidden",
+                            minHeight: wide ? 0 : 150,
+                        },
+                    ]}
+                >
+                    {/* big faded icon as a background decoration */}
+                    <View
+                        pointerEvents="none"
+                        className="absolute"
+                        style={{ right: -18, bottom: -22, opacity: 0.16 }}
+                    >
+                        <Ionicons
+                            name={item.icon}
+                            size={wide ? 96 : 110}
+                            color="#fff"
+                        />
+                    </View>
+
+                    <View
+                        className={
+                            wide
+                                ? "flex-row items-center gap-3 p-4"
+                                : "flex-1 justify-between p-4"
+                        }
+                    >
+                        <View className="w-11 h-11 rounded-2xl bg-white/25 items-center justify-center border border-white/30">
+                            <Ionicons name={item.icon} size={20} color="#fff" />
+                        </View>
+                        <View className={wide ? "flex-1" : "mt-6"}>
+                            <Text className="text-[15px] font-bold text-white">
+                                {item.title}
+                            </Text>
+                            <Text className="text-[12px] text-white/85 mt-0.5">
+                                {item.subtitle}
+                            </Text>
+                        </View>
+                        {wide && (
+                            <View className="w-8 h-8 rounded-full bg-white/25 items-center justify-center">
+                                <Ionicons
+                                    name="arrow-forward"
+                                    size={16}
+                                    color="#fff"
+                                />
+                            </View>
+                        )}
+                    </View>
+                </LinearGradient>
+            )}
+        </Pressable>
+    );
+}
 
 export default function Home() {
     const { user, profile } = useAuth();
@@ -155,8 +236,14 @@ export default function Home() {
         }
     };
 
+    const isAdmin = profile?.role === "admin";
+
     return (
-        <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
+        <SafeAreaView
+            className="flex-1"
+            style={{ backgroundColor: COLORS.cream }}
+            edges={["top"]}
+        >
             <NotificationPermissionModal
                 visible={notificationPrompt !== null}
                 mode={notificationPrompt ?? "enable"}
@@ -164,175 +251,331 @@ export default function Home() {
                 onEnable={handleEnableNotifications}
                 onDismiss={() => setNotificationPrompt(null)}
             />
-            <ScrollView contentContainerClassName="p-5 pb-8">
+
+            <BackgroundBlobs
+                colors={[COLORS.leaf, COLORS.gold]}
+                opacity={[0.28, 0.18]}
+            />
+
+            <ScrollView
+                contentContainerClassName="px-5 pt-3 pb-10"
+                showsVerticalScrollIndicator={false}
+            >
                 {/* Header */}
-                <View className="flex-row items-center justify-between mb-6">
-                    <View className="flex-1 flex-row items-center gap-3 mr-3">
-                        <View
-                            className="w-11 h-11 rounded-[22px] bg-[#5C7A5F] items-center justify-center"
-                            style={clayRaised}
+                <View className="flex-row items-center justify-between mb-5">
+                    <View className="flex-1 mr-3">
+                        <Text
+                            className="text-[13px] font-medium"
+                            style={{ color: COLORS.muted }}
                         >
-                            {profile?.photoURL ? (
-                                <Image
-                                    source={{ uri: profile.photoURL }}
-                                    className="w-full h-full rounded-full"
-                                    resizeMode="cover"
-                                />
-                            ) : (
-                                <Text className="text-white text-[22px] font-bold">
-                                    {(profile?.username ?? "U")
-                                        .slice(0, 2)
-                                        .toUpperCase()}
-                                </Text>
+                            {getGreeting()},
+                        </Text>
+                        <View className="flex-row items-center gap-1.5 mt-0.5">
+                            <Text
+                                className="text-[24px] font-extrabold shrink"
+                                style={{ color: COLORS.ink }}
+                                numberOfLines={1}
+                            >
+                                {profile?.username ?? "Kaibigan"}
+                            </Text>
+                            {profile?.isVerified === true && (
+                                <VerifiedBadge size={19} />
                             )}
                         </View>
-                        <View className="flex-1">
-                            <View className="flex-row items-center gap-1">
+                        <View className="flex-row mt-2">
+                            <View
+                                className="flex-row items-center gap-1 px-2.5 py-1 rounded-full"
+                                style={{
+                                    backgroundColor: isAdmin
+                                        ? "rgba(217,115,63,0.14)"
+                                        : "rgba(62,123,79,0.12)",
+                                }}
+                            >
+                                <Ionicons
+                                    name={
+                                        isAdmin
+                                            ? "shield-checkmark"
+                                            : "location"
+                                    }
+                                    size={12}
+                                    color={
+                                        isAdmin ? COLORS.clay : COLORS.forest
+                                    }
+                                />
                                 <Text
-                                    className="text-[15px] font-semibold text-[#1F2A1F] shrink"
+                                    className="text-[11.5px] font-semibold"
+                                    style={{
+                                        color: isAdmin
+                                            ? COLORS.clay
+                                            : COLORS.forest,
+                                    }}
                                     numberOfLines={1}
                                 >
-                                    Kumusta! {profile?.username}
+                                    {isAdmin
+                                        ? `Admin ng ${profile?.barangay}`
+                                        : `Brgy. ${profile?.barangay}`}{" "}
+                                    · Porac
                                 </Text>
-                                {profile?.isVerified === true && (
-                                    <VerifiedBadge size={15} />
-                                )}
                             </View>
-                            {profile?.role === "admin" ? (
-                                <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
-                                    Admin ng {profile?.barangay} · Porac
-                                </Text>
-                            ) : (
-                                <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
-                                    Barangay {profile?.barangay} · Porac
-                                </Text>
-                            )}
                         </View>
                     </View>
 
-                    {/* TriboAI (page not made yet) */}
-                    <Pressable
-                        style={clayRaised}
-                        className="w-14 h-14 rounded-full overflow-hidden bg-[--main-white] p-1.5"
-                        onPress={() => router.push("/(tabs)/tribobot" as Href)}
-                    >
-                        <Image
-                            source={TRIBO_AI_MASCOT}
-                            className="w-full h-full"
-                            resizeMode="cover"
-                        />
+                    {/* avatar with a gradient ring, opens the profile */}
+                    <Pressable onPress={() => router.push("/(tabs)/profile")}>
+                        {({ pressed }) => (
+                            <LinearGradient
+                                colors={[
+                                    COLORS.leaf,
+                                    COLORS.gold,
+                                    COLORS.terracotta,
+                                ]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={[
+                                    clayRaised,
+                                    pressScale(pressed),
+                                    { borderRadius: 32, padding: 2.5 },
+                                ]}
+                            >
+                                <View
+                                    className="w-14 h-14 rounded-full items-center justify-center overflow-hidden border-2"
+                                    style={{
+                                        backgroundColor: COLORS.sage,
+                                        borderColor: COLORS.cream,
+                                    }}
+                                >
+                                    {profile?.photoURL ? (
+                                        <Image
+                                            source={{ uri: profile.photoURL }}
+                                            className="w-full h-full"
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <Text className="text-white text-[20px] font-bold">
+                                            {(profile?.username ?? "U")
+                                                .slice(0, 2)
+                                                .toUpperCase()}
+                                        </Text>
+                                    )}
+                                </View>
+                            </LinearGradient>
+                        )}
                     </Pressable>
                 </View>
 
                 {/* Hero */}
-                <GradientBorderCard
-                    colors={["rgba(255,255,255,0.55)", "rgba(122,106,80,0.15)"]}
-                    borderRadius={28}
-                    style={{ marginBottom: 24 }}
+                <View
+                    className="rounded-[30px] overflow-hidden mb-5"
+                    style={clayRaised}
                 >
                     <ImageBackground
                         source={HERO_IMAGE}
-                        className="h-52"
+                        className="h-56"
                         resizeMode="cover"
                     >
-                        <View className="flex-1 justify-end p-5 bg-black/35">
-                            <Text className="text-[20px] font-semibold leading-7">
-                                <Text className="text-white">
-                                    Maligayang Pagdating sa{"\n"}
+                        <LinearGradient
+                            colors={[
+                                "rgba(20,35,24,0.05)",
+                                "rgba(20,35,24,0.35)",
+                                "rgba(16,32,20,0.92)",
+                            ]}
+                            locations={[0, 0.45, 1]}
+                            style={{ flex: 1, padding: 20 }}
+                        >
+                            <View className="flex-row">
+                                <View className="flex-row items-center gap-1 px-3 py-1.5 rounded-full bg-black/30 border border-white/25">
+                                    <Ionicons
+                                        name="leaf"
+                                        size={12}
+                                        color={COLORS.leaf}
+                                    />
+                                    <Text className="text-white text-[11px] font-semibold tracking-wide">
+                                        Porac, Pampanga
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View className="flex-1 justify-end">
+                                <Text className="text-white/85 text-[14px] font-medium">
+                                    Maligayang Pagdating sa
                                 </Text>
-                                <Text className="text-[#5C7A5F] font-bold">
-                                    Tribo
+                                <Text className="text-[30px] font-extrabold leading-9">
+                                    <Text style={{ color: COLORS.leaf }}>
+                                        Tribo
+                                    </Text>
+                                    <Text style={{ color: "#F5A45D" }}>
+                                        Connect
+                                    </Text>
                                 </Text>
-                                <Text className="text-[#C97748] font-bold">
-                                    Connect
+                                <Text className="text-white/90 text-[12.5px]">
+                                    Iyong komunidad. Iyong boses. Iyong
+                                    kaligtasan.
                                 </Text>
-                            </Text>
-                            <Text className="text-[#EDEDED] text-[13px] mt-1">
-                                Iyong komunidad. Iyong boses. Iyong kaligtasan.
-                            </Text>
-                        </View>
+                            </View>
+                        </LinearGradient>
                     </ImageBackground>
-                </GradientBorderCard>
+                </View>
 
                 {/* Emergency */}
                 <Pressable
-                    style={{ marginBottom: 16 }}
+                    className="mb-7"
                     onPress={() => router.push("/(tabs)/emergency/" as Href)}
                 >
                     {({ pressed }) => (
-                        <ClaySurface
-                            colors={["#E0715F", "#9C3A2A"]}
-                            borderRadius={26}
-                            style={{ opacity: pressed ? 0.9 : 1 }}
+                        <LinearGradient
+                            colors={[COLORS.ember, "#D33C2E", COLORS.blood]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[
+                                {
+                                    borderRadius: 26,
+                                    overflow: "hidden",
+                                    shadowColor: COLORS.blood,
+                                    shadowOffset: { width: 0, height: 8 },
+                                    shadowOpacity: 0.35,
+                                    shadowRadius: 14,
+                                    elevation: 10,
+                                },
+                                pressScale(pressed),
+                            ]}
                         >
-                            <View className="flex-row items-center gap-3 p-4">
-                                <View className="w-11 h-11 rounded-[22px] bg-white items-center justify-center">
-                                    <Ionicons
-                                        name="warning"
-                                        size={20}
-                                        color="#9C3A2A"
-                                    />
+                            {/* decorative circles */}
+                            <View
+                                pointerEvents="none"
+                                className="absolute w-40 h-40 rounded-full bg-white/10"
+                                style={{ right: -40, top: -60 }}
+                            />
+                            <View
+                                pointerEvents="none"
+                                className="absolute w-24 h-24 rounded-full bg-white/10"
+                                style={{ right: 50, bottom: -50 }}
+                            />
+
+                            <View className="flex-row items-center gap-4 px-4 py-5">
+                                <View className="w-14 h-14 items-center justify-center">
+                                    <PulseRing size={56} />
+                                    <View className="w-14 h-14 rounded-full bg-white items-center justify-center">
+                                        <Ionicons
+                                            name="warning"
+                                            size={26}
+                                            color={COLORS.blood}
+                                        />
+                                    </View>
                                 </View>
                                 <View className="flex-1">
-                                    <Text className="text-[15px] font-bold text-white">
+                                    <Text className="text-[18px] font-extrabold text-white">
                                         Emergency
                                     </Text>
-                                    <Text className="text-[12.5px] text-white/80 mt-0.5">
-                                        Humingi ng agarang tulong
+                                    <Text className="text-[12.5px] text-white/85 mt-0.5">
+                                        Pindutin para humingi ng agarang tulong
                                     </Text>
                                 </View>
-                                <Ionicons
-                                    name="chevron-forward"
-                                    size={18}
-                                    color="#fff"
-                                />
+                                <View className="px-3 py-1.5 rounded-full bg-white">
+                                    <Text
+                                        className="text-[12px] font-extrabold tracking-widest"
+                                        style={{ color: COLORS.blood }}
+                                    >
+                                        SOS
+                                    </Text>
+                                </View>
                             </View>
-                        </ClaySurface>
+                        </LinearGradient>
                     )}
                 </Pressable>
 
-                <Text className="text-[13px] font-medium text-[#7A6D5C] mb-3 ml-1">
-                    Mabilisang Serbisyo
-                </Text>
+                {/* Services */}
+                <View className="flex-row items-center gap-2 mb-3 ml-1">
+                    <Text
+                        className="text-[17px] font-extrabold"
+                        style={{ color: COLORS.ink }}
+                    >
+                        Mabilisang Serbisyo
+                    </Text>
+                </View>
 
-                {/* List tiles */}
-                <View className="gap-4">
-                    {listItems.map((item) => (
-                        <Pressable
-                            key={item.title}
-                            className="flex-row items-center gap-3 bg-[--main-white] rounded-[26px] p-4"
-                            style={clayRaised}
-                            onPress={() => router.push(item.route)}
+                <View className="gap-3 mb-7">
+                    <View className="flex-row gap-3">
+                        <ServiceTile item={announcements} />
+                        <ServiceTile item={messages} />
+                    </View>
+                    <ServiceTile item={report} wide />
+                </View>
+
+                {/* TriboAI */}
+                <Pressable
+                    onPress={() => router.push("/(tabs)/tribobot" as Href)}
+                >
+                    {({ pressed }) => (
+                        <LinearGradient
+                            colors={["#E9F4E4", "#CFE7C8"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[
+                                clayRaised,
+                                pressScale(pressed),
+                                {
+                                    borderRadius: 26,
+                                    overflow: "hidden",
+                                    borderWidth: 1,
+                                    borderColor: "rgba(62,123,79,0.15)",
+                                },
+                            ]}
                         >
-                            <View
-                                className="w-10 h-10 rounded-full items-center justify-center"
-                                style={[
-                                    clayRaised,
-                                    { backgroundColor: item.color },
-                                ]}
-                            >
-                                <Ionicons
-                                    name={item.icon}
-                                    size={17}
-                                    color="#fff"
+                            <View className="flex-row items-center p-4 gap-3">
+                                <View className="flex-1">
+                                    <View className="flex-row items-center gap-1 mb-1">
+                                        <Ionicons
+                                            name="sparkles"
+                                            size={13}
+                                            color={COLORS.forest}
+                                        />
+                                        <Text
+                                            className="text-[11px] font-bold tracking-widest"
+                                            style={{ color: COLORS.forest }}
+                                        >
+                                            TRIBOAI
+                                        </Text>
+                                    </View>
+                                    <Text
+                                        className="text-[16px] font-extrabold"
+                                        style={{ color: COLORS.ink }}
+                                    >
+                                        May tanong ka ba?
+                                    </Text>
+                                    <Text
+                                        className="text-[12px] mt-0.5"
+                                        style={{ color: COLORS.muted }}
+                                    >
+                                        Kausapin si TriboAI, ang iyong katuwang
+                                        sa komunidad.
+                                    </Text>
+                                    <View className="flex-row mt-3">
+                                        <View
+                                            className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-full"
+                                            style={{
+                                                backgroundColor: COLORS.forest,
+                                            }}
+                                        >
+                                            <Text className="text-white text-[12px] font-bold">
+                                                Magtanong
+                                            </Text>
+                                            <Ionicons
+                                                name="arrow-forward"
+                                                size={13}
+                                                color="#fff"
+                                            />
+                                        </View>
+                                    </View>
+                                </View>
+                                <Image
+                                    source={TRIBO_AI_MASCOT}
+                                    className="w-24 h-24"
+                                    resizeMode="contain"
                                 />
                             </View>
-                            <View className="flex-1">
-                                <Text className="text-[14.5px] font-bold text-[#1F2A1F]">
-                                    {item.title}
-                                </Text>
-                                <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
-                                    {item.subtitle}
-                                </Text>
-                            </View>
-                            <Ionicons
-                                name="chevron-forward"
-                                size={16}
-                                color="#C4BFB2"
-                            />
-                        </Pressable>
-                    ))}
-                </View>
+                        </LinearGradient>
+                    )}
+                </Pressable>
             </ScrollView>
         </SafeAreaView>
     );

@@ -1,11 +1,20 @@
 import { AuthHeader } from "@/components/auth-header";
-import { ClayButton, ClaySurface, clayRaised } from "@/components/clay";
+import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
+import {
+    ERROR_COLOR,
+    ErrorText,
+    FIELD_BG,
+    FIELD_BORDER,
+    StepSection,
+} from "@/components/step-section";
+import { PALETTE } from "@/constants/palette";
 import { functions } from "@/lib/firebase";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { httpsCallable } from "firebase/functions";
-import type { ReactNode } from "react";
 import { useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
     Platform,
@@ -21,8 +30,7 @@ interface ReportCategory {
     key: string;
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
-    colorLight: string;
-    colorDark: string;
+    colors: [string, string];
 }
 
 const CATEGORIES: ReportCategory[] = [
@@ -30,109 +38,46 @@ const CATEGORIES: ReportCategory[] = [
         key: "sakuna",
         label: "Sakuna",
         icon: "water",
-        colorLight: "#6FA8DC",
-        colorDark: "#2A5C99",
+        colors: ["#5BA3E8", "#2A5C99"],
     },
     {
         key: "kaligtasan",
         label: "Kaligtasan",
         icon: "shield-checkmark",
-        colorLight: "#C97A6A",
-        colorDark: "#8B3A2E",
+        colors: ["#E8894F", "#B4562A"],
     },
     {
         key: "kalusugan",
         label: "Kalusugan",
         icon: "medkit",
-        colorLight: "#E0857A",
-        colorDark: "#B23A2E",
+        colors: ["#F0624D", "#B8321F"],
     },
     {
         key: "paligid",
         label: "Paligid",
         icon: "leaf",
-        colorLight: "#7A9B7D",
-        colorDark: "#3F5C42",
+        colors: ["#56A06A", "#2F6540"],
     },
     {
         key: "sarili",
         label: "Sarili",
         icon: "eye",
-        colorLight: "#A98FC9",
-        colorDark: "#6B4F94",
+        colors: ["#A98FE0", "#6B4F94"],
     },
     {
         key: "iba-pa",
         label: "Iba Pa",
         icon: "ellipsis-horizontal",
-        colorLight: "#B5AFA0",
-        colorDark: "#7A6D5C",
+        colors: ["#B5AFA0", "#7A6D5C"],
     },
 ];
 
 const SUBJECT_MAX = 120;
 const DESCRIPTION_MAX = 2000;
-const BRAND_ACCENT = "#3F5C42";
-const ERROR_COLOR = "#B23A2E";
+// same gold as the report tile on the homepage
+const REPORT_COLORS: [string, string] = ["#F2BD4E", "#C9821F"];
 
-const type = {
-    micro: 11,
-    small: 12,
-    label: 13,
-    body: 14,
-    input: 15,
-    button: 16,
-};
-
-function FormSection({
-    title,
-    hint,
-    children,
-}: {
-    title: string;
-    hint?: string;
-    children: ReactNode;
-}) {
-    return (
-        <View
-            style={clayRaised}
-            className="bg-[--main-white] rounded-2xl overflow-hidden mb-5"
-        >
-            <View
-                className="flex-row items-center gap-2 px-4 py-3"
-                style={{
-                    backgroundColor: "#F3F6F1",
-                    borderBottomWidth: 1,
-                    borderBottomColor: "#E4E9DF",
-                }}
-            >
-                <View
-                    style={{
-                        width: 4,
-                        height: 15,
-                        borderRadius: 2,
-                        backgroundColor: BRAND_ACCENT,
-                    }}
-                />
-                <Text
-                    style={{ fontSize: type.label }}
-                    className="font-semibold text-[#1F2A1F]"
-                >
-                    {title}
-                </Text>
-                {hint ? (
-                    <Text
-                        style={{ fontSize: type.body }}
-                        className="text-[#9C978C]"
-                    >
-                        {hint}
-                    </Text>
-                ) : null}
-            </View>
-            <View className="p-4">{children}</View>
-        </View>
-    );
-}
+type Field = "subject" | "description";
 
 interface ReportPayload {
     categories: string[];
@@ -151,6 +96,7 @@ export default function Report() {
     const [description, setDescription] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+    const [focusedField, setFocusedField] = useState<Field | null>(null);
 
     const toggleCategory = (key: string) => {
         if (isSubmitting) return;
@@ -163,8 +109,17 @@ export default function Report() {
     const subjectValid = subject.trim().length > 0;
     const descriptionValid = description.trim().length > 0;
     const isValid = categoriesValid && subjectValid && descriptionValid;
+    const steps = [categoriesValid, subjectValid, descriptionValid];
+    const doneCount = steps.filter(Boolean).length;
 
     const showError = (fieldValid: boolean) => attemptedSubmit && !fieldValid;
+
+    // border color of a text box: red on error, green while typing
+    const fieldBorder = (field: Field, fieldValid: boolean) => {
+        if (showError(fieldValid)) return ERROR_COLOR;
+        if (focusedField === field) return PALETTE.forest;
+        return FIELD_BORDER;
+    };
 
     const handleSubmit = async () => {
         setAttemptedSubmit(true);
@@ -197,28 +152,115 @@ export default function Report() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
+        <SafeAreaView
+            className="flex-1"
+            style={{ backgroundColor: PALETTE.cream }}
+            edges={["top"]}
+        >
+            <BackgroundBlobs
+                colors={[PALETTE.gold, PALETTE.leaf]}
+                opacity={[0.22, 0.2]}
+            />
+
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
                 style={{ flex: 1 }}
             >
                 <ScrollView
-                    contentContainerClassName="px-6 pt-4 pb-10"
+                    contentContainerClassName="px-5 pt-4 pb-10"
                     keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
                 >
                     <AuthHeader title="Report" />
 
-                    <Text
-                        style={{ fontSize: type.input }}
-                        className="text-[#7A6D5C] text-center mt-2 mb-6 px-2"
+                    {/* Hero with the form progress */}
+                    <LinearGradient
+                        colors={REPORT_COLORS}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[
+                            clayRaised,
+                            {
+                                borderRadius: 30,
+                                overflow: "hidden",
+                                marginTop: 4,
+                                marginBottom: 24,
+                            },
+                        ]}
                     >
-                        Ibahagi ang detalye ng pangyayari para makatulong sa
-                        iyong barangay.
-                    </Text>
+                        {/* big faded icon as a background decoration */}
+                        <View
+                            pointerEvents="none"
+                            className="absolute"
+                            style={{ right: -20, top: -16, opacity: 0.16 }}
+                        >
+                            <Ionicons
+                                name="document-text"
+                                size={130}
+                                color="#fff"
+                            />
+                        </View>
 
-                    <FormSection
+                        <View className="p-5">
+                            <View className="w-12 h-12 rounded-2xl bg-white/25 items-center justify-center border border-white/30 mb-3">
+                                <Ionicons
+                                    name="megaphone"
+                                    size={22}
+                                    color="#fff"
+                                />
+                            </View>
+                            <Text className="text-[21px] font-extrabold text-white">
+                                Mag-report ng Insidente
+                            </Text>
+                            <Text className="text-[13px] text-white/90 mt-1 pr-8">
+                                Ibahagi ang detalye ng pangyayari para
+                                makatulong sa iyong barangay.
+                            </Text>
+
+                            <View className="flex-row gap-1.5 mt-4">
+                                {steps.map((done, i) => (
+                                    <View
+                                        key={i}
+                                        className="flex-1 h-1.5 rounded-full"
+                                        style={{
+                                            backgroundColor: done
+                                                ? "#fff"
+                                                : "rgba(255,255,255,0.3)",
+                                        }}
+                                    />
+                                ))}
+                            </View>
+                            <Text className="text-[11.5px] font-semibold text-white/90 mt-2">
+                                {isValid
+                                    ? "Handa nang isumite!"
+                                    : `${doneCount} sa 3 hakbang ang tapos`}
+                            </Text>
+                        </View>
+                    </LinearGradient>
+
+                    {/* Step 1: categories */}
+                    <StepSection
+                        step={1}
                         title="Uri ng Ulat"
-                        hint="(pumili ng isa o higit pa)"
+                        hint="Pumili ng isa o higit pa"
+                        done={categoriesValid}
+                        trailing={
+                            categoriesValid ? (
+                                <View
+                                    className="px-2.5 py-1 rounded-full"
+                                    style={{
+                                        backgroundColor: "rgba(62,123,79,0.12)",
+                                    }}
+                                >
+                                    <Text
+                                        className="text-[11px] font-bold"
+                                        style={{ color: PALETTE.forest }}
+                                    >
+                                        {categories.length} napili
+                                    </Text>
+                                </View>
+                            ) : null
+                        }
                     >
                         <View className="flex-row flex-wrap justify-between">
                             {CATEGORIES.map((cat) => {
@@ -235,220 +277,271 @@ export default function Report() {
                                         }}
                                         accessibilityLabel={`${cat.label}, ${selected ? "napili" : "hindi napili"}`}
                                         style={{
-                                            width: "31%",
-                                            marginBottom: 12,
+                                            width: "31.5%",
+                                            marginBottom: 10,
                                             opacity: isSubmitting ? 0.6 : 1,
                                         }}
                                     >
-                                        {selected ? (
-                                            <ClaySurface
-                                                colors={[
-                                                    cat.colorLight,
-                                                    cat.colorDark,
-                                                ]}
-                                                borderRadius={18}
-                                                style={{
-                                                    padding: 14,
-                                                    alignItems: "center",
-                                                }}
-                                            >
-                                                <View className="absolute top-2 right-2 w-4 h-4 rounded-full bg-white items-center justify-center">
-                                                    <Ionicons
-                                                        name="checkmark"
-                                                        size={11}
-                                                        color={cat.colorDark}
-                                                    />
-                                                </View>
-                                                <View className="w-11 h-11 rounded-full bg-white/20 items-center justify-center mb-2">
-                                                    <Ionicons
-                                                        name={cat.icon}
-                                                        size={19}
-                                                        color="#fff"
-                                                    />
-                                                </View>
-                                                <Text
-                                                    style={{
-                                                        fontSize: type.small,
-                                                    }}
-                                                    className="font-bold text-white text-center"
+                                        {({ pressed }) =>
+                                            selected ? (
+                                                <LinearGradient
+                                                    colors={cat.colors}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={[
+                                                        clayRaised,
+                                                        pressScale(pressed),
+                                                        {
+                                                            borderRadius: 20,
+                                                            paddingVertical: 14,
+                                                            alignItems:
+                                                                "center",
+                                                        },
+                                                    ]}
                                                 >
-                                                    {cat.label}
-                                                </Text>
-                                            </ClaySurface>
-                                        ) : (
-                                            <View
-                                                style={{
-                                                    borderWidth: 1,
-                                                    borderColor: "#E7E2D6",
-                                                    backgroundColor: "#FBFAF7",
-                                                }}
-                                                className="rounded-[18px] p-3.5 items-center"
-                                            >
+                                                    <View className="absolute top-2 right-2 w-[18px] h-[18px] rounded-full bg-white items-center justify-center">
+                                                        <Ionicons
+                                                            name="checkmark"
+                                                            size={12}
+                                                            color={
+                                                                cat.colors[1]
+                                                            }
+                                                        />
+                                                    </View>
+                                                    <View className="w-11 h-11 rounded-2xl bg-white/25 items-center justify-center mb-2 border border-white/30">
+                                                        <Ionicons
+                                                            name={cat.icon}
+                                                            size={20}
+                                                            color="#fff"
+                                                        />
+                                                    </View>
+                                                    <Text className="text-[12.5px] font-bold text-white text-center">
+                                                        {cat.label}
+                                                    </Text>
+                                                </LinearGradient>
+                                            ) : (
                                                 <View
-                                                    className="w-11 h-11 rounded-full items-center justify-center mb-2"
-                                                    style={{
-                                                        backgroundColor:
-                                                            "#F0EDE6",
-                                                    }}
+                                                    className="rounded-[20px] py-3.5 items-center border"
+                                                    style={[
+                                                        pressScale(pressed),
+                                                        {
+                                                            backgroundColor:
+                                                                "#FBF8F3",
+                                                            borderColor:
+                                                                showError(
+                                                                    categoriesValid,
+                                                                )
+                                                                    ? "rgba(192,57,43,0.4)"
+                                                                    : "#EFE9DE",
+                                                        },
+                                                    ]}
                                                 >
-                                                    <Ionicons
-                                                        name={cat.icon}
-                                                        size={19}
-                                                        color={cat.colorDark}
-                                                    />
+                                                    <View
+                                                        className="w-11 h-11 rounded-2xl items-center justify-center mb-2"
+                                                        style={{
+                                                            // light tint of the category color
+                                                            backgroundColor: `${cat.colors[0]}26`,
+                                                        }}
+                                                    >
+                                                        <Ionicons
+                                                            name={cat.icon}
+                                                            size={20}
+                                                            color={
+                                                                cat.colors[1]
+                                                            }
+                                                        />
+                                                    </View>
+                                                    <Text
+                                                        className="text-[12.5px] font-semibold text-center"
+                                                        style={{
+                                                            color: PALETTE.ink,
+                                                        }}
+                                                    >
+                                                        {cat.label}
+                                                    </Text>
                                                 </View>
-                                                <Text
-                                                    style={{
-                                                        fontSize: type.small,
-                                                    }}
-                                                    className="font-semibold text-[#1F2A1F] text-center"
-                                                >
-                                                    {cat.label}
-                                                </Text>
-                                            </View>
-                                        )}
+                                            )
+                                        }
                                     </Pressable>
                                 );
                             })}
                         </View>
                         {showError(categoriesValid) && (
-                            <Text
-                                style={{
-                                    fontSize: type.body,
-                                    color: ERROR_COLOR,
-                                }}
-                                className="mt-1"
-                            >
+                            <ErrorText>
                                 Pumili ng kahit isang uri ng ulat.
-                            </Text>
+                            </ErrorText>
                         )}
-                    </FormSection>
+                    </StepSection>
 
-                    <FormSection title="Detalye ng Ulat" hint="(kinakailangan)">
-                        <View className="flex-row items-center justify-between mb-2">
-                            <View className="flex-row items-center gap-2">
-                                <Ionicons
-                                    name="create-outline"
-                                    size={14}
-                                    color="#9C978C"
-                                />
-                                <Text
-                                    style={{ fontSize: type.body }}
-                                    className="font-medium text-[#9C978C]"
-                                >
-                                    Pamagat
-                                </Text>
+                    {/* Step 2: subject */}
+                    <StepSection
+                        step={2}
+                        title="Pamagat"
+                        hint="Maikling buod ng nangyari"
+                        done={subjectValid}
+                    >
+                        <View
+                            className="flex-row items-center gap-2.5 rounded-2xl px-3.5 border-[1.5px]"
+                            style={{
+                                backgroundColor: FIELD_BG,
+                                borderColor: fieldBorder(
+                                    "subject",
+                                    subjectValid,
+                                ),
+                            }}
+                        >
+                            <Ionicons
+                                name="create-outline"
+                                size={17}
+                                color={
+                                    focusedField === "subject"
+                                        ? PALETTE.forest
+                                        : "#B5AFA0"
+                                }
+                            />
+                            <TextInput
+                                placeholder="Maikling paglalarawan ng insidente"
+                                placeholderTextColor="#B5AFA0"
+                                value={subject}
+                                onChangeText={setSubject}
+                                onFocus={() => setFocusedField("subject")}
+                                onBlur={() => setFocusedField(null)}
+                                maxLength={SUBJECT_MAX}
+                                editable={!isSubmitting}
+                                accessibilityLabel="Pamagat ng ulat"
+                                className="flex-1 text-[15px] py-3.5"
+                                style={{ color: PALETTE.ink }}
+                            />
+                        </View>
+                        <View className="flex-row items-start justify-between">
+                            <View className="flex-1">
+                                {showError(subjectValid) && (
+                                    <ErrorText>Kailangan ang pamagat.</ErrorText>
+                                )}
                             </View>
-                            <Text
-                                style={{ fontSize: type.micro }}
-                                className="text-[#B5AFA0]"
-                            >
+                            <Text className="text-[11px] text-[#B5AFA0] mt-2 ml-2">
                                 {subject.length}/{SUBJECT_MAX}
                             </Text>
                         </View>
-                        <TextInput
-                            placeholder="Maikling paglalarawan ng insidente"
-                            placeholderTextColor="#B5AFA0"
-                            value={subject}
-                            onChangeText={setSubject}
-                            maxLength={SUBJECT_MAX}
-                            editable={!isSubmitting}
-                            accessibilityLabel="Pamagat ng ulat"
-                            style={{ fontSize: type.input }}
-                            className="text-[#1F2A1F] pb-3"
-                        />
-                        {showError(subjectValid) && (
-                            <Text
-                                style={{
-                                    fontSize: type.body,
-                                    color: ERROR_COLOR,
-                                }}
-                                className="mb-2"
-                            >
-                                Kailangan ang pamagat.
-                            </Text>
-                        )}
+                    </StepSection>
 
-                        <View className="h-px bg-[#EDEAE2] mb-3" />
-
-                        <View className="flex-row items-center justify-between mb-2">
-                            <View className="flex-row items-center gap-2">
-                                <Ionicons
-                                    name="document-text-outline"
-                                    size={14}
-                                    color="#9C978C"
-                                />
-                                <Text
-                                    style={{ fontSize: type.body }}
-                                    className="font-medium text-[#9C978C]"
-                                >
-                                    Detalye
-                                </Text>
+                    {/* Step 3: description */}
+                    <StepSection
+                        step={3}
+                        title="Detalye"
+                        hint="Ano, saan, at kailan nangyari"
+                        done={descriptionValid}
+                    >
+                        <View
+                            className="rounded-2xl px-3.5 pt-3 pb-2 border-[1.5px]"
+                            style={{
+                                backgroundColor: FIELD_BG,
+                                borderColor: fieldBorder(
+                                    "description",
+                                    descriptionValid,
+                                ),
+                            }}
+                        >
+                            <TextInput
+                                placeholder="Ilarawan ang buong detalye ng pangyayari..."
+                                placeholderTextColor="#B5AFA0"
+                                value={description}
+                                onChangeText={setDescription}
+                                onFocus={() => setFocusedField("description")}
+                                onBlur={() => setFocusedField(null)}
+                                multiline
+                                numberOfLines={6}
+                                maxLength={DESCRIPTION_MAX}
+                                editable={!isSubmitting}
+                                textAlignVertical="top"
+                                accessibilityLabel="Detalye ng insidente"
+                                className="text-[15px] min-h-[130px]"
+                                style={{ color: PALETTE.ink }}
+                            />
+                        </View>
+                        <View className="flex-row items-start justify-between">
+                            <View className="flex-1">
+                                {showError(descriptionValid) && (
+                                    <ErrorText>Ilarawan ang pangyayari.</ErrorText>
+                                )}
                             </View>
-                            <Text
-                                style={{ fontSize: type.micro }}
-                                className="text-[#B5AFA0]"
-                            >
+                            <Text className="text-[11px] text-[#B5AFA0] mt-2 ml-2">
                                 {description.length}/{DESCRIPTION_MAX}
                             </Text>
                         </View>
-                        <TextInput
-                            placeholder="Ilarawan ang buong detalye ng pangyayari..."
-                            placeholderTextColor="#B5AFA0"
-                            value={description}
-                            onChangeText={setDescription}
-                            multiline
-                            numberOfLines={5}
-                            maxLength={DESCRIPTION_MAX}
-                            editable={!isSubmitting}
-                            textAlignVertical="top"
-                            accessibilityLabel="Detalye ng insidente"
-                            style={{ fontSize: type.input }}
-                            className="text-[#1F2A1F] min-h-[100px]"
-                        />
-                        {showError(descriptionValid) && (
-                            <Text
-                                style={{
-                                    fontSize: type.body,
-                                    color: ERROR_COLOR,
-                                }}
-                            >
-                                Ilarawan ang pangyayari.
-                            </Text>
-                        )}
-                    </FormSection>
+                    </StepSection>
 
-                    <Text
-                        style={{ fontSize: type.micro }}
-                        className="text-[#9C978C] text-center mb-5 px-4"
-                    >
-                        Gagamitin ang email ng iyong naka-log in na account para
-                        makipag-ugnayan tungkol sa ulat na ito.
-                    </Text>
-
-                    <ClayButton
-                        colors={
-                            isValid
-                                ? ["#4C7350", "#254631"]
-                                : ["#C4BFB2", "#9C978C"]
-                        }
-                        borderRadius={20}
-                        disabled={isSubmitting}
-                        onPress={handleSubmit}
+                    {/* Contact note */}
+                    <View
+                        className="flex-row items-start gap-3 p-4 rounded-[22px] border mt-1 mb-5"
                         style={{
-                            borderWidth: 1,
-                            borderColor: "rgba(255,255,255,0.16)",
+                            backgroundColor: "rgba(62,123,79,0.08)",
+                            borderColor: "rgba(62,123,79,0.2)",
                         }}
                     >
+                        <Ionicons
+                            name="mail-outline"
+                            size={18}
+                            color={PALETTE.forest}
+                        />
                         <Text
-                            style={{ fontSize: type.button }}
-                            className="text-white font-semibold"
+                            className="flex-1 text-[12px] leading-[18px]"
+                            style={{ color: PALETTE.muted }}
                         >
-                            {isSubmitting
-                                ? "Ipinapadala..."
-                                : "Isumite ang Ulat"}
+                            Gagamitin ang email ng iyong naka-log in na account
+                            para makipag-ugnayan tungkol sa ulat na ito.
                         </Text>
-                    </ClayButton>
+                    </View>
+
+                    {/* Submit */}
+                    <Pressable
+                        disabled={isSubmitting}
+                        onPress={handleSubmit}
+                        accessibilityRole="button"
+                    >
+                        {({ pressed }) => (
+                            <LinearGradient
+                                colors={
+                                    isValid
+                                        ? ["#56A06A", "#2F6540"]
+                                        : ["#C4BFB2", "#A39E92"]
+                                }
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={[
+                                    clayRaised,
+                                    pressScale(pressed),
+                                    {
+                                        borderRadius: 22,
+                                        paddingVertical: 17,
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: 10,
+                                        opacity: isSubmitting ? 0.85 : 1,
+                                    },
+                                ]}
+                            >
+                                {isSubmitting ? (
+                                    <ActivityIndicator
+                                        size="small"
+                                        color="#fff"
+                                    />
+                                ) : (
+                                    <Ionicons
+                                        name="send"
+                                        size={17}
+                                        color="#fff"
+                                    />
+                                )}
+                                <Text className="text-white text-[16px] font-bold">
+                                    {isSubmitting
+                                        ? "Ipinapadala..."
+                                        : "Isumite ang Ulat"}
+                                </Text>
+                            </LinearGradient>
+                        )}
+                    </Pressable>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>

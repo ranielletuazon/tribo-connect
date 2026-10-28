@@ -1,5 +1,12 @@
-import { ClaySurface, clayRaised } from "@/components/clay";
+import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
+import {
+    ERROR_COLOR,
+    FIELD_BG,
+    FIELD_BORDER,
+    StepSection,
+} from "@/components/step-section";
 import { BARANGAYS } from "@/constants/barangays";
+import { PALETTE } from "@/constants/palette";
 import {
     CATEGORIES,
     CATEGORY_ORDER,
@@ -13,11 +20,12 @@ import { uploadImage } from "@/lib/upload-image";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
-import type { ReactNode } from "react";
 import { useState } from "react";
 import {
+    ActivityIndicator,
     Image,
     KeyboardAvoidingView,
     Modal,
@@ -32,14 +40,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const TITLE_MAX = 120;
 const CONTENT_MAX = 3000;
-
-function SectionLabel({ children }: { children: ReactNode }) {
-    return (
-        <Text className="text-[13px] font-medium text-[#7A6D5C] mb-2.5 ml-1 mt-5">
-            {children}
-        </Text>
-    );
-}
 
 export default function CreateEmergency() {
     const router = useRouter();
@@ -57,6 +57,9 @@ export default function CreateEmergency() {
     const [imageUri, setImageUri] = useState<string | null>(null);
     const [isPosting, setIsPosting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [focusedField, setFocusedField] = useState<
+        "title" | "content" | null
+    >(null);
 
     const level = SEVERITIES[severity];
     const canPost =
@@ -133,16 +136,32 @@ export default function CreateEmergency() {
     // only admins can open this screen, everyone else gets sent back
     if (!isAdmin) {
         return (
-            <SafeAreaView className="flex-1 bg-[--main-white] items-center justify-center px-8">
-                <Ionicons name="lock-closed" size={36} color="#C4BFB2" />
-                <Text className="text-center text-[13.5px] text-[#9C978C] mt-3 mb-5">
+            <SafeAreaView
+                className="flex-1 items-center justify-center px-8"
+                style={{ backgroundColor: PALETTE.cream }}
+            >
+                <View
+                    className="w-16 h-16 rounded-full items-center justify-center mb-3"
+                    style={{ backgroundColor: "rgba(217,115,63,0.12)" }}
+                >
+                    <Ionicons
+                        name="lock-closed"
+                        size={28}
+                        color={PALETTE.terracotta}
+                    />
+                </View>
+                <Text
+                    className="text-center text-[13.5px] mb-5"
+                    style={{ color: PALETTE.muted }}
+                >
                     Ang mga admin lamang ang maaaring gumawa ng anunsyo.
                 </Text>
                 <Pressable
                     onPress={() => router.back()}
-                    className="rounded-full px-5 py-2 bg-[#2F5233]"
+                    className="rounded-full px-5 py-2.5"
+                    style={{ backgroundColor: PALETTE.forest }}
                 >
-                    <Text className="text-[13.5px] font-semibold text-white">
+                    <Text className="text-[13.5px] font-bold text-white">
                         Bumalik
                     </Text>
                 </Pressable>
@@ -150,283 +169,654 @@ export default function CreateEmergency() {
         );
     }
 
+    const levelColors: [string, string] = [level.colorLight, level.colorDark];
+
     return (
-        <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
+        <SafeAreaView
+            className="flex-1"
+            style={{ backgroundColor: PALETTE.cream }}
+            edges={["top"]}
+        >
+            <BackgroundBlobs
+                colors={[level.colorLight, PALETTE.gold]}
+                opacity={[0.18, 0.16]}
+            />
+
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
             >
                 {/* Header */}
-                <View className="flex-row items-center justify-between px-4 py-3 border-b border-[#EDEAE2]">
+                <View className="flex-row items-center gap-3 px-5 pt-4 pb-3">
                     <Pressable
                         onPress={() => router.back()}
-                        className="p-1"
                         disabled={isPosting}
+                        className="w-10 h-10 rounded-full bg-[#F0EDE6] items-center justify-center"
+                        style={clayRaised}
                     >
-                        <Ionicons name="close" size={24} color="#1F2A1F" />
+                        <Ionicons name="close" size={21} color={PALETTE.ink} />
                     </Pressable>
-                    <Text className="text-[15px] font-bold text-[#1F2A1F]">
+                    <Text
+                        className="flex-1 text-center text-[15px] font-bold"
+                        style={{ color: PALETTE.ink }}
+                    >
                         Bagong Anunsyo
                     </Text>
-                    <Pressable
-                        disabled={!canPost}
-                        onPress={handlePost}
-                        className="rounded-full px-4 py-1.5"
-                        style={{
-                            backgroundColor: canPost
-                                ? level.colorDark
-                                : "#E5E1D8",
-                        }}
-                    >
-                        <Text
-                            className="text-[13.5px] font-semibold"
-                            style={{ color: canPost ? "#fff" : "#9C978C" }}
-                        >
-                            {isPosting ? "Nagpopost..." : "I-post"}
-                        </Text>
+                    <Pressable disabled={!canPost} onPress={handlePost}>
+                        {({ pressed }) => (
+                            <LinearGradient
+                                colors={
+                                    canPost
+                                        ? levelColors
+                                        : ["#E5E1D8", "#E5E1D8"]
+                                }
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={[
+                                    canPost ? clayRaised : null,
+                                    pressScale(pressed),
+                                    {
+                                        borderRadius: 999,
+                                        paddingHorizontal: 16,
+                                        paddingVertical: 9,
+                                    },
+                                ]}
+                            >
+                                <Text
+                                    className="text-[13.5px] font-bold"
+                                    style={{
+                                        color: canPost ? "#fff" : "#9C978C",
+                                    }}
+                                >
+                                    {isPosting ? "Nagpopost..." : "I-post"}
+                                </Text>
+                            </LinearGradient>
+                        )}
                     </Pressable>
                 </View>
 
                 <ScrollView
-                    contentContainerClassName="px-5 pt-4 pb-10"
+                    contentContainerClassName="px-5 pt-1 pb-10"
                     keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
                 >
-                    {/* Banner that follows the selected alert level */}
-                    <ClaySurface
-                        colors={[level.colorLight, level.colorDark]}
-                        borderRadius={20}
+                    {/* Preview that follows the selected alert level */}
+                    <LinearGradient
+                        colors={levelColors}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
                         style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            gap: 12,
-                            padding: 16,
+                            borderRadius: 28,
+                            overflow: "hidden",
+                            marginBottom: 20,
+                            shadowColor: level.colorDark,
+                            shadowOffset: { width: 0, height: 8 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 14,
+                            elevation: 9,
                         }}
                     >
-                        <View className="w-11 h-11 rounded-full bg-white/20 items-center justify-center">
+                        {/* big faded icon as a background decoration */}
+                        <View
+                            pointerEvents="none"
+                            className="absolute"
+                            style={{ right: -20, bottom: -24, opacity: 0.16 }}
+                        >
                             <Ionicons
                                 name={
                                     category
                                         ? CATEGORIES[category].icon
                                         : "megaphone"
                                 }
-                                size={22}
+                                size={120}
                                 color="#fff"
                             />
                         </View>
-                        <View className="flex-1">
-                            <Text className="text-[11px] font-bold text-white/80 tracking-wider">
-                                {level.label.toUpperCase()}
-                                {category
-                                    ? ` · ${CATEGORIES[category].label.toUpperCase()}`
-                                    : ""}
-                            </Text>
-                            <Text
-                                className="text-[15px] font-bold text-white mt-0.5"
-                                numberOfLines={2}
-                            >
-                                {title.trim() || "Opisyal na Anunsyo"}
-                            </Text>
+
+                        <View className="p-5">
+                            <View className="flex-row items-center gap-1.5 mb-3">
+                                <View className="flex-row items-center gap-1 rounded-full px-2.5 py-1 bg-black/20 border border-white/25">
+                                    <Ionicons
+                                        name="eye-outline"
+                                        size={11}
+                                        color="#fff"
+                                    />
+                                    <Text className="text-[10px] font-bold text-white tracking-widest">
+                                        PREVIEW
+                                    </Text>
+                                </View>
+                            </View>
+                            <View className="flex-row items-center gap-3">
+                                <View className="w-12 h-12 rounded-2xl bg-white items-center justify-center">
+                                    <Ionicons
+                                        name={level.icon}
+                                        size={24}
+                                        color={level.colorDark}
+                                    />
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="text-[11px] font-extrabold text-white/85 tracking-wider">
+                                        {level.label.toUpperCase()}
+                                        {category
+                                            ? ` · ${CATEGORIES[category].label.toUpperCase()}`
+                                            : ""}
+                                    </Text>
+                                    <Text
+                                        className="text-[17px] font-extrabold text-white mt-0.5"
+                                        numberOfLines={2}
+                                    >
+                                        {title.trim() || "Opisyal na Anunsyo"}
+                                    </Text>
+                                </View>
+                            </View>
+                            <View className="flex-row items-center gap-1 mt-3">
+                                <Ionicons
+                                    name={targetBarangay ? "location" : "earth"}
+                                    size={12}
+                                    color="rgba(255,255,255,0.85)"
+                                />
+                                <Text className="text-[12px] text-white/85">
+                                    {targetBarangay
+                                        ? `Barangay ${targetBarangay}`
+                                        : "Lahat ng Barangay"}
+                                </Text>
+                            </View>
                         </View>
-                    </ClaySurface>
+                    </LinearGradient>
 
                     {error && (
-                        <Text className="text-[13px] text-[#B23A2E] mt-4">
-                            {error}
-                        </Text>
+                        <View
+                            className="flex-row items-center gap-2.5 rounded-2xl px-4 py-3 mb-4 border"
+                            style={{
+                                backgroundColor: "rgba(192,57,43,0.08)",
+                                borderColor: "rgba(192,57,43,0.25)",
+                            }}
+                        >
+                            <Ionicons
+                                name="alert-circle"
+                                size={18}
+                                color={ERROR_COLOR}
+                            />
+                            <Text
+                                className="flex-1 text-[13px]"
+                                style={{ color: ERROR_COLOR }}
+                            >
+                                {error}
+                            </Text>
+                        </View>
                     )}
 
-                    {/* Alert level */}
-                    <SectionLabel>Antas ng Alerto</SectionLabel>
-                    <View className="flex-row gap-2.5">
-                        {SEVERITY_ORDER.map((key) => {
-                            const item = SEVERITIES[key];
-                            const selected = severity === key;
-                            return (
-                                <Pressable
-                                    key={key}
-                                    className="flex-1"
-                                    onPress={() => setSeverity(key)}
-                                    disabled={isPosting}
-                                >
-                                    <View
-                                        style={[
-                                            clayRaised,
-                                            {
-                                                backgroundColor: selected
-                                                    ? item.colorDark
-                                                    : item.tint,
-                                                borderWidth: 1.5,
-                                                borderColor: selected
-                                                    ? item.colorDark
-                                                    : "transparent",
-                                            },
-                                        ]}
-                                        className="rounded-2xl items-center py-3 px-1"
+                    {/* Step 1: alert level */}
+                    <StepSection
+                        step={1}
+                        title="Antas ng Alerto"
+                        hint="Gaano kaseryoso ang sitwasyon"
+                        done
+                    >
+                        <View className="flex-row gap-2.5">
+                            {SEVERITY_ORDER.map((key) => {
+                                const item = SEVERITIES[key];
+                                const selected = severity === key;
+                                return (
+                                    <Pressable
+                                        key={key}
+                                        className="flex-1"
+                                        onPress={() => setSeverity(key)}
+                                        disabled={isPosting}
                                     >
-                                        <Ionicons
-                                            name={item.icon}
-                                            size={20}
-                                            color={
-                                                selected
-                                                    ? "#fff"
-                                                    : item.colorDark
-                                            }
-                                        />
-                                        <Text
-                                            className="text-[13px] font-bold mt-1"
-                                            style={{
-                                                color: selected
-                                                    ? "#fff"
-                                                    : item.colorDark,
-                                            }}
-                                        >
-                                            {item.label}
-                                        </Text>
-                                        <Text
-                                            className="text-[10px] mt-0.5 text-center"
-                                            style={{
-                                                color: selected
-                                                    ? "rgba(255,255,255,0.8)"
-                                                    : "#7A6D5C",
-                                            }}
-                                        >
-                                            {item.description}
-                                        </Text>
-                                    </View>
-                                </Pressable>
-                            );
-                        })}
-                    </View>
+                                        {({ pressed }) => (
+                                            <LinearGradient
+                                                colors={
+                                                    selected
+                                                        ? [
+                                                              item.colorLight,
+                                                              item.colorDark,
+                                                          ]
+                                                        : [item.tint, item.tint]
+                                                }
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 1 }}
+                                                style={[
+                                                    selected
+                                                        ? clayRaised
+                                                        : null,
+                                                    pressScale(pressed),
+                                                    {
+                                                        borderRadius: 20,
+                                                        alignItems: "center",
+                                                        paddingVertical: 14,
+                                                        paddingHorizontal: 4,
+                                                    },
+                                                ]}
+                                            >
+                                                {selected && (
+                                                    <View className="absolute top-2 right-2 w-[18px] h-[18px] rounded-full bg-white items-center justify-center">
+                                                        <Ionicons
+                                                            name="checkmark"
+                                                            size={12}
+                                                            color={
+                                                                item.colorDark
+                                                            }
+                                                        />
+                                                    </View>
+                                                )}
+                                                <View
+                                                    className="w-10 h-10 rounded-2xl items-center justify-center mb-1.5"
+                                                    style={{
+                                                        backgroundColor:
+                                                            selected
+                                                                ? "rgba(255,255,255,0.25)"
+                                                                : "#fff",
+                                                    }}
+                                                >
+                                                    <Ionicons
+                                                        name={item.icon}
+                                                        size={21}
+                                                        color={
+                                                            selected
+                                                                ? "#fff"
+                                                                : item.colorDark
+                                                        }
+                                                    />
+                                                </View>
+                                                <Text
+                                                    className="text-[13px] font-extrabold"
+                                                    style={{
+                                                        color: selected
+                                                            ? "#fff"
+                                                            : item.colorDark,
+                                                    }}
+                                                >
+                                                    {item.label}
+                                                </Text>
+                                                <Text
+                                                    className="text-[10px] mt-0.5 text-center"
+                                                    style={{
+                                                        color: selected
+                                                            ? "rgba(255,255,255,0.85)"
+                                                            : PALETTE.muted,
+                                                    }}
+                                                >
+                                                    {item.description}
+                                                </Text>
+                                            </LinearGradient>
+                                        )}
+                                    </Pressable>
+                                );
+                            })}
+                        </View>
+                    </StepSection>
 
-                    {/* Category */}
-                    <SectionLabel>Uri ng Anunsyo</SectionLabel>
-                    <View className="flex-row flex-wrap gap-2">
-                        {CATEGORY_ORDER.map((key) => {
-                            const item = CATEGORIES[key];
-                            const selected = category === key;
-                            return (
-                                <Pressable
-                                    key={key}
-                                    onPress={() => setCategory(key)}
-                                    disabled={isPosting}
-                                    className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2"
-                                    style={{
-                                        backgroundColor: selected
-                                            ? level.colorDark
-                                            : "#F0EDE6",
-                                    }}
-                                >
-                                    <Ionicons
-                                        name={item.icon}
-                                        size={15}
-                                        color={selected ? "#fff" : "#7A6D5C"}
-                                    />
-                                    <Text
-                                        className="text-[13px] font-medium"
+                    {/* Step 2: category */}
+                    <StepSection
+                        step={2}
+                        title="Uri ng Anunsyo"
+                        hint="Pumili ng isa"
+                        done={!!category}
+                    >
+                        <View className="flex-row flex-wrap justify-between">
+                            {CATEGORY_ORDER.map((key) => {
+                                const item = CATEGORIES[key];
+                                const selected = category === key;
+                                return (
+                                    <Pressable
+                                        key={key}
+                                        onPress={() => setCategory(key)}
+                                        disabled={isPosting}
                                         style={{
-                                            color: selected
-                                                ? "#fff"
-                                                : "#1F2A1F",
+                                            width: "31.5%",
+                                            marginBottom: 10,
                                         }}
                                     >
-                                        {item.label}
-                                    </Text>
-                                </Pressable>
-                            );
-                        })}
-                    </View>
+                                        {({ pressed }) => (
+                                            <LinearGradient
+                                                colors={
+                                                    selected
+                                                        ? levelColors
+                                                        : [FIELD_BG, FIELD_BG]
+                                                }
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 1 }}
+                                                style={[
+                                                    selected
+                                                        ? clayRaised
+                                                        : null,
+                                                    pressScale(pressed),
+                                                    {
+                                                        borderRadius: 20,
+                                                        alignItems: "center",
+                                                        paddingVertical: 13,
+                                                        borderWidth: selected
+                                                            ? 0
+                                                            : 1,
+                                                        borderColor:
+                                                            "#EFE9DE",
+                                                    },
+                                                ]}
+                                            >
+                                                <View
+                                                    className="w-10 h-10 rounded-2xl items-center justify-center mb-1.5"
+                                                    style={{
+                                                        backgroundColor:
+                                                            selected
+                                                                ? "rgba(255,255,255,0.25)"
+                                                                : level.tint,
+                                                    }}
+                                                >
+                                                    <Ionicons
+                                                        name={item.icon}
+                                                        size={19}
+                                                        color={
+                                                            selected
+                                                                ? "#fff"
+                                                                : level.colorDark
+                                                        }
+                                                    />
+                                                </View>
+                                                <Text
+                                                    className="text-[12.5px] font-bold"
+                                                    style={{
+                                                        color: selected
+                                                            ? "#fff"
+                                                            : PALETTE.ink,
+                                                    }}
+                                                >
+                                                    {item.label}
+                                                </Text>
+                                            </LinearGradient>
+                                        )}
+                                    </Pressable>
+                                );
+                            })}
+                        </View>
+                    </StepSection>
 
-                    {/* Target area */}
-                    <SectionLabel>Sakop na Lugar</SectionLabel>
-                    <Pressable
-                        style={clayRaised}
-                        className="rounded-2xl bg-[#F0EDE6] px-4 py-3.5 flex-row items-center gap-2.5"
-                        onPress={() => setShowBarangayModal(true)}
-                        disabled={isPosting}
+                    {/* Step 3: target area */}
+                    <StepSection
+                        step={3}
+                        title="Sakop na Lugar"
+                        hint="Sino ang makakatanggap"
+                        done
                     >
-                        <Ionicons
-                            name={targetBarangay ? "location" : "earth"}
-                            size={18}
-                            color="#7A6D5C"
-                        />
-                        <Text className="flex-1 text-[15px] text-[#1F2A1F]">
-                            {targetBarangay
-                                ? `Barangay ${targetBarangay}`
-                                : "Lahat ng Barangay"}
-                        </Text>
-                        <Ionicons name="chevron-down" size={18} color="#6B7280" />
-                    </Pressable>
-
-                    {/* Title */}
-                    <SectionLabel>Pamagat</SectionLabel>
-                    <TextInput
-                        placeholder="Hal. Signal No. 2 sa buong bayan"
-                        placeholderTextColor="#9C978C"
-                        value={title}
-                        onChangeText={setTitle}
-                        maxLength={TITLE_MAX}
-                        editable={!isPosting}
-                        className="rounded-2xl bg-[#F0EDE6] px-4 py-3.5 text-[15px] font-semibold text-[#1F2A1F]"
-                    />
-                    <Text className="text-[11px] text-[#9C978C] text-right mt-1 mr-1">
-                        {title.length}/{TITLE_MAX}
-                    </Text>
-
-                    {/* Details */}
-                    <SectionLabel>Detalye</SectionLabel>
-                    <TextInput
-                        placeholder="Ilarawan ang sitwasyon at kung ano ang dapat gawin ng mga residente."
-                        placeholderTextColor="#9C978C"
-                        value={content}
-                        onChangeText={setContent}
-                        maxLength={CONTENT_MAX}
-                        multiline
-                        textAlignVertical="top"
-                        editable={!isPosting}
-                        className="rounded-2xl bg-[#F0EDE6] px-4 py-3.5 text-[15px] text-[#1F2A1F] leading-[21px] min-h-[140px]"
-                    />
-                    <Text className="text-[11px] text-[#9C978C] text-right mt-1 mr-1">
-                        {content.length}/{CONTENT_MAX}
-                    </Text>
-
-                    {/* Image preview */}
-                    {imageUri && (
-                        <View className="relative mt-4">
-                            <Image
-                                source={{ uri: imageUri }}
-                                className="w-full h-56 rounded-2xl"
-                                resizeMode="cover"
-                            />
-                            {!isPosting && (
-                                <Pressable
-                                    onPress={() => setImageUri(null)}
-                                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 items-center justify-center"
+                        <Pressable
+                            onPress={() => setShowBarangayModal(true)}
+                            disabled={isPosting}
+                        >
+                            {({ pressed }) => (
+                                <View
+                                    className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3 border-[1.5px]"
+                                    style={[
+                                        pressScale(pressed),
+                                        {
+                                            backgroundColor: FIELD_BG,
+                                            borderColor: FIELD_BORDER,
+                                        },
+                                    ]}
                                 >
+                                    <View
+                                        className="w-9 h-9 rounded-full items-center justify-center"
+                                        style={{
+                                            backgroundColor: PALETTE.forest,
+                                        }}
+                                    >
+                                        <Ionicons
+                                            name={
+                                                targetBarangay
+                                                    ? "location"
+                                                    : "earth"
+                                            }
+                                            size={17}
+                                            color="#fff"
+                                        />
+                                    </View>
+                                    <Text
+                                        className="flex-1 text-[15px] font-semibold"
+                                        style={{ color: PALETTE.ink }}
+                                    >
+                                        {targetBarangay
+                                            ? `Barangay ${targetBarangay}`
+                                            : "Lahat ng Barangay"}
+                                    </Text>
+                                    <Text
+                                        className="text-[12px] font-bold"
+                                        style={{ color: PALETTE.forest }}
+                                    >
+                                        Palitan
+                                    </Text>
                                     <Ionicons
-                                        name="close"
+                                        name="chevron-down"
+                                        size={16}
+                                        color={PALETTE.forest}
+                                    />
+                                </View>
+                            )}
+                        </Pressable>
+                    </StepSection>
+
+                    {/* Step 4: title */}
+                    <StepSection
+                        step={4}
+                        title="Pamagat"
+                        hint="Maikli at malinaw"
+                        done={title.trim().length > 0}
+                    >
+                        <View
+                            className="flex-row items-center gap-2.5 rounded-2xl px-3.5 border-[1.5px]"
+                            style={{
+                                backgroundColor: FIELD_BG,
+                                borderColor:
+                                    focusedField === "title"
+                                        ? level.colorDark
+                                        : FIELD_BORDER,
+                            }}
+                        >
+                            <Ionicons
+                                name="create-outline"
+                                size={17}
+                                color={
+                                    focusedField === "title"
+                                        ? level.colorDark
+                                        : "#B5AFA0"
+                                }
+                            />
+                            <TextInput
+                                placeholder="Hal. Signal No. 2 sa buong bayan"
+                                placeholderTextColor="#B5AFA0"
+                                value={title}
+                                onChangeText={setTitle}
+                                onFocus={() => setFocusedField("title")}
+                                onBlur={() => setFocusedField(null)}
+                                maxLength={TITLE_MAX}
+                                editable={!isPosting}
+                                className="flex-1 py-3.5 text-[15px] font-semibold"
+                                style={{ color: PALETTE.ink }}
+                            />
+                        </View>
+                        <Text className="text-[11px] text-[#B5AFA0] text-right mt-2">
+                            {title.length}/{TITLE_MAX}
+                        </Text>
+                    </StepSection>
+
+                    {/* Step 5: details */}
+                    <StepSection
+                        step={5}
+                        title="Detalye"
+                        hint="Ano ang nangyayari at ano ang dapat gawin"
+                        done={content.trim().length > 0}
+                    >
+                        <View
+                            className="rounded-2xl px-3.5 pt-3 pb-2 border-[1.5px]"
+                            style={{
+                                backgroundColor: FIELD_BG,
+                                borderColor:
+                                    focusedField === "content"
+                                        ? level.colorDark
+                                        : FIELD_BORDER,
+                            }}
+                        >
+                            <TextInput
+                                placeholder="Ilarawan ang sitwasyon at kung ano ang dapat gawin ng mga residente."
+                                placeholderTextColor="#B5AFA0"
+                                value={content}
+                                onChangeText={setContent}
+                                onFocus={() => setFocusedField("content")}
+                                onBlur={() => setFocusedField(null)}
+                                maxLength={CONTENT_MAX}
+                                multiline
+                                textAlignVertical="top"
+                                editable={!isPosting}
+                                className="text-[15px] leading-[21px] min-h-[140px]"
+                                style={{ color: PALETTE.ink }}
+                            />
+                        </View>
+                        <Text className="text-[11px] text-[#B5AFA0] text-right mt-2">
+                            {content.length}/{CONTENT_MAX}
+                        </Text>
+                    </StepSection>
+
+                    {/* Step 6: image */}
+                    <StepSection
+                        step={6}
+                        title="Larawan"
+                        hint="Opsyonal"
+                        done={!!imageUri}
+                    >
+                        {imageUri ? (
+                            <View>
+                                <Image
+                                    source={{ uri: imageUri }}
+                                    className="w-full h-56 rounded-[20px]"
+                                    resizeMode="cover"
+                                />
+                                {!isPosting && (
+                                    <View className="absolute top-2.5 right-2.5 flex-row gap-2">
+                                        <Pressable
+                                            onPress={handlePickImage}
+                                            className="flex-row items-center gap-1 rounded-full px-3 h-8 bg-black/60"
+                                        >
+                                            <Ionicons
+                                                name="swap-horizontal"
+                                                size={14}
+                                                color="#fff"
+                                            />
+                                            <Text className="text-[12px] font-bold text-white">
+                                                Palitan
+                                            </Text>
+                                        </Pressable>
+                                        <Pressable
+                                            onPress={() => setImageUri(null)}
+                                            className="w-8 h-8 rounded-full bg-black/60 items-center justify-center"
+                                        >
+                                            <Ionicons
+                                                name="close"
+                                                size={17}
+                                                color="#fff"
+                                            />
+                                        </Pressable>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <Pressable
+                                onPress={handlePickImage}
+                                disabled={isPosting}
+                            >
+                                {({ pressed }) => (
+                                    <View
+                                        className="items-center rounded-[20px] py-6 border-2 border-dashed"
+                                        style={[
+                                            pressScale(pressed),
+                                            {
+                                                backgroundColor: level.tint,
+                                                borderColor: `${level.colorLight}80`,
+                                            },
+                                        ]}
+                                    >
+                                        <LinearGradient
+                                            colors={levelColors}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                            style={{
+                                                width: 46,
+                                                height: 46,
+                                                borderRadius: 23,
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                marginBottom: 8,
+                                            }}
+                                        >
+                                            <Ionicons
+                                                name="image"
+                                                size={21}
+                                                color="#fff"
+                                            />
+                                        </LinearGradient>
+                                        <Text
+                                            className="text-[13.5px] font-bold"
+                                            style={{ color: level.colorDark }}
+                                        >
+                                            Idagdag ng Larawan
+                                        </Text>
+                                        <Text
+                                            className="text-[11.5px] mt-0.5"
+                                            style={{ color: PALETTE.muted }}
+                                        >
+                                            Pindutin para pumili sa gallery
+                                        </Text>
+                                    </View>
+                                )}
+                            </Pressable>
+                        )}
+                    </StepSection>
+
+                    {/* Post */}
+                    <Pressable
+                        disabled={!canPost}
+                        onPress={handlePost}
+                        accessibilityRole="button"
+                        className="mt-1"
+                    >
+                        {({ pressed }) => (
+                            <LinearGradient
+                                colors={
+                                    canPost
+                                        ? levelColors
+                                        : ["#C4BFB2", "#A39E92"]
+                                }
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={[
+                                    clayRaised,
+                                    pressScale(pressed),
+                                    {
+                                        borderRadius: 22,
+                                        paddingVertical: 17,
+                                        flexDirection: "row",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: 10,
+                                    },
+                                ]}
+                            >
+                                {isPosting ? (
+                                    <ActivityIndicator
+                                        size="small"
+                                        color="#fff"
+                                    />
+                                ) : (
+                                    <Ionicons
+                                        name="megaphone"
                                         size={18}
                                         color="#fff"
                                     />
-                                </Pressable>
-                            )}
-                        </View>
-                    )}
-
-                    {/* Add image */}
-                    <Pressable
-                        onPress={handlePickImage}
-                        disabled={isPosting}
-                        className="flex-row items-center justify-between border border-[#EDEAE2] rounded-2xl px-4 py-3 mt-4"
-                    >
-                        <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
-                            {imageUri ? "Palitan ang Larawan" : "Idagdag ng Larawan"}
-                        </Text>
-                        <View
-                            className="w-9 h-9 rounded-full items-center justify-center"
-                            style={{ backgroundColor: level.colorDark }}
-                        >
-                            <Ionicons name="image" size={18} color="#fff" />
-                        </View>
+                                )}
+                                <Text className="text-white text-[16px] font-bold">
+                                    {isPosting
+                                        ? "Nagpopost..."
+                                        : "I-post ang Anunsyo"}
+                                </Text>
+                            </LinearGradient>
+                        )}
                     </Pressable>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -443,46 +833,82 @@ export default function CreateEmergency() {
                     onPress={() => setShowBarangayModal(false)}
                 >
                     <Pressable
-                        className="bg-[--main-white] rounded-t-[28px] max-h-[75%]"
+                        className="rounded-t-[30px] max-h-[75%]"
+                        style={{ backgroundColor: PALETTE.cream }}
                         onPress={(e) => e.stopPropagation()}
                     >
-                        <View className="items-center pt-3 pb-2">
+                        <View className="items-center pt-3 pb-1">
                             <View className="w-10 h-1.5 rounded-full bg-[#E5E1D8]" />
                         </View>
-                        <Text className="text-[16px] font-semibold text-[#1F2A1F] text-center mb-2">
-                            Sakop na Lugar
-                        </Text>
-                        <ScrollView className="px-4 pb-8">
+                        <View className="flex-row items-center justify-between px-5 pt-2 pb-3">
+                            <View>
+                                <Text
+                                    className="text-[17px] font-extrabold"
+                                    style={{ color: PALETTE.ink }}
+                                >
+                                    Sakop na Lugar
+                                </Text>
+                                <Text
+                                    className="text-[12px]"
+                                    style={{ color: PALETTE.muted }}
+                                >
+                                    Sino ang makakatanggap ng anunsyo
+                                </Text>
+                            </View>
+                            <Pressable
+                                onPress={() => setShowBarangayModal(false)}
+                                className="w-9 h-9 rounded-full bg-[#F0EDE6] items-center justify-center"
+                            >
+                                <Ionicons
+                                    name="close"
+                                    size={19}
+                                    color={PALETTE.ink}
+                                />
+                            </Pressable>
+                        </View>
+                        <ScrollView contentContainerClassName="px-4 pb-10 gap-1.5">
                             {[null, ...BARANGAYS].map((b) => {
                                 const selected = targetBarangay === b;
                                 return (
                                     <Pressable
                                         key={b ?? "all"}
-                                        className="flex-row items-center justify-between py-3.5 border-b border-[#EDEAE2]"
+                                        className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3"
+                                        style={{
+                                            backgroundColor: selected
+                                                ? "rgba(62,123,79,0.12)"
+                                                : "transparent",
+                                        }}
                                         onPress={() => {
                                             setTargetBarangay(b);
                                             setShowBarangayModal(false);
                                         }}
                                     >
-                                        <Text
-                                            className={`text-[15px] ${
+                                        <Ionicons
+                                            name={b ? "location-outline" : "earth"}
+                                            size={18}
+                                            color={
                                                 selected
-                                                    ? "font-semibold"
-                                                    : "text-[#1F2A1F]"
-                                            }`}
-                                            style={
-                                                selected
-                                                    ? { color: level.colorDark }
-                                                    : undefined
+                                                    ? PALETTE.forest
+                                                    : "#9C978C"
                                             }
+                                        />
+                                        <Text
+                                            className={`flex-1 text-[15px] ${
+                                                selected ? "font-bold" : ""
+                                            }`}
+                                            style={{
+                                                color: selected
+                                                    ? PALETTE.forest
+                                                    : PALETTE.ink,
+                                            }}
                                         >
                                             {b ?? "Lahat ng Barangay"}
                                         </Text>
                                         {selected && (
                                             <Ionicons
-                                                name="checkmark"
-                                                size={18}
-                                                color={level.colorDark}
+                                                name="checkmark-circle"
+                                                size={20}
+                                                color={PALETTE.forest}
                                             />
                                         )}
                                     </Pressable>

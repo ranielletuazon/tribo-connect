@@ -1,4 +1,5 @@
-import { clayRaised } from "@/components/clay";
+import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
+import { PALETTE } from "@/constants/palette";
 import {
     CATEGORIES,
     SEVERITIES,
@@ -9,6 +10,7 @@ import { db } from "@/lib/firebase";
 import { formatTimeAgo } from "@/lib/posts";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
     collection,
@@ -36,6 +38,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const FILTERS = ["Lahat", "Barangay", "Emergency"] as const;
 type Filter = (typeof FILTERS)[number];
+
+const FILTER_STYLES: Record<
+    Filter,
+    { icon: keyof typeof Ionicons.glyphMap; colors: [string, string] }
+> = {
+    Lahat: { icon: "apps", colors: ["#56A06A", "#2F6540"] },
+    Barangay: { icon: "location", colors: ["#F2BD4E", "#C9821F"] },
+    Emergency: { icon: "warning", colors: [PALETTE.ember, PALETTE.blood] },
+};
 
 const ANNOUNCEMENTS_PER_PAGE = 5;
 
@@ -177,26 +188,68 @@ export default function Community() {
     });
 
     return (
-        <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
-            <View className="px-6 pt-4">
+        <SafeAreaView
+            className="flex-1"
+            style={{ backgroundColor: PALETTE.cream }}
+            edges={["top"]}
+        >
+            <BackgroundBlobs colors={[PALETTE.terracotta, PALETTE.gold]} />
+
+            <View className="px-5 pt-4">
                 {/* Header */}
-                <View className="flex-row items-center justify-between mb-5">
-                    <Text className="text-[18px] font-bold text-[#1F2A1F]">
-                        Mga Anunsyo
-                    </Text>
+                <View className="flex-row items-center gap-3 mb-4">
+                    <Pressable
+                        onPress={() => router.canGoBack() && router.back()}
+                        className="w-10 h-10 rounded-full bg-[#F0EDE6] items-center justify-center"
+                        style={clayRaised}
+                    >
+                        <Ionicons name="arrow-back" size={20} color={PALETTE.ink} />
+                    </Pressable>
+                    <View className="flex-1">
+                        <Text
+                            className="text-[22px] font-extrabold"
+                            style={{ color: PALETTE.ink }}
+                        >
+                            Mga Anunsyo
+                        </Text>
+                        <Text
+                            className="text-[12px]"
+                            style={{ color: PALETTE.muted }}
+                        >
+                            Balita at abiso mula sa komunidad
+                        </Text>
+                    </View>
                     {/* only admins see this */}
                     {isAdmin && (
                         <Pressable
                             onPress={() =>
                                 router.push("/(tabs)/community/create-emergency")
                             }
-                            style={clayRaised}
-                            className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2 bg-[#9C3A2A]"
                         >
-                            <Ionicons name="megaphone" size={15} color="#fff" />
-                            <Text className="text-[13px] font-semibold text-white">
-                                Mag-anunsyo
-                            </Text>
+                            {({ pressed }) => (
+                                <LinearGradient
+                                    colors={["#E8894F", PALETTE.clay]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[
+                                        clayRaised,
+                                        pressScale(pressed),
+                                        {
+                                            borderRadius: 999,
+                                            paddingHorizontal: 14,
+                                            paddingVertical: 9,
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            gap: 6,
+                                        },
+                                    ]}
+                                >
+                                    <Ionicons name="add" size={16} color="#fff" />
+                                    <Text className="text-[13px] font-bold text-white">
+                                        Mag-anunsyo
+                                    </Text>
+                                </LinearGradient>
+                            )}
                         </Pressable>
                     )}
                 </View>
@@ -204,74 +257,142 @@ export default function Community() {
                 {/* Search */}
                 <View
                     style={clayRaised}
-                    className="flex-row items-center gap-2.5 bg-[--main-white] rounded-[24px] px-4 py-2 mb-4"
+                    className="flex-row items-center gap-2.5 bg-white rounded-2xl px-4 py-1.5 mb-3.5"
                 >
-                    <Ionicons name="search" size={18} color="#9C978C" />
+                    <Ionicons name="search" size={18} color={PALETTE.terracotta} />
                     <TextInput
                         placeholder="Maghanap ng anunsyo..."
-                        placeholderTextColor="#9C978C"
+                        placeholderTextColor="#B5AFA0"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-                        className="flex-1 text-[14px] text-[#1F2A1F]"
+                        className="flex-1 text-[14px] py-2"
+                        style={{ color: PALETTE.ink }}
                     />
+                    {searchQuery.length > 0 && (
+                        <Pressable
+                            onPress={() => setSearchQuery("")}
+                            hitSlop={8}
+                        >
+                            <Ionicons
+                                name="close-circle"
+                                size={18}
+                                color="#C4BFB2"
+                            />
+                        </Pressable>
+                    )}
                 </View>
 
                 {/* Filter chips */}
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerClassName="gap-2.5 pb-4"
+                    contentContainerClassName="gap-2 pb-4"
                 >
-                    {FILTERS.map((filter) => (
-                        <Pressable
-                            key={filter}
-                            style={clayRaised}
-                            className={`rounded-full px-4 py-2 ${
-                                activeFilter === filter
-                                    ? "bg-[#2F5233]"
-                                    : "bg-[--main-white]"
-                            }`}
-                            onPress={() => setActiveFilter(filter)}
-                        >
-                            <Text
-                                className={`text-[13px] font-medium ${
-                                    activeFilter === filter
-                                        ? "text-white"
-                                        : "text-[#1F2A1F]"
-                                }`}
+                    {FILTERS.map((filter) => {
+                        const active = activeFilter === filter;
+                        const style = FILTER_STYLES[filter];
+                        return (
+                            <Pressable
+                                key={filter}
+                                onPress={() => setActiveFilter(filter)}
                             >
-                                {filter}
-                            </Text>
-                        </Pressable>
-                    ))}
+                                {({ pressed }) => (
+                                    <LinearGradient
+                                        colors={
+                                            active
+                                                ? style.colors
+                                                : ["#FFFFFF", "#FFFFFF"]
+                                        }
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={[
+                                            clayRaised,
+                                            pressScale(pressed),
+                                            {
+                                                borderRadius: 999,
+                                                paddingHorizontal: 14,
+                                                paddingVertical: 8,
+                                                flexDirection: "row",
+                                                alignItems: "center",
+                                                gap: 6,
+                                            },
+                                        ]}
+                                    >
+                                        <Ionicons
+                                            name={style.icon}
+                                            size={14}
+                                            color={
+                                                active ? "#fff" : style.colors[1]
+                                            }
+                                        />
+                                        <Text
+                                            className="text-[13px] font-semibold"
+                                            style={{
+                                                color: active
+                                                    ? "#fff"
+                                                    : PALETTE.ink,
+                                            }}
+                                        >
+                                            {filter}
+                                        </Text>
+                                    </LinearGradient>
+                                )}
+                            </Pressable>
+                        );
+                    })}
                 </ScrollView>
             </View>
 
             {/* List */}
             <ScrollView
-                contentContainerClassName="px-6 pb-8 gap-3.5"
+                contentContainerClassName="px-5 pt-1 pb-10 gap-3.5"
+                showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefreshing}
                         onRefresh={handleRefresh}
-                        tintColor="#2F5233"
-                        colors={["#2F5233"]}
+                        tintColor={PALETTE.terracotta}
+                        colors={[PALETTE.terracotta]}
                     />
                 }
             >
                 {isInitialLoading ? (
                     <ActivityIndicator
-                        color="#2F5233"
+                        color={PALETTE.terracotta}
                         style={{ marginTop: 40 }}
                     />
                 ) : filtered.length === 0 ? (
-                    <Text className="text-center text-[13px] text-[#9C978C] mt-10">
-                        Walang nahanap na anunsyo.
-                    </Text>
+                    <View className="items-center mt-12 px-8">
+                        <View
+                            className="w-16 h-16 rounded-full items-center justify-center mb-3"
+                            style={{ backgroundColor: "rgba(217,115,63,0.12)" }}
+                        >
+                            <Ionicons
+                                name="megaphone-outline"
+                                size={28}
+                                color={PALETTE.terracotta}
+                            />
+                        </View>
+                        <Text
+                            className="text-[14.5px] font-bold"
+                            style={{ color: PALETTE.ink }}
+                        >
+                            Walang nahanap na anunsyo.
+                        </Text>
+                        {(search.length > 0 || activeFilter !== "Lahat") && (
+                            <Text
+                                className="text-[12.5px] text-center mt-1"
+                                style={{ color: PALETTE.muted }}
+                            >
+                                Subukan ang ibang salita o filter.
+                            </Text>
+                        )}
+                    </View>
                 ) : (
                     filtered.map((announcement) => {
                         const level = SEVERITIES[announcement.severity];
                         const category = CATEGORIES[announcement.category];
+                        const isCritical = announcement.severity === "kritikal";
                         return (
                             <Pressable
                                 key={announcement.id}
@@ -281,92 +402,153 @@ export default function Community() {
                                     <View
                                         style={[
                                             clayRaised,
-                                            { opacity: pressed ? 0.9 : 1 },
+                                            pressScale(pressed),
+                                            {
+                                                borderWidth: isCritical
+                                                    ? 1.5
+                                                    : 0,
+                                                borderColor: `${level.colorLight}66`,
+                                            },
                                         ]}
-                                        className="bg-[--main-white] rounded-2xl overflow-hidden flex-row"
+                                        className="bg-white rounded-[24px] overflow-hidden flex-row"
                                     >
                                         {/* severity color strip */}
-                                        <View
-                                            style={{
-                                                width: 5,
-                                                backgroundColor:
-                                                    level.colorDark,
-                                            }}
+                                        <LinearGradient
+                                            colors={[
+                                                level.colorLight,
+                                                level.colorDark,
+                                            ]}
+                                            style={{ width: 6 }}
                                         />
                                         <View className="flex-1 p-4">
-                                            <View className="flex-row items-center gap-2 mb-2">
-                                                <View
-                                                    className="w-8 h-8 rounded-full items-center justify-center"
+                                            <View className="flex-row items-center gap-2.5 mb-3">
+                                                <LinearGradient
+                                                    colors={[
+                                                        level.colorLight,
+                                                        level.colorDark,
+                                                    ]}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
                                                     style={{
-                                                        backgroundColor:
-                                                            level.tint,
+                                                        width: 40,
+                                                        height: 40,
+                                                        borderRadius: 14,
+                                                        alignItems: "center",
+                                                        justifyContent:
+                                                            "center",
                                                     }}
                                                 >
                                                     <Ionicons
                                                         name={category.icon}
-                                                        size={16}
-                                                        color={level.colorDark}
+                                                        size={19}
+                                                        color="#fff"
                                                     />
-                                                </View>
-                                                <View
-                                                    className="rounded-full px-2 py-0.5"
-                                                    style={{
-                                                        backgroundColor:
-                                                            level.colorDark,
-                                                    }}
-                                                >
-                                                    <Text className="text-[10px] font-bold text-white tracking-wider">
-                                                        {level.label.toUpperCase()}
+                                                </LinearGradient>
+                                                <View className="flex-1">
+                                                    <View className="flex-row items-center gap-1.5">
+                                                        <View
+                                                            className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    level.tint,
+                                                            }}
+                                                        >
+                                                            <Ionicons
+                                                                name={level.icon}
+                                                                size={11}
+                                                                color={
+                                                                    level.colorDark
+                                                                }
+                                                            />
+                                                            <Text
+                                                                className="text-[10px] font-extrabold tracking-wider"
+                                                                style={{
+                                                                    color: level.colorDark,
+                                                                }}
+                                                            >
+                                                                {level.label.toUpperCase()}
+                                                            </Text>
+                                                        </View>
+                                                        <Text
+                                                            className="text-[11.5px] font-semibold"
+                                                            style={{
+                                                                color: PALETTE.muted,
+                                                            }}
+                                                        >
+                                                            {category.label}
+                                                        </Text>
+                                                    </View>
+                                                    <Text className="text-[11px] text-[#9C978C] mt-0.5">
+                                                        {formatTimeAgo(
+                                                            announcement.createdAt,
+                                                        )}
                                                     </Text>
                                                 </View>
-                                                <Text className="text-[11.5px] font-medium text-[#7A6D5C]">
-                                                    {category.label}
-                                                </Text>
-                                                <Text className="flex-1 text-right text-[11px] text-[#9C978C]">
-                                                    {formatTimeAgo(
-                                                        announcement.createdAt,
-                                                    )}
-                                                </Text>
                                             </View>
 
                                             <Text
-                                                className="text-[14.5px] font-bold text-[#1F2A1F]"
+                                                className="text-[15.5px] font-extrabold leading-[21px]"
+                                                style={{ color: PALETTE.ink }}
                                                 numberOfLines={2}
                                             >
                                                 {announcement.title}
                                             </Text>
                                             <Text
-                                                className="text-[12.5px] text-[#7A6D5C] leading-[18px] mt-1"
+                                                className="text-[12.5px] leading-[18px] mt-1"
+                                                style={{ color: PALETTE.muted }}
                                                 numberOfLines={2}
                                             >
                                                 {announcement.content}
                                             </Text>
 
-                                            <View className="flex-row items-center gap-1 mt-2.5">
-                                                <Ionicons
-                                                    name={
-                                                        announcement.targetBarangay
-                                                            ? "location"
-                                                            : "earth"
-                                                    }
-                                                    size={12}
-                                                    color="#9C978C"
-                                                />
-                                                <Text
-                                                    className="flex-1 text-[11.5px] text-[#9C978C]"
-                                                    numberOfLines={1}
-                                                >
-                                                    {announcement.targetBarangay
-                                                        ? `Barangay ${announcement.targetBarangay}`
-                                                        : "Lahat ng Barangay"}
-                                                </Text>
-                                                {announcement.imageUrl && (
+                                            <View className="flex-row items-center gap-2 mt-3 pt-3 border-t border-[#F1ECE3]">
+                                                <View className="flex-row items-center gap-1 shrink rounded-full px-2.5 py-1 bg-[#F6F2EA]">
                                                     <Ionicons
-                                                        name="image-outline"
-                                                        size={13}
-                                                        color="#9C978C"
+                                                        name={
+                                                            announcement.targetBarangay
+                                                                ? "location"
+                                                                : "earth"
+                                                        }
+                                                        size={12}
+                                                        color={PALETTE.forest}
                                                     />
+                                                    <Text
+                                                        className="shrink text-[11.5px] font-semibold"
+                                                        style={{
+                                                            color: PALETTE.forest,
+                                                        }}
+                                                        numberOfLines={1}
+                                                    >
+                                                        {announcement.targetBarangay
+                                                            ? `Barangay ${announcement.targetBarangay}`
+                                                            : "Lahat ng Barangay"}
+                                                    </Text>
+                                                </View>
+                                                {announcement.imageUrl && (
+                                                    <View className="w-7 h-7 rounded-full bg-[#F6F2EA] items-center justify-center">
+                                                        <Ionicons
+                                                            name="image"
+                                                            size={13}
+                                                            color={PALETTE.muted}
+                                                        />
+                                                    </View>
                                                 )}
+                                                <View className="flex-1" />
+                                                <View className="flex-row items-center gap-0.5">
+                                                    <Text
+                                                        className="text-[12px] font-bold"
+                                                        style={{
+                                                            color: level.colorDark,
+                                                        }}
+                                                    >
+                                                        Basahin
+                                                    </Text>
+                                                    <Ionicons
+                                                        name="chevron-forward"
+                                                        size={14}
+                                                        color={level.colorDark}
+                                                    />
+                                                </View>
                                             </View>
                                         </View>
                                     </View>
@@ -380,15 +562,28 @@ export default function Community() {
                     <Pressable
                         onPress={loadMoreAnnouncements}
                         disabled={isLoadingMore}
-                        style={clayRaised}
-                        className="bg-[#F8F4EA] rounded-2xl py-3 items-center"
+                        className="flex-row items-center justify-center gap-1.5 rounded-full py-3 border-[1.5px] mt-1"
+                        style={{
+                            borderColor: "rgba(217,115,63,0.35)",
+                            backgroundColor: "rgba(217,115,63,0.06)",
+                        }}
                     >
                         {isLoadingMore ? (
-                            <ActivityIndicator color="#2F5233" />
+                            <ActivityIndicator color={PALETTE.terracotta} />
                         ) : (
-                            <Text className="text-[13.5px] font-semibold text-[#2F5233]">
-                                Mag-load ng Higit Pa
-                            </Text>
+                            <>
+                                <Text
+                                    className="text-[13.5px] font-bold"
+                                    style={{ color: PALETTE.clay }}
+                                >
+                                    Mag-load ng Higit Pa
+                                </Text>
+                                <Ionicons
+                                    name="chevron-down"
+                                    size={15}
+                                    color={PALETTE.clay}
+                                />
+                            </>
                         )}
                     </Pressable>
                 )}
