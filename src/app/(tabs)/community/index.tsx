@@ -1,4 +1,5 @@
 import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
+import { BARANGAY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
 import {
     CATEGORIES,
@@ -36,7 +37,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const FILTERS = ["Lahat", "Barangay", "Emergency"] as const;
+const FILTERS = ["Lahat", "Emergency"] as const;
 type Filter = (typeof FILTERS)[number];
 
 const FILTER_STYLES: Record<
@@ -44,7 +45,6 @@ const FILTER_STYLES: Record<
     { icon: keyof typeof Ionicons.glyphMap; colors: [string, string] }
 > = {
     Lahat: { icon: "apps", colors: ["#56A06A", "#2F6540"] },
-    Barangay: { icon: "location", colors: ["#F2BD4E", "#C9821F"] },
     Emergency: { icon: "warning", colors: [PALETTE.ember, PALETTE.blood] },
 };
 
@@ -53,7 +53,6 @@ const ANNOUNCEMENTS_PER_PAGE = 5;
 export default function Community() {
     const { profile } = useAuth();
     const isAdmin = profile?.role === "admin";
-    const userBarangay = profile?.barangay as string | undefined;
 
     const { newAnnouncementJson } = useLocalSearchParams<{
         newAnnouncementJson?: string;
@@ -173,19 +172,14 @@ export default function Community() {
     };
 
     // filter and search only go through the announcements already loaded
-    // "Barangay" is the ones meant for the user's own barangay
     // "Emergency" is every announcement for now, since all of them are emergency ones
     const search = searchQuery.trim().toLowerCase();
-    const filtered = announcements.filter((item) => {
-        const matchesFilter =
-            activeFilter !== "Barangay" ||
-            (!!userBarangay && item.targetBarangay === userBarangay);
-        const matchesSearch =
+    const filtered = announcements.filter(
+        (item) =>
             search.length === 0 ||
             item.title.toLowerCase().includes(search) ||
-            item.content.toLowerCase().includes(search);
-        return matchesFilter && matchesSearch;
-    });
+            item.content.toLowerCase().includes(search),
+    );
 
     return (
         <SafeAreaView
@@ -504,11 +498,7 @@ export default function Community() {
                                             <View className="flex-row items-center gap-2 mt-3 pt-3 border-t border-[#F1ECE3]">
                                                 <View className="flex-row items-center gap-1 shrink rounded-full px-2.5 py-1 bg-[#F6F2EA]">
                                                     <Ionicons
-                                                        name={
-                                                            announcement.targetBarangay
-                                                                ? "location"
-                                                                : "earth"
-                                                        }
+                                                        name="location"
                                                         size={12}
                                                         color={PALETTE.forest}
                                                     />
@@ -519,9 +509,7 @@ export default function Community() {
                                                         }}
                                                         numberOfLines={1}
                                                     >
-                                                        {announcement.targetBarangay
-                                                            ? `Barangay ${announcement.targetBarangay}`
-                                                            : "Lahat ng Barangay"}
+                                                        Barangay {BARANGAY}
                                                     </Text>
                                                 </View>
                                                 {announcement.imageUrl && (

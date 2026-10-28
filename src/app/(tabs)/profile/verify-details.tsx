@@ -1,7 +1,7 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton, clayRaised } from "@/components/clay";
 import { VerificationSteps } from "@/components/verification-steps";
-import { BARANGAYS } from "@/constants/barangays";
+import { BARANGAY, MUNICIPALITY } from "@/constants/barangays";
 import { functions, storage } from "@/lib/firebase";
 import {
     VERIFICATION_TYPES,
@@ -9,7 +9,6 @@ import {
     type ExtractedFields,
     type VerificationType,
 } from "@/lib/verification";
-import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
@@ -20,7 +19,6 @@ import { useEffect, useState } from "react";
 import {
     Image,
     KeyboardAvoidingView,
-    Modal,
     Platform,
     Pressable,
     ScrollView,
@@ -139,7 +137,6 @@ export default function VerifyDetails() {
         fieldsJson?: string;
         typeMatch?: string;
     }>();
-    const { profile } = useAuth();
     const idType = params.idType;
     const idInfo = VERIFICATION_TYPES[idType] ?? VERIFICATION_TYPES["iba-pa"];
 
@@ -155,10 +152,6 @@ export default function VerifyDetails() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [sex, setSex] = useState(scanned.sex);
     const [address, setAddress] = useState(scanned.address);
-    const [barangay, setBarangay] = useState<string | null>(
-        profile?.barangay ?? null,
-    );
-    const [showBarangayModal, setShowBarangayModal] = useState(false);
     const [idNumber, setIdNumber] = useState(scanned.idNumber);
     const [confirmed, setConfirmed] = useState(false);
 
@@ -181,12 +174,11 @@ export default function VerifyDetails() {
         !!birthDate &&
         (sex === "M" || sex === "F") &&
         address.trim().length > 0 &&
-        !!barangay &&
         idNumber.trim().length > 0;
     const canSubmit = isComplete && confirmed && !isSubmitting;
 
     const handleSubmit = async () => {
-        if (!canSubmit || !birthDate || !barangay) return;
+        if (!canSubmit || !birthDate) return;
         setError(null);
         setIsSubmitting(true);
         try {
@@ -200,7 +192,7 @@ export default function VerifyDetails() {
                 birthDate: formatBirthDate(birthDate),
                 sex,
                 address: address.trim(),
-                barangay,
+                barangay: BARANGAY,
                 idNumber: idNumber.trim(),
             });
             setIsSubmitted(true);
@@ -486,22 +478,16 @@ export default function VerifyDetails() {
                             className={`${inputClass} min-h-[80px]`}
                         />
                         <FieldLabel label="Barangay" />
-                        <Pressable
-                            onPress={() => setShowBarangayModal(true)}
-                            disabled={isSubmitting}
-                            className="rounded-2xl bg-[#F0EDE6] px-4 py-3.5 flex-row items-center justify-between"
-                        >
-                            <Text
-                                className={`text-[15px] ${barangay ? "text-[#1F2A1F]" : "text-[#9C978C]"}`}
-                            >
-                                {barangay ?? "Piliin ang barangay"}
+                        <View className="rounded-2xl bg-[#F0EDE6] px-4 py-3.5 flex-row items-center justify-between">
+                            <Text className="text-[15px] text-[#1F2A1F]">
+                                {BARANGAY}, {MUNICIPALITY}
                             </Text>
                             <Ionicons
-                                name="chevron-down"
-                                size={18}
-                                color="#6B7280"
+                                name="lock-closed-outline"
+                                size={16}
+                                color="#9C978C"
                             />
-                        </Pressable>
+                        </View>
                     </Card>
 
                     {/* ID number */}
@@ -584,60 +570,6 @@ export default function VerifyDetails() {
                     )}
                 </View>
             </KeyboardAvoidingView>
-
-            {/* Barangay picker */}
-            <Modal
-                visible={showBarangayModal}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setShowBarangayModal(false)}
-            >
-                <Pressable
-                    className="flex-1 bg-black/40 justify-end"
-                    onPress={() => setShowBarangayModal(false)}
-                >
-                    <Pressable
-                        className="bg-[--main-white] rounded-t-[28px] max-h-[75%]"
-                        onPress={(e) => e.stopPropagation()}
-                    >
-                        <View className="items-center pt-3 pb-2">
-                            <View className="w-10 h-1.5 rounded-full bg-[#E5E1D8]" />
-                        </View>
-                        <Text className="text-[16px] font-semibold text-[#1F2A1F] text-center mb-2">
-                            Piliin ang Barangay
-                        </Text>
-                        <ScrollView className="px-4 pb-8">
-                            {BARANGAYS.map((b) => (
-                                <Pressable
-                                    key={b}
-                                    className="flex-row items-center justify-between py-3.5 border-b border-[#EDEAE2]"
-                                    onPress={() => {
-                                        setBarangay(b);
-                                        setShowBarangayModal(false);
-                                    }}
-                                >
-                                    <Text
-                                        className={`text-[15px] ${
-                                            barangay === b
-                                                ? "text-[#2F5233] font-semibold"
-                                                : "text-[#1F2A1F]"
-                                        }`}
-                                    >
-                                        {b}
-                                    </Text>
-                                    {barangay === b && (
-                                        <Ionicons
-                                            name="checkmark"
-                                            size={18}
-                                            color="#2F5233"
-                                        />
-                                    )}
-                                </Pressable>
-                            ))}
-                        </ScrollView>
-                    </Pressable>
-                </Pressable>
-            </Modal>
         </SafeAreaView>
     );
 }

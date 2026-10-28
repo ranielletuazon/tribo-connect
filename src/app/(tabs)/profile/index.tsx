@@ -1,6 +1,7 @@
 import { Avatar } from "@/components/avatar";
 import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { BARANGAY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -236,20 +237,16 @@ export default function Profile() {
                                     {isAdmin ? "Admin" : "Residente"}
                                 </Text>
                             </View>
-                            {!!profile?.barangay && (
-                                <View className="flex-row items-center gap-1 rounded-full px-3 py-1.5 bg-white/20">
-                                    <Ionicons
-                                        name="location"
-                                        size={12}
-                                        color="#fff"
-                                    />
-                                    <Text className="text-[11.5px] font-semibold text-white">
-                                        {isAdmin
-                                            ? profile.barangay
-                                            : `Barangay ${profile.barangay}`}
-                                    </Text>
-                                </View>
-                            )}
+                            <View className="flex-row items-center gap-1 rounded-full px-3 py-1.5 bg-white/20">
+                                <Ionicons
+                                    name="location"
+                                    size={12}
+                                    color="#fff"
+                                />
+                                <Text className="text-[11.5px] font-semibold text-white">
+                                    {isAdmin ? BARANGAY : `Barangay ${BARANGAY}`}
+                                </Text>
+                            </View>
                         </View>
                     </View>
                 </LinearGradient>

@@ -15,6 +15,7 @@ import {
     savePushToken,
     setupNotificationChannel,
 } from "@/lib/push-notifications";
+import { BARANGAY, MUNICIPALITY, PROVINCE } from "@/constants/barangays";
 import { PALETTE as COLORS } from "@/constants/palette";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -312,9 +313,9 @@ export default function Home() {
                                     numberOfLines={1}
                                 >
                                     {isAdmin
-                                        ? `Admin ng ${profile?.barangay}`
-                                        : `Brgy. ${profile?.barangay}`}{" "}
-                                    · Porac
+                                        ? `Admin ng ${BARANGAY}`
+                                        : `Brgy. ${BARANGAY}`}{" "}
+                                    · {MUNICIPALITY}
                                 </Text>
                             </View>
                         </View>
@@ -390,7 +391,7 @@ export default function Home() {
                                         color={COLORS.leaf}
                                     />
                                     <Text className="text-white text-[11px] font-semibold tracking-wide">
-                                        Porac, Pampanga
+                                        {MUNICIPALITY}, {PROVINCE}
                                     </Text>
                                 </View>
                             </View>

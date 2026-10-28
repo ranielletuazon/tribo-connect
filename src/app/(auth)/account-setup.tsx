@@ -1,6 +1,7 @@
 // account-setup.tsx
 
 import { ClayButton, clayRaised } from "@/components/clay";
+import { BARANGAY, MUNICIPALITY } from "@/constants/barangays";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,7 +11,6 @@ import { doc, updateDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
     Alert,
-    Modal,
     Platform,
     Pressable,
     ScrollView,
@@ -32,52 +32,16 @@ export default function AccountSetup() {
     const [language, setLanguage] = useState<"tl" | "en">(
         profile?.language ?? "tl",
     );
-    const [barangay, setBarangay] = useState<string | null>(
-        profile?.barangay ?? null,
-    );
     const [emergencyContact, setEmergencyContact] = useState<string>(
         profile?.phoneNumber ?? "",
     );
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const [showBarangayModal, setShowBarangayModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<{
         username?: string;
-        barangay?: string;
         birthdate?: string;
         general?: string;
     }>({});
-
-    const BARANGAYS = [
-        "Babo Pangulo",
-        "Babo Sacan (Guanson)",
-        "Balubad",
-        "Calzadang Bayu",
-        "Camias",
-        "Cangatba",
-        "Diaz",
-        "Dolores (Hacienda Dolores)",
-        "Inararo (Aetas)",
-        "Jalung",
-        "Mancatian",
-        "Manibaug Libutad",
-        "Manibaug Paralaya",
-        "Manibaug Pasig",
-        "Manuali",
-        "Mitla Proper",
-        "Model Community (Tokwing)",
-        "Palat",
-        "Pias",
-        "Pio",
-        "Planas",
-        "Poblacion",
-        "Pulung Santol",
-        "Salu",
-        "San Jose Mitla",
-        "Santa Cruz",
-        "Sepung Bulaon",
-        "Sinura",
-    ];
 
     const handleSubmit = async () => {
         if (isSubmitting || !user) return;
@@ -85,9 +49,6 @@ export default function AccountSetup() {
         const nextErrors: typeof errors = {};
         if (username.trim().length === 0) {
             nextErrors.username = "Kailangan ng pangalan ng gumagamit.";
-        }
-        if (!barangay) {
-            nextErrors.barangay = "Piliin ang iyong barangay.";
         }
         if (!birthdate) {
             nextErrors.birthdate = "Piliin ang iyong kaarawan.";
@@ -105,7 +66,7 @@ export default function AccountSetup() {
                 username: username.trim(),
                 birthdate: birthdate!.toISOString(),
                 language,
-                barangay,
+                barangay: BARANGAY,
                 phoneNumber: emergencyContact.trim() || null,
             });
             router.push("/(auth)/otp-verify");
@@ -295,80 +256,23 @@ export default function AccountSetup() {
                     ))}
                 </View>
 
-                {/* Barangay */}
+                {/* Barangay - fixed, the app only serves one barangay */}
                 <Text className="text-[13px] font-medium text-[#4B4739] mb-2 ml-1">
                     Barangay
                 </Text>
-                <Pressable
+                <View
                     style={clayRaised}
                     className="mb-4 rounded-2xl bg-[#F0EDE6] px-4 py-3.5 flex-row items-center justify-between"
-                    onPress={() => setShowBarangayModal(true)}
                 >
-                    <Text
-                        className={`text-[15px] ${barangay ? "text-[#1F2A1F]" : "text-[#9C978C]"}`}
-                    >
-                        {barangay ?? "Piliin ang barangay"}
+                    <Text className="text-[15px] text-[#1F2A1F]">
+                        {BARANGAY}, {MUNICIPALITY}
                     </Text>
-                    <Ionicons name="chevron-down" size={18} color="#6B7280" />
-                </Pressable>
-                {errors.barangay && (
-                    <Text className="text-[12px] text-[#B23A2E] mb-3 ml-1 -mt-2">
-                        {errors.barangay}
-                    </Text>
-                )}
-
-                <Modal
-                    visible={showBarangayModal}
-                    transparent
-                    animationType="slide"
-                    onRequestClose={() => setShowBarangayModal(false)}
-                >
-                    <Pressable
-                        className="flex-1 bg-black/40 justify-end"
-                        onPress={() => setShowBarangayModal(false)}
-                    >
-                        <Pressable
-                            className="bg-[--main-white] rounded-t-[28px] max-h-[75%]"
-                            onPress={(e) => e.stopPropagation()}
-                        >
-                            <View className="items-center pt-3 pb-2">
-                                <View className="w-10 h-1.5 rounded-full bg-[#E5E1D8]" />
-                            </View>
-                            <Text className="text-[16px] font-semibold text-[#1F2A1F] text-center mb-2">
-                                Piliin ang Barangay
-                            </Text>
-                            <ScrollView className="px-4 pb-8">
-                                {BARANGAYS.map((b) => (
-                                    <Pressable
-                                        key={b}
-                                        className="flex-row items-center justify-between py-3.5 border-b border-[#EDEAE2]"
-                                        onPress={() => {
-                                            setBarangay(b);
-                                            setShowBarangayModal(false);
-                                        }}
-                                    >
-                                        <Text
-                                            className={`text-[15px] ${
-                                                barangay === b
-                                                    ? "text-[#2F5233] font-semibold"
-                                                    : "text-[#1F2A1F]"
-                                            }`}
-                                        >
-                                            {b}
-                                        </Text>
-                                        {barangay === b && (
-                                            <Ionicons
-                                                name="checkmark"
-                                                size={18}
-                                                color="#2F5233"
-                                            />
-                                        )}
-                                    </Pressable>
-                                ))}
-                            </ScrollView>
-                        </Pressable>
-                    </Pressable>
-                </Modal>
+                    <Ionicons
+                        name="lock-closed-outline"
+                        size={16}
+                        color="#9C978C"
+                    />
+                </View>
 
                 {errors.general && (
                     <Text className="text-[13px] text-[#B23A2E] text-center mb-3">

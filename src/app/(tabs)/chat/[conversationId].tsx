@@ -5,6 +5,7 @@ import {
     pressScale,
 } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { BARANGAY, MUNICIPALITY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
 import { formatClock, formatDayLabel, isSameDay } from "@/lib/chat-time";
 import { db } from "@/lib/firebase";
@@ -116,7 +117,6 @@ export default function ConversationThread() {
     const [isUnreadForMe, setIsUnreadForMe] = useState(false);
     // still in the unread list means the other user hasn't opened it yet
     const [isUnreadForOther, setIsUnreadForOther] = useState(false);
-    const [otherBarangay, setOtherBarangay] = useState<string | null>(null);
     const [isInputFocused, setIsInputFocused] = useState(false);
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
     const insets = useSafeAreaInsets();
@@ -294,7 +294,6 @@ export default function ConversationThread() {
             setOtherName(data.username ?? "Gumagamit");
             setOtherPhotoURL(data.photoURL ?? null);
             setOtherVerified(data.isVerified === true);
-            setOtherBarangay(data.barangay ?? null);
         });
     }, [isNew, targetUid, otherUidFromConversation]);
 
@@ -353,22 +352,20 @@ export default function ConversationThread() {
                             </Text>
                             {otherVerified && <VerifiedBadge size={15} />}
                         </View>
-                        {otherBarangay && (
-                            <View className="flex-row items-center gap-1 mt-0.5">
-                                <Ionicons
-                                    name="location"
-                                    size={11}
-                                    color={PALETTE.forest}
-                                />
-                                <Text
-                                    className="text-[11.5px] font-semibold"
-                                    style={{ color: PALETTE.forest }}
-                                    numberOfLines={1}
-                                >
-                                    Barangay {otherBarangay}
-                                </Text>
-                            </View>
-                        )}
+                        <View className="flex-row items-center gap-1 mt-0.5">
+                            <Ionicons
+                                name="location"
+                                size={11}
+                                color={PALETTE.forest}
+                            />
+                            <Text
+                                className="text-[11.5px] font-semibold"
+                                style={{ color: PALETTE.forest }}
+                                numberOfLines={1}
+                            >
+                                Barangay {BARANGAY}
+                            </Text>
+                        </View>
                     </View>
                 </View>
 
@@ -402,11 +399,9 @@ export default function ConversationThread() {
                                 </Text>
                                 {otherVerified && <VerifiedBadge size={17} />}
                             </View>
-                            {otherBarangay && (
-                                <Text className="text-[12.5px] text-[#9C978C] mt-0.5">
-                                    Barangay {otherBarangay} · Porac
-                                </Text>
-                            )}
+                            <Text className="text-[12.5px] text-[#9C978C] mt-0.5">
+                                Barangay {BARANGAY} · {MUNICIPALITY}
+                            </Text>
                             <Text
                                 className="text-[13px] text-center mt-3"
                                 style={{ color: PALETTE.muted }}

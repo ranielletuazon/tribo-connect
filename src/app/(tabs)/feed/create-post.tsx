@@ -1,3 +1,4 @@
+import { BARANGAY } from "@/constants/barangays";
 import { db } from "@/lib/firebase";
 import { uploadImage } from "@/lib/upload-image";
 import { useAuth } from "@/providers/auth-provider";
@@ -63,7 +64,7 @@ export default function CreatePost() {
                 id: postRef.id,
                 authorId: user.uid,
                 authorName: profile.username,
-                authorBarangay: profile.barangay,
+                authorBarangay: BARANGAY,
                 authorPhotoURL: profile.photoURL ?? null,
                 authorVerified: profile.isVerified === true,
                 content: content.trim(),

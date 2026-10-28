@@ -5,7 +5,7 @@ import {
     FIELD_BORDER,
     StepSection,
 } from "@/components/step-section";
-import { BARANGAYS } from "@/constants/barangays";
+import { BARANGAY, MUNICIPALITY, PROVINCE } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
 import {
     CATEGORIES,
@@ -28,7 +28,6 @@ import {
     ActivityIndicator,
     Image,
     KeyboardAvoidingView,
-    Modal,
     Platform,
     Pressable,
     ScrollView,
@@ -50,8 +49,6 @@ export default function CreateEmergency() {
     const [category, setCategory] = useState<AnnouncementCategory | null>(
         null,
     );
-    const [targetBarangay, setTargetBarangay] = useState<string | null>(null);
-    const [showBarangayModal, setShowBarangayModal] = useState(false);
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [imageUri, setImageUri] = useState<string | null>(null);
@@ -109,7 +106,7 @@ export default function CreateEmergency() {
                 content: content.trim(),
                 category,
                 severity,
-                targetBarangay,
+                targetBarangay: BARANGAY,
                 imageUrl,
             };
 
@@ -311,14 +308,12 @@ export default function CreateEmergency() {
                             </View>
                             <View className="flex-row items-center gap-1 mt-3">
                                 <Ionicons
-                                    name={targetBarangay ? "location" : "earth"}
+                                    name="location"
                                     size={12}
                                     color="rgba(255,255,255,0.85)"
                                 />
                                 <Text className="text-[12px] text-white/85">
-                                    {targetBarangay
-                                        ? `Barangay ${targetBarangay}`
-                                        : "Lahat ng Barangay"}
+                                    Barangay {BARANGAY}
                                 </Text>
                             </View>
                         </View>
@@ -538,59 +533,45 @@ export default function CreateEmergency() {
                         hint="Sino ang makakatanggap"
                         done
                     >
-                        <Pressable
-                            onPress={() => setShowBarangayModal(true)}
-                            disabled={isPosting}
+                        <View
+                            className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3 border-[1.5px]"
+                            style={{
+                                backgroundColor: FIELD_BG,
+                                borderColor: FIELD_BORDER,
+                            }}
                         >
-                            {({ pressed }) => (
-                                <View
-                                    className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3 border-[1.5px]"
-                                    style={[
-                                        pressScale(pressed),
-                                        {
-                                            backgroundColor: FIELD_BG,
-                                            borderColor: FIELD_BORDER,
-                                        },
-                                    ]}
+                            <View
+                                className="w-9 h-9 rounded-full items-center justify-center"
+                                style={{
+                                    backgroundColor: PALETTE.forest,
+                                }}
+                            >
+                                <Ionicons
+                                    name="location"
+                                    size={17}
+                                    color="#fff"
+                                />
+                            </View>
+                            <View className="flex-1">
+                                <Text
+                                    className="text-[15px] font-semibold"
+                                    style={{ color: PALETTE.ink }}
                                 >
-                                    <View
-                                        className="w-9 h-9 rounded-full items-center justify-center"
-                                        style={{
-                                            backgroundColor: PALETTE.forest,
-                                        }}
-                                    >
-                                        <Ionicons
-                                            name={
-                                                targetBarangay
-                                                    ? "location"
-                                                    : "earth"
-                                            }
-                                            size={17}
-                                            color="#fff"
-                                        />
-                                    </View>
-                                    <Text
-                                        className="flex-1 text-[15px] font-semibold"
-                                        style={{ color: PALETTE.ink }}
-                                    >
-                                        {targetBarangay
-                                            ? `Barangay ${targetBarangay}`
-                                            : "Lahat ng Barangay"}
-                                    </Text>
-                                    <Text
-                                        className="text-[12px] font-bold"
-                                        style={{ color: PALETTE.forest }}
-                                    >
-                                        Palitan
-                                    </Text>
-                                    <Ionicons
-                                        name="chevron-down"
-                                        size={16}
-                                        color={PALETTE.forest}
-                                    />
-                                </View>
-                            )}
-                        </Pressable>
+                                    Barangay {BARANGAY}
+                                </Text>
+                                <Text
+                                    className="text-[12px]"
+                                    style={{ color: PALETTE.muted }}
+                                >
+                                    {MUNICIPALITY}, {PROVINCE}
+                                </Text>
+                            </View>
+                            <Ionicons
+                                name="lock-closed-outline"
+                                size={16}
+                                color="#B5AFA0"
+                            />
+                        </View>
                     </StepSection>
 
                     {/* Step 4: title */}
@@ -820,104 +801,6 @@ export default function CreateEmergency() {
                     </Pressable>
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            {/* Target barangay picker */}
-            <Modal
-                visible={showBarangayModal}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setShowBarangayModal(false)}
-            >
-                <Pressable
-                    className="flex-1 bg-black/40 justify-end"
-                    onPress={() => setShowBarangayModal(false)}
-                >
-                    <Pressable
-                        className="rounded-t-[30px] max-h-[75%]"
-                        style={{ backgroundColor: PALETTE.cream }}
-                        onPress={(e) => e.stopPropagation()}
-                    >
-                        <View className="items-center pt-3 pb-1">
-                            <View className="w-10 h-1.5 rounded-full bg-[#E5E1D8]" />
-                        </View>
-                        <View className="flex-row items-center justify-between px-5 pt-2 pb-3">
-                            <View>
-                                <Text
-                                    className="text-[17px] font-extrabold"
-                                    style={{ color: PALETTE.ink }}
-                                >
-                                    Sakop na Lugar
-                                </Text>
-                                <Text
-                                    className="text-[12px]"
-                                    style={{ color: PALETTE.muted }}
-                                >
-                                    Sino ang makakatanggap ng anunsyo
-                                </Text>
-                            </View>
-                            <Pressable
-                                onPress={() => setShowBarangayModal(false)}
-                                className="w-9 h-9 rounded-full bg-[#F0EDE6] items-center justify-center"
-                            >
-                                <Ionicons
-                                    name="close"
-                                    size={19}
-                                    color={PALETTE.ink}
-                                />
-                            </Pressable>
-                        </View>
-                        <ScrollView contentContainerClassName="px-4 pb-10 gap-1.5">
-                            {[null, ...BARANGAYS].map((b) => {
-                                const selected = targetBarangay === b;
-                                return (
-                                    <Pressable
-                                        key={b ?? "all"}
-                                        className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3"
-                                        style={{
-                                            backgroundColor: selected
-                                                ? "rgba(62,123,79,0.12)"
-                                                : "transparent",
-                                        }}
-                                        onPress={() => {
-                                            setTargetBarangay(b);
-                                            setShowBarangayModal(false);
-                                        }}
-                                    >
-                                        <Ionicons
-                                            name={b ? "location-outline" : "earth"}
-                                            size={18}
-                                            color={
-                                                selected
-                                                    ? PALETTE.forest
-                                                    : "#9C978C"
-                                            }
-                                        />
-                                        <Text
-                                            className={`flex-1 text-[15px] ${
-                                                selected ? "font-bold" : ""
-                                            }`}
-                                            style={{
-                                                color: selected
-                                                    ? PALETTE.forest
-                                                    : PALETTE.ink,
-                                            }}
-                                        >
-                                            {b ?? "Lahat ng Barangay"}
-                                        </Text>
-                                        {selected && (
-                                            <Ionicons
-                                                name="checkmark-circle"
-                                                size={20}
-                                                color={PALETTE.forest}
-                                            />
-                                        )}
-                                    </Pressable>
-                                );
-                            })}
-                        </ScrollView>
-                    </Pressable>
-                </Pressable>
-            </Modal>
         </SafeAreaView>
     );
 }

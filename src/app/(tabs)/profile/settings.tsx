@@ -2,6 +2,7 @@ import { AuthHeader } from "@/components/auth-header";
 import { Avatar } from "@/components/avatar";
 import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { BARANGAY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
@@ -159,9 +160,7 @@ export default function Settings() {
                                     {profile?.role === "admin"
                                         ? "Admin"
                                         : "Residente"}
-                                    {profile?.barangay
-                                        ? ` · ${profile.barangay}`
-                                        : ""}
+                                    {` · ${BARANGAY}`}
                                 </Text>
                             </View>
                         </View>

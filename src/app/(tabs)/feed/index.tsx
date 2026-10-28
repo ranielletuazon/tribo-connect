@@ -1,5 +1,6 @@
 import { clayRaised } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { BARANGAY } from "@/constants/barangays";
 import { db } from "@/lib/firebase";
 import { formatTimeAgo, mapDocToPost, type Post } from "@/lib/posts";
 import { useAuth } from "@/providers/auth-provider";
@@ -370,7 +371,7 @@ export default function Feed() {
                                             )}
                                         </View>
                                         <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
-                                            Barangay {post.authorBarangay} ·{" "}
+                                            Barangay {BARANGAY} ·{" "}
                                             {formatTimeAgo(post.createdAt)}
                                         </Text>
                                     </View>

@@ -1,6 +1,7 @@
 import { Avatar } from "@/components/avatar";
 import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { BARANGAY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
 import { formatListTime } from "@/lib/chat-time";
 import { db } from "@/lib/firebase";
@@ -34,7 +35,6 @@ interface UserResult {
     uid: string;
     username: string;
     photoURL: string | null;
-    barangay: string | null;
     isVerified: boolean;
 }
 
@@ -194,7 +194,6 @@ export default function Chat() {
                             uid: docSnap.id,
                             username: data.username,
                             photoURL: data.photoURL ?? null,
-                            barangay: data.barangay ?? null,
                             isVerified: data.isVerified === true,
                         };
                     })
@@ -500,19 +499,16 @@ export default function Chat() {
                                                     <VerifiedBadge />
                                                 )}
                                             </View>
-                                            {result.barangay && (
-                                                <View className="flex-row items-center gap-1 mt-0.5">
-                                                    <Ionicons
-                                                        name="location"
-                                                        size={11}
-                                                        color="#9C978C"
-                                                    />
-                                                    <Text className="text-[12px] text-[#9C978C]">
-                                                        Barangay{" "}
-                                                        {result.barangay}
-                                                    </Text>
-                                                </View>
-                                            )}
+                                            <View className="flex-row items-center gap-1 mt-0.5">
+                                                <Ionicons
+                                                    name="location"
+                                                    size={11}
+                                                    color="#9C978C"
+                                                />
+                                                <Text className="text-[12px] text-[#9C978C]">
+                                                    Barangay {BARANGAY}
+                                                </Text>
+                                            </View>
                                         </View>
                                         <LinearGradient
                                             colors={GREEN}

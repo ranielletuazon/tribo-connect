@@ -1,5 +1,6 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton, clayRaised } from "@/components/clay";
+import { BARANGAY } from "@/constants/barangays";
 import { db } from "@/lib/firebase";
 import {
     VERIFICATION_TYPES,
@@ -274,10 +275,7 @@ export default function Verify() {
                             />
                         </View>
                         <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
-                            Verified na Residente
-                            {profile?.barangay
-                                ? ` · Barangay ${profile.barangay}`
-                                : ""}
+                            Verified na Residente · Barangay {BARANGAY}
                         </Text>
                     </View>
                 </View>

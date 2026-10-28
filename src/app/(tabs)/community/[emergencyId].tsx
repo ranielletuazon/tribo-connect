@@ -5,6 +5,7 @@ import {
     PulseRing,
 } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { BARANGAY, MUNICIPALITY, PROVINCE } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
 import {
     CATEGORIES,
@@ -103,9 +104,7 @@ export default function ViewEmergency() {
 
     const handleShare = async () => {
         if (!announcement) return;
-        const area = announcement.targetBarangay
-            ? `Barangay ${announcement.targetBarangay}`
-            : "Lahat ng Barangay";
+        const area = `Barangay ${BARANGAY}, ${MUNICIPALITY}, ${PROVINCE}`;
         try {
             await Share.share({
                 message: `[${SEVERITIES[announcement.severity].label.toUpperCase()}] ${announcement.title}\n\n${announcement.content}\n\nSakop: ${area}\n— TriboConnect`,
@@ -406,11 +405,7 @@ export default function ViewEmergency() {
                                 style={{ backgroundColor: PALETTE.forest }}
                             >
                                 <Ionicons
-                                    name={
-                                        announcement.targetBarangay
-                                            ? "location"
-                                            : "earth"
-                                    }
+                                    name="location"
                                     size={15}
                                     color="#fff"
                                 />
@@ -426,9 +421,7 @@ export default function ViewEmergency() {
                                     className="text-[13.5px] font-bold"
                                     style={{ color: PALETTE.ink }}
                                 >
-                                    {announcement.targetBarangay
-                                        ? `Barangay ${announcement.targetBarangay}`
-                                        : "Lahat ng Barangay"}
+                                    Barangay {BARANGAY}, {MUNICIPALITY}
                                 </Text>
                             </View>
                         </View>

@@ -7,7 +7,7 @@ import {
     FIELD_BG,
     FIELD_BORDER,
 } from "@/components/step-section";
-import { BARANGAYS } from "@/constants/barangays";
+import { BARANGAY, MUNICIPALITY, PROVINCE } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
 import { db } from "@/lib/firebase";
 import { uploadImage } from "@/lib/upload-image";
@@ -24,7 +24,6 @@ import {
     ActivityIndicator,
     Image,
     KeyboardAvoidingView,
-    Modal,
     Platform,
     Pressable,
     ScrollView,
@@ -84,9 +83,6 @@ export default function EditProfile() {
         : null;
 
     const [username, setUsername] = useState(profile?.username ?? "");
-    const [barangay, setBarangay] = useState<string | null>(
-        profile?.barangay ?? null,
-    );
     const [birthdate, setBirthdate] = useState<Date | null>(initialBirthdate);
     const [phoneNumber, setPhoneNumber] = useState(profile?.phoneNumber ?? "");
     const [imageUri, setImageUri] = useState<string | null>(
@@ -94,14 +90,12 @@ export default function EditProfile() {
     );
 
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showBarangayModal, setShowBarangayModal] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [focusedField, setFocusedField] = useState<Field | null>(null);
 
     const hasChanges =
         username.trim() !== (profile?.username ?? "") ||
-        barangay !== (profile?.barangay ?? null) ||
         phoneNumber.trim() !== (profile?.phoneNumber ?? "") ||
         (birthdate?.toISOString() ?? null) !== (profile?.birthdate ?? null) ||
         imageUri !== (profile?.photoURL ?? null);
@@ -110,7 +104,6 @@ export default function EditProfile() {
         hasChanges &&
         !isSaving &&
         username.trim().length > 0 &&
-        !!barangay &&
         !!birthdate;
 
     const handlePickImage = async () => {
@@ -149,7 +142,8 @@ export default function EditProfile() {
 
             await updateDoc(doc(db, "users", user.uid), {
                 username: username.trim(),
-                barangay,
+                // also moves older accounts over to the one barangay
+                barangay: BARANGAY,
                 phoneNumber: phoneNumber.trim() || null,
                 birthdate: birthdate!.toISOString(),
                 photoURL,
@@ -437,57 +431,45 @@ export default function EditProfile() {
                     {/* Location */}
                     <FormCard title="Lokasyon" color={PALETTE.gold}>
                         <FieldLabel>Barangay</FieldLabel>
-                        <Pressable
-                            onPress={() => setShowBarangayModal(true)}
-                            disabled={isSaving}
+                        <View
+                            className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3 border-[1.5px]"
+                            style={{
+                                backgroundColor: FIELD_BG,
+                                borderColor: FIELD_BORDER,
+                            }}
                         >
-                            {({ pressed }) => (
-                                <View
-                                    className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3 border-[1.5px]"
-                                    style={[
-                                        pressScale(pressed),
-                                        {
-                                            backgroundColor: FIELD_BG,
-                                            borderColor: FIELD_BORDER,
-                                        },
-                                    ]}
+                            <View
+                                className="w-9 h-9 rounded-full items-center justify-center"
+                                style={{
+                                    backgroundColor: PALETTE.forest,
+                                }}
+                            >
+                                <Ionicons
+                                    name="location"
+                                    size={16}
+                                    color="#fff"
+                                />
+                            </View>
+                            <View className="flex-1">
+                                <Text
+                                    className="text-[15px] font-semibold"
+                                    style={{ color: PALETTE.ink }}
                                 >
-                                    <View
-                                        className="w-9 h-9 rounded-full items-center justify-center"
-                                        style={{
-                                            backgroundColor: PALETTE.forest,
-                                        }}
-                                    >
-                                        <Ionicons
-                                            name="location"
-                                            size={16}
-                                            color="#fff"
-                                        />
-                                    </View>
-                                    <Text
-                                        className="flex-1 text-[15px] font-semibold"
-                                        style={{
-                                            color: barangay
-                                                ? PALETTE.ink
-                                                : "#B5AFA0",
-                                        }}
-                                    >
-                                        {barangay ?? "Pumili ng barangay"}
-                                    </Text>
-                                    <Text
-                                        className="text-[12px] font-bold"
-                                        style={{ color: PALETTE.forest }}
-                                    >
-                                        Palitan
-                                    </Text>
-                                    <Ionicons
-                                        name="chevron-down"
-                                        size={16}
-                                        color={PALETTE.forest}
-                                    />
-                                </View>
-                            )}
-                        </Pressable>
+                                    {BARANGAY}
+                                </Text>
+                                <Text
+                                    className="text-[12px]"
+                                    style={{ color: PALETTE.muted }}
+                                >
+                                    {MUNICIPALITY}, {PROVINCE}
+                                </Text>
+                            </View>
+                            <Ionicons
+                                name="lock-closed-outline"
+                                size={16}
+                                color="#B5AFA0"
+                            />
+                        </View>
                     </FormCard>
 
                     {/* Save */}
@@ -546,94 +528,6 @@ export default function EditProfile() {
                     )}
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            {/* Barangay picker */}
-            <Modal
-                visible={showBarangayModal}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setShowBarangayModal(false)}
-            >
-                <Pressable
-                    className="flex-1 bg-black/40 justify-end"
-                    onPress={() => setShowBarangayModal(false)}
-                >
-                    <Pressable
-                        className="rounded-t-[30px] max-h-[75%]"
-                        style={{ backgroundColor: PALETTE.cream }}
-                        onPress={(e) => e.stopPropagation()}
-                    >
-                        <View className="items-center pt-3 pb-1">
-                            <View className="w-10 h-1.5 rounded-full bg-[#E5E1D8]" />
-                        </View>
-                        <View className="flex-row items-center justify-between px-5 pt-2 pb-3">
-                            <Text
-                                className="text-[17px] font-extrabold"
-                                style={{ color: PALETTE.ink }}
-                            >
-                                Piliin ang Barangay
-                            </Text>
-                            <Pressable
-                                onPress={() => setShowBarangayModal(false)}
-                                className="w-9 h-9 rounded-full bg-[#F0EDE6] items-center justify-center"
-                            >
-                                <Ionicons
-                                    name="close"
-                                    size={19}
-                                    color={PALETTE.ink}
-                                />
-                            </Pressable>
-                        </View>
-                        <ScrollView contentContainerClassName="px-4 pb-10 gap-1.5">
-                            {BARANGAYS.map((b) => {
-                                const selected = barangay === b;
-                                return (
-                                    <Pressable
-                                        key={b}
-                                        className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3"
-                                        style={{
-                                            backgroundColor: selected
-                                                ? "rgba(62,123,79,0.12)"
-                                                : "transparent",
-                                        }}
-                                        onPress={() => {
-                                            setBarangay(b);
-                                            setShowBarangayModal(false);
-                                        }}
-                                    >
-                                        <Ionicons
-                                            name="location-outline"
-                                            size={18}
-                                            color={
-                                                selected
-                                                    ? PALETTE.forest
-                                                    : "#9C978C"
-                                            }
-                                        />
-                                        <Text
-                                            className={`flex-1 text-[15px] ${selected ? "font-bold" : ""}`}
-                                            style={{
-                                                color: selected
-                                                    ? PALETTE.forest
-                                                    : PALETTE.ink,
-                                            }}
-                                        >
-                                            {b}
-                                        </Text>
-                                        {selected && (
-                                            <Ionicons
-                                                name="checkmark-circle"
-                                                size={20}
-                                                color={PALETTE.forest}
-                                            />
-                                        )}
-                                    </Pressable>
-                                );
-                            })}
-                        </ScrollView>
-                    </Pressable>
-                </Pressable>
-            </Modal>
         </SafeAreaView>
     );
 }
