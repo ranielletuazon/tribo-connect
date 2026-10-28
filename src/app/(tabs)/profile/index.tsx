@@ -3,6 +3,7 @@ import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { BARANGAY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -14,11 +15,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 interface MenuItem {
     icon: keyof typeof Ionicons.glyphMap;
     label: string;
+    labelEn: string;
     route?: Href; // no route means the page isn't made yet
 }
 
 interface MenuSection {
     label: string;
+    labelEn: string;
     // color of the icon tiles in this section
     color: string;
     tint: string;
@@ -28,51 +31,77 @@ interface MenuSection {
 const MENU_SECTIONS: MenuSection[] = [
     {
         label: "Account",
+        labelEn: "Account",
         color: PALETTE.forest,
         tint: "rgba(62,123,79,0.12)",
         items: [
             {
                 icon: "person-outline",
                 label: "I-edit ang Profile",
+                labelEn: "Edit Profile",
                 route: "/(tabs)/profile/edit-profile",
             },
             {
                 icon: "shield-checkmark-outline",
                 label: "I-verify ang Account",
+                labelEn: "Verify Account",
                 route: "/(tabs)/profile/verify",
             },
             {
                 icon: "settings-outline",
                 label: "Mga Setting",
+                labelEn: "Settings",
                 route: "/(tabs)/profile/settings",
             },
         ],
     },
     {
         label: "Aktibidad",
+        labelEn: "Activity",
         color: "#C9821F",
         tint: "rgba(232,169,59,0.16)",
-        items: [{ icon: "document-text-outline", label: "Aking mga Ulat" }],
+        items: [
+            {
+                icon: "document-text-outline",
+                label: "Aking mga Ulat",
+                labelEn: "My Reports",
+            },
+        ],
     },
     {
         label: "Suporta",
+        labelEn: "Support",
         color: "#2A5C99",
         tint: "rgba(91,163,232,0.14)",
         items: [
-            { icon: "help-circle-outline", label: "Tulong at FAQ" },
-            { icon: "call-outline", label: "Makipag-ugnayan sa Barangay" },
+            {
+                icon: "help-circle-outline",
+                label: "Tulong at FAQ",
+                labelEn: "Help and FAQ",
+            },
+            {
+                icon: "call-outline",
+                label: "Makipag-ugnayan sa Barangay",
+                labelEn: "Contact the Barangay",
+            },
         ],
     },
     {
         label: "Tungkol",
+        labelEn: "About",
         color: PALETTE.muted,
         tint: "rgba(122,109,92,0.12)",
         items: [
             {
                 icon: "information-circle-outline",
                 label: "Tungkol sa TriboConnect",
+                labelEn: "About TriboConnect",
             },
-            { icon: "shield-checkmark-outline", label: "Patakaran sa Privacy" },
+            {
+                icon: "shield-checkmark-outline",
+                label: "Patakaran sa Privacy",
+                labelEn: "Privacy Policy",
+            },
         ],
     },
 ];
@@ -80,12 +109,14 @@ const MENU_SECTIONS: MenuSection[] = [
 // only shown to users with role: "admin"
 const ADMIN_SECTION: MenuSection = {
     label: "Admin Settings",
+    labelEn: "Admin Settings",
     color: PALETTE.clay,
     tint: "rgba(217,115,63,0.14)",
     items: [
         {
             icon: "person-add-outline",
             label: "I-verify ang mga User",
+            labelEn: "Verify Users",
             route: "/(tabs)/profile/verify-users",
         },
     ],
@@ -96,8 +127,10 @@ const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
 export default function Profile() {
     const router = useRouter();
     const { user, profile } = useAuth();
+    const { t } = useLanguage();
 
-    const displayName = profile?.username ?? user?.email ?? "Gumagamit";
+    const displayName =
+        profile?.username ?? user?.email ?? t("Gumagamit", "User");
     const isAdmin = profile?.role === "admin";
     const isVerified = profile?.isVerified === true;
     const menuSections = isAdmin
@@ -234,7 +267,7 @@ export default function Profile() {
                                     color="#fff"
                                 />
                                 <Text className="text-[11.5px] font-bold text-white">
-                                    {isAdmin ? "Admin" : "Residente"}
+                                    {isAdmin ? "Admin" : t("Residente", "Resident")}
                                 </Text>
                             </View>
                             <View className="flex-row items-center gap-1 rounded-full px-3 py-1.5 bg-white/20">
@@ -293,11 +326,16 @@ export default function Profile() {
                                     </View>
                                     <View className="flex-1">
                                         <Text className="text-[15px] font-extrabold text-white">
-                                            I-verify ang iyong account
+                                            {t(
+                                                "I-verify ang iyong account",
+                                                "Verify your account",
+                                            )}
                                         </Text>
                                         <Text className="text-[12px] text-white/90 mt-0.5">
-                                            Makakuha ng asul na tsek at
-                                            tiwala ng komunidad.
+                                            {t(
+                                                "Makakuha ng asul na tsek at tiwala ng komunidad.",
+                                                "Get a blue check and the community's trust.",
+                                            )}
                                         </Text>
                                     </View>
                                     <View className="w-8 h-8 rounded-full bg-white/25 items-center justify-center">
@@ -324,7 +362,7 @@ export default function Profile() {
                                 className="text-[14px] font-extrabold"
                                 style={{ color: PALETTE.ink }}
                             >
-                                {section.label}
+                                {t(section.label, section.labelEn)}
                             </Text>
                         </View>
                         <View
@@ -365,7 +403,7 @@ export default function Profile() {
                                                     : "#9C978C",
                                             }}
                                         >
-                                            {item.label}
+                                            {t(item.label, item.labelEn)}
                                         </Text>
                                         {item.route ? (
                                             <Ionicons
@@ -376,7 +414,7 @@ export default function Profile() {
                                         ) : (
                                             <View className="rounded-full px-2 py-0.5 bg-[#F3EFE7]">
                                                 <Text className="text-[10.5px] text-[#9C978C] font-semibold">
-                                                    Malapit na
+                                                    {t("Malapit na", "Coming soon")}
                                                 </Text>
                                             </View>
                                         )}
@@ -392,7 +430,7 @@ export default function Profile() {
                 ))}
 
                 <Text className="text-[11.5px] text-[#B5AFA0] text-center mt-2">
-                    TriboConnect · Bersyon {APP_VERSION}
+                    TriboConnect · {t("Bersyon", "Version")} {APP_VERSION}
                 </Text>
             </ScrollView>
         </SafeAreaView>

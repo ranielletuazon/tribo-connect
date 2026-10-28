@@ -1,3 +1,4 @@
+import type { Language } from "@/hooks/use-language";
 import type { DocumentSnapshot, Timestamp } from "firebase/firestore";
 
 export interface Post {
@@ -25,17 +26,31 @@ export interface PostComment {
     createdAt: Timestamp | null;
 }
 
-export function formatTimeAgo(timestamp: Timestamp | null): string {
-    if (!timestamp) return "Ngayon lang";
+export function formatTimeAgo(
+    timestamp: Timestamp | null,
+    lang: Language = "tl",
+): string {
+    const en = lang === "en";
+    const justNow = en ? "Just now" : "Ngayon lang";
+    if (!timestamp) return justNow;
     const diffMins = Math.floor(
         (Date.now() - timestamp.toDate().getTime()) / 60000,
     );
-    if (diffMins < 1) return "Ngayon lang";
-    if (diffMins < 60) return `${diffMins} minuto ang nakalipas`;
+    if (diffMins < 1) return justNow;
+    if (diffMins < 60) {
+        return en
+            ? `${diffMins} ${diffMins === 1 ? "minute" : "minutes"} ago`
+            : `${diffMins} minuto ang nakalipas`;
+    }
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} oras ang nakalipas`;
+    if (diffHours < 24) {
+        return en
+            ? `${diffHours} ${diffHours === 1 ? "hour" : "hours"} ago`
+            : `${diffHours} oras ang nakalipas`;
+    }
     const diffDays = Math.floor(diffHours / 24);
-    return diffDays === 1 ? "Kahapon" : `${diffDays} araw ang nakalipas`;
+    if (diffDays === 1) return en ? "Yesterday" : "Kahapon";
+    return en ? `${diffDays} days ago` : `${diffDays} araw ang nakalipas`;
 }
 
 export function mapDocToPost(docSnap: DocumentSnapshot): Post {

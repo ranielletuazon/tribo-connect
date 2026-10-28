@@ -1,4 +1,5 @@
 import { BARANGAY } from "@/constants/barangays";
+import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
 import { uploadImage } from "@/lib/upload-image";
 import { useAuth } from "@/providers/auth-provider";
@@ -20,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function CreatePost() {
     const router = useRouter();
     const { user, profile } = useAuth();
+    const { t } = useLanguage();
     const [content, setContent] = useState("");
     const [imageUri, setImageUri] = useState<string | null>(null);
     const [isPosting, setIsPosting] = useState(false);
@@ -81,7 +83,12 @@ export default function CreatePost() {
             });
         } catch (err) {
             console.error("Create post error:", err);
-            setError("Nabigo ang pag-post. Pakisubukang muli.");
+            setError(
+                t(
+                    "Nabigo ang pag-post. Pakisubukang muli.",
+                    "Posting failed. Please try again.",
+                ),
+            );
         } finally {
             setIsPosting(false);
         }
@@ -99,7 +106,7 @@ export default function CreatePost() {
                     <Ionicons name="close" size={24} color="#1F2A1F" />
                 </Pressable>
                 <Text className="text-[15px] font-bold text-[#1F2A1F]">
-                    Gumawa ng Post
+                    {t("Gumawa ng Post", "Create Post")}
                 </Text>
                 <Pressable
                     disabled={!canPost}
@@ -111,7 +118,9 @@ export default function CreatePost() {
                         className="text-[13.5px] font-semibold"
                         style={{ color: canPost ? "#fff" : "#9C978C" }}
                     >
-                        {isPosting ? "Nagpopost..." : "I-post"}
+                        {isPosting
+                            ? t("Nagpopost...", "Posting...")
+                            : t("I-post", "Post")}
                     </Text>
                 </Pressable>
             </View>
@@ -143,12 +152,12 @@ export default function CreatePost() {
                     </View>
                     <View>
                         <Text className="text-[14.5px] font-bold text-[#1F2A1F]">
-                            {profile?.username ?? "Gumagamit"}
+                            {profile?.username ?? t("Gumagamit", "User")}
                         </Text>
                         <View className="flex-row items-center gap-1 mt-0.5 bg-[#F0EDE6] self-start rounded-full px-2 py-0.5">
                             <Ionicons name="earth" size={11} color="#7A6D5C" />
                             <Text className="text-[11px] text-[#7A6D5C]">
-                                Publiko
+                                {t("Publiko", "Public")}
                             </Text>
                         </View>
                     </View>
@@ -156,7 +165,10 @@ export default function CreatePost() {
 
                 {/* Text input */}
                 <TextInput
-                    placeholder={`Ano ang nasa isip mo, ${profile?.username ?? "kaibigan"}?`}
+                    placeholder={t(
+                        `Ano ang nasa isip mo, ${profile?.username ?? "kaibigan"}?`,
+                        `What's on your mind, ${profile?.username ?? "friend"}?`,
+                    )}
                     placeholderTextColor="#9C978C"
                     value={content}
                     onChangeText={setContent}
@@ -192,7 +204,7 @@ export default function CreatePost() {
                     className="flex-row items-center justify-between border border-[#EDEAE2] rounded-2xl px-4 py-3 mt-2"
                 >
                     <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
-                        Idagdag ng Larawan
+                        {t("Idagdag ng Larawan", "Add a Photo")}
                     </Text>
                     <View className="w-9 h-9 rounded-full bg-[#3F9142] items-center justify-center">
                         <Ionicons name="image" size={18} color="#fff" />

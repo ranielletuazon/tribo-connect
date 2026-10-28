@@ -7,6 +7,7 @@ import {
 import { VerifiedBadge } from "@/components/verified-badge";
 import { BARANGAY, MUNICIPALITY, PROVINCE } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import {
     CATEGORIES,
     SEVERITIES,
@@ -63,6 +64,7 @@ function RoundButton({
 export default function ViewEmergency() {
     const { emergencyId } = useLocalSearchParams<{ emergencyId: string }>();
     const { profile } = useAuth();
+    const { lang, t } = useLanguage();
     const isAdmin = profile?.role === "admin";
 
     const [announcement, setAnnouncement] = useState<Announcement | null>(
@@ -107,7 +109,7 @@ export default function ViewEmergency() {
         const area = `Barangay ${BARANGAY}, ${MUNICIPALITY}, ${PROVINCE}`;
         try {
             await Share.share({
-                message: `[${SEVERITIES[announcement.severity].label.toUpperCase()}] ${announcement.title}\n\n${announcement.content}\n\nSakop: ${area}\n— TriboConnect`,
+                message: `[${t(SEVERITIES[announcement.severity].label, SEVERITIES[announcement.severity].labelEn).toUpperCase()}] ${announcement.title}\n\n${announcement.content}\n\n${t("Sakop", "Area")}: ${area}\n— TriboConnect`,
             });
         } catch (err) {
             console.error("Share announcement error:", err);
@@ -117,12 +119,15 @@ export default function ViewEmergency() {
     const handleDelete = () => {
         if (!announcement || !isAdmin) return;
         Alert.alert(
-            "Burahin ang anunsyo?",
-            "Hindi na ito makikita ng mga residente.",
+            t("Burahin ang anunsyo?", "Delete this announcement?"),
+            t(
+                "Hindi na ito makikita ng mga residente.",
+                "Residents will no longer see it.",
+            ),
             [
-                { text: "Kanselahin", style: "cancel" },
+                { text: t("Kanselahin", "Cancel"), style: "cancel" },
                 {
-                    text: "Burahin",
+                    text: t("Burahin", "Delete"),
                     style: "destructive",
                     onPress: async () => {
                         setIsDeleting(true);
@@ -149,8 +154,11 @@ export default function ViewEmergency() {
                             console.error("Delete announcement error:", err);
                             setIsDeleting(false);
                             Alert.alert(
-                                "Nabigo",
-                                "Hindi nabura ang anunsyo. Pakisubukang muli.",
+                                t("Nabigo", "Failed"),
+                                t(
+                                    "Hindi nabura ang anunsyo. Pakisubukang muli.",
+                                    "The announcement wasn't deleted. Please try again.",
+                                ),
                             );
                         }
                     },
@@ -186,7 +194,7 @@ export default function ViewEmergency() {
                     style={{ color: PALETTE.ink }}
                     numberOfLines={1}
                 >
-                    Anunsyo
+                    {t("Anunsyo", "Announcement")}
                 </Text>
                 {announcement ? (
                     <RoundButton onPress={handleShare}>
@@ -241,8 +249,10 @@ export default function ViewEmergency() {
                         className="text-center text-[13.5px]"
                         style={{ color: PALETTE.muted }}
                     >
-                        Hindi na makita ang anunsyong ito. Maaaring binura na
-                        ito.
+                        {t(
+                            "Hindi na makita ang anunsyong ito. Maaaring binura na ito.",
+                            "This announcement can't be found. It may have been deleted.",
+                        )}
                     </Text>
                     <Pressable
                         onPress={() => router.back()}
@@ -250,7 +260,7 @@ export default function ViewEmergency() {
                         style={{ backgroundColor: PALETTE.forest }}
                     >
                         <Text className="text-[13.5px] font-bold text-white">
-                            Bumalik
+                            {t("Bumalik", "Go Back")}
                         </Text>
                     </Pressable>
                 </View>
@@ -307,7 +317,10 @@ export default function ViewEmergency() {
                                             className="text-[11px] font-extrabold tracking-wider"
                                             style={{ color: level.colorDark }}
                                         >
-                                            {level.label.toUpperCase()}
+                                            {t(
+                                                level.label,
+                                                level.labelEn,
+                                            ).toUpperCase()}
                                         </Text>
                                     </View>
                                     <View className="flex-row items-center gap-1 bg-white/20 border border-white/30 rounded-full px-2.5 py-1">
@@ -317,7 +330,7 @@ export default function ViewEmergency() {
                                             color="#fff"
                                         />
                                         <Text className="text-[11px] font-semibold text-white">
-                                            {category.label}
+                                            {t(category.label, category.labelEn)}
                                         </Text>
                                     </View>
                                 </View>
@@ -327,7 +340,7 @@ export default function ViewEmergency() {
                                 {announcement.title}
                             </Text>
                             <Text className="text-[12.5px] text-white/85 mt-1">
-                                {level.description}
+                                {t(level.description, level.descriptionEn)}
                             </Text>
                             <View className="flex-row items-center gap-1.5 mt-4">
                                 <Ionicons
@@ -390,8 +403,8 @@ export default function ViewEmergency() {
                                     <VerifiedBadge size={15} />
                                 </View>
                                 <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
-                                    Opisyal na Anunsyo ·{" "}
-                                    {formatTimeAgo(announcement.createdAt)}
+                                    {t("Opisyal na Anunsyo", "Official Announcement")}{" "}
+                                    · {formatTimeAgo(announcement.createdAt, lang)}
                                 </Text>
                             </View>
                         </View>
@@ -415,7 +428,7 @@ export default function ViewEmergency() {
                                     className="text-[11px] font-semibold"
                                     style={{ color: PALETTE.muted }}
                                 >
-                                    Sakop
+                                    {t("Sakop", "Area")}
                                 </Text>
                                 <Text
                                     className="text-[13.5px] font-bold"
@@ -441,7 +454,7 @@ export default function ViewEmergency() {
                                 className="text-[15.5px] font-extrabold"
                                 style={{ color: PALETTE.ink }}
                             >
-                                Detalye
+                                {t("Detalye", "Details")}
                             </Text>
                         </View>
                         <Text
@@ -492,10 +505,16 @@ export default function ViewEmergency() {
                                     </View>
                                     <View className="flex-1">
                                         <Text className="text-[14.5px] font-extrabold text-white">
-                                            Kailangan ng agarang tulong?
+                                            {t(
+                                                "Kailangan ng agarang tulong?",
+                                                "Need urgent help?",
+                                            )}
                                         </Text>
                                         <Text className="text-[12px] text-white/85 mt-0.5">
-                                            Tumawag sa mga numero ng ahensya.
+                                            {t(
+                                                "Tumawag sa mga numero ng ahensya.",
+                                                "Call the agency hotlines.",
+                                            )}
                                         </Text>
                                     </View>
                                     <View className="w-8 h-8 rounded-full bg-white/25 items-center justify-center">

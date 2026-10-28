@@ -30,7 +30,9 @@ export const SEVERITIES: Record<
     AnnouncementSeverity,
     {
         label: string;
+        labelEn: string;
         description: string;
+        descriptionEn: string;
         icon: keyof typeof Ionicons.glyphMap;
         colorLight: string;
         colorDark: string;
@@ -39,7 +41,9 @@ export const SEVERITIES: Record<
 > = {
     abiso: {
         label: "Abiso",
+        labelEn: "Notice",
         description: "Paalala o impormasyon",
+        descriptionEn: "Reminder or information",
         icon: "information-circle",
         colorLight: "#5B8DEF",
         colorDark: "#2A4F9E",
@@ -47,7 +51,9 @@ export const SEVERITIES: Record<
     },
     babala: {
         label: "Babala",
+        labelEn: "Warning",
         description: "Maging handa at alerto",
+        descriptionEn: "Be ready and alert",
         icon: "warning",
         colorLight: "#F2A64E",
         colorDark: "#B8601C",
@@ -55,7 +61,9 @@ export const SEVERITIES: Record<
     },
     kritikal: {
         label: "Kritikal",
+        labelEn: "Critical",
         description: "Kumilos agad",
+        descriptionEn: "Act now",
         icon: "alert-circle",
         colorLight: "#F0624D",
         colorDark: "#A4271D",
@@ -71,14 +79,14 @@ export const SEVERITY_ORDER: AnnouncementSeverity[] = [
 
 export const CATEGORIES: Record<
     AnnouncementCategory,
-    { label: string; icon: keyof typeof Ionicons.glyphMap }
+    { label: string; labelEn: string; icon: keyof typeof Ionicons.glyphMap }
 > = {
-    bagyo: { label: "Bagyo", icon: "thunderstorm" },
-    baha: { label: "Baha", icon: "water" },
-    sunog: { label: "Sunog", icon: "flame" },
-    lindol: { label: "Lindol", icon: "pulse" },
-    kalusugan: { label: "Kalusugan", icon: "medkit" },
-    "iba-pa": { label: "Iba Pa", icon: "megaphone" },
+    bagyo: { label: "Bagyo", labelEn: "Typhoon", icon: "thunderstorm" },
+    baha: { label: "Baha", labelEn: "Flood", icon: "water" },
+    sunog: { label: "Sunog", labelEn: "Fire", icon: "flame" },
+    lindol: { label: "Lindol", labelEn: "Earthquake", icon: "pulse" },
+    kalusugan: { label: "Kalusugan", labelEn: "Health", icon: "medkit" },
+    "iba-pa": { label: "Iba Pa", labelEn: "Others", icon: "megaphone" },
 };
 
 export const CATEGORY_ORDER: AnnouncementCategory[] = [

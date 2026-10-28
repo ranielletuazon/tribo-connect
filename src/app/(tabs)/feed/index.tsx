@@ -1,6 +1,7 @@
 import { clayRaised } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { BARANGAY } from "@/constants/barangays";
+import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
 import { formatTimeAgo, mapDocToPost, type Post } from "@/lib/posts";
 import { useAuth } from "@/providers/auth-provider";
@@ -44,6 +45,7 @@ const POSTS_PER_PAGE = 5;
 
 export default function Feed() {
     const { user, profile } = useAuth();
+    const { lang, t } = useLanguage();
     const { newPostJson } = useLocalSearchParams<{ newPostJson?: string }>();
     const lastScrollY = useRef(0);
     // the post that was opened in view-feed, refreshed when we come back
@@ -298,7 +300,7 @@ export default function Feed() {
                     </View>
                     <View className="flex-1 bg-[#F0EDE6] rounded-full px-4 py-2.5">
                         <Text className="text-[13.5px] text-[#9C978C]">
-                            Ano ang nasa isip mo?
+                            {t("Ano ang nasa isip mo?", "What's on your mind?")}
                         </Text>
                     </View>
                 </Pressable>
@@ -328,7 +330,10 @@ export default function Feed() {
                     />
                 ) : posts.length === 0 ? (
                     <Text className="text-center text-[13px] text-[#9C978C] mt-10">
-                        Walang post pa. Ikaw ang una!
+                        {t(
+                            "Walang post pa. Ikaw ang una!",
+                            "No posts yet. Be the first!",
+                        )}
                     </Text>
                 ) : (
                     posts.map((post) => {
@@ -372,7 +377,7 @@ export default function Feed() {
                                         </View>
                                         <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
                                             Barangay {BARANGAY} ·{" "}
-                                            {formatTimeAgo(post.createdAt)}
+                                            {formatTimeAgo(post.createdAt, lang)}
                                         </Text>
                                     </View>
                                     <Pressable
@@ -407,10 +412,22 @@ export default function Feed() {
 
                                     <View className="flex-row items-center justify-between px-4 pt-3 pb-1">
                                         <Text className="text-[11.5px] text-[#9C978C]">
-                                            {post.likes.length} gusto
+                                            {post.likes.length}{" "}
+                                            {t(
+                                                "gusto",
+                                                post.likes.length === 1
+                                                    ? "like"
+                                                    : "likes",
+                                            )}
                                         </Text>
                                         <Text className="text-[11.5px] text-[#9C978C]">
-                                            {post.commentCount} komento
+                                            {post.commentCount}{" "}
+                                            {t(
+                                                "komento",
+                                                post.commentCount === 1
+                                                    ? "comment"
+                                                    : "comments",
+                                            )}
                                         </Text>
                                     </View>
                                 </Pressable>
@@ -441,7 +458,7 @@ export default function Feed() {
                                                     : "#7A6D5C",
                                             }}
                                         >
-                                            Gusto
+                                            {t("Gusto", "Like")}
                                         </Text>
                                     </Pressable>
 
@@ -455,7 +472,7 @@ export default function Feed() {
                                             color="#7A6D5C"
                                         />
                                         <Text className="text-[13px] font-medium text-[#7A6D5C]">
-                                            Komento
+                                            {t("Komento", "Comment")}
                                         </Text>
                                     </Pressable>
                                 </View>
@@ -475,7 +492,7 @@ export default function Feed() {
                             <ActivityIndicator color="#2F5233" />
                         ) : (
                             <Text className="text-[13.5px] font-semibold text-[#2F5233]">
-                                Mag-load ng Higit Pa
+                                {t("Mag-load ng Higit Pa", "Load More")}
                             </Text>
                         )}
                     </Pressable>
@@ -511,7 +528,7 @@ export default function Feed() {
                                 color="#1F2A1F"
                             />
                             <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
-                                I-Chat
+                                {t("I-Chat", "Chat")}
                             </Text>
                         </Pressable>
                     </View>

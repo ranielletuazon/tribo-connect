@@ -1,9 +1,12 @@
+import { useLanguage } from "@/hooks/use-language";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Text, View } from "react-native";
 
 export function NoInternetModal() {
     const isConnected = useNetworkStatus();
+    // before login there's no profile, so this stays in Tagalog there
+    const { t } = useLanguage();
 
     return (
         <Modal visible={!isConnected} transparent animationType="fade">
@@ -17,11 +20,16 @@ export function NoInternetModal() {
                         />
                     </View>
                     <Text className="text-[17px] font-bold text-[#1F2A1F] text-center mb-2">
-                        Walang Koneksyon sa Internet
+                        {t(
+                            "Walang Koneksyon sa Internet",
+                            "No Internet Connection",
+                        )}
                     </Text>
                     <Text className="text-[13px] text-[#7A6D5C] text-center leading-5">
-                        Kailangan ng internet connection para magamit ang
-                        TriboConnect. Pakisuri ang iyong Wi-Fi o mobile data.
+                        {t(
+                            "Kailangan ng internet connection para magamit ang TriboConnect. Pakisuri ang iyong Wi-Fi o mobile data.",
+                            "TriboConnect needs an internet connection. Please check your Wi-Fi or mobile data.",
+                        )}
                     </Text>
                 </View>
             </View>

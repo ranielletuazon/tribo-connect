@@ -1,6 +1,7 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton, clayRaised } from "@/components/clay";
 import { BARANGAY } from "@/constants/barangays";
+import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
 import {
     VERIFICATION_TYPES,
@@ -22,66 +23,95 @@ const VERIFIED_BLUE = "#2A6FDB";
 const BENEFITS: {
     icon: keyof typeof Ionicons.glyphMap;
     title: string;
+    titleEn: string;
     description: string;
+    descriptionEn: string;
     color: string;
     tint: string;
 }[] = [
     {
         icon: "checkmark-circle",
         title: "Verified Badge",
+        titleEn: "Verified Badge",
         description: "Makikita ng lahat ang tsek sa tabi ng iyong pangalan.",
+        descriptionEn: "Everyone will see the check next to your name.",
         color: VERIFIED_BLUE,
         tint: "#EAF1FC",
     },
     {
         icon: "shield-checkmark",
         title: "Mas Pinagkakatiwalaan",
+        titleEn: "More Trusted",
         description: "Mas paniniwalaan ang iyong mga post at mensahe.",
+        descriptionEn: "Your posts and messages will be more trusted.",
         color: "#3F5C42",
         tint: "#EEF3EE",
     },
     {
         icon: "document-text",
         title: "Mas Matibay na Ulat",
+        titleEn: "Stronger Reports",
         description: "Mas madaling mapatunayan ng barangay ang iyong mga ulat.",
+        descriptionEn: "The barangay can confirm your reports more easily.",
         color: "#A85A30",
         tint: "#FBF1E8",
     },
     {
         icon: "people",
         title: "Ligtas na Komunidad",
+        titleEn: "Safer Community",
         description: "Nakakatulong labanan ang mga pekeng account.",
+        descriptionEn: "Helps fight fake accounts.",
         color: "#6B4F94",
         tint: "#F2EEF8",
     },
 ];
 
-const STEPS: { title: string; description: string }[] = [
+const STEPS: {
+    title: string;
+    titleEn: string;
+    description: string;
+    descriptionEn: string;
+}[] = [
     {
         title: "Piliin ang Uri ng ID",
+        titleEn: "Choose the ID Type",
         description: "Pumili mula sa mga suportadong ID sa ibaba.",
+        descriptionEn: "Pick from the supported IDs below.",
     },
     {
         title: "Kunan ng Larawan ang ID",
+        titleEn: "Take a Photo of the ID",
         description: "Susuriin agad kung malinaw at nababasa ang larawan.",
+        descriptionEn: "The photo is checked right away to see if it's clear and readable.",
     },
     {
         title: "Awtomatikong Pagbasa",
+        titleEn: "Automatic Reading",
         description:
             "Babasahin ng app ang iyong pangalan, kaarawan at tirahan mula sa ID.",
+        descriptionEn:
+            "The app reads your name, birthday and address from the ID.",
     },
     {
         title: "Kumuha ng Selfie",
+        titleEn: "Take a Selfie",
         description: "Kunan ang iyong mukha para maitugma sa larawan sa ID.",
+        descriptionEn: "Take a photo of your face to match the photo on the ID.",
     },
     {
         title: "Suriin ang Detalye",
+        titleEn: "Review the Details",
         description: 'Itama kung may mali, saka pindutin ang "I-Verify".',
+        descriptionEn: 'Fix anything wrong, then press "Verify".',
     },
     {
         title: "Verified Agad",
+        titleEn: "Verified Right Away",
         description:
             "Makukuha mo agad ang verified badge. Babantayan ito ng admin ng barangay.",
+        descriptionEn:
+            "You get the verified badge right away. The barangay admin will keep an eye on it.",
     },
 ];
 
@@ -90,7 +120,9 @@ const STATUS_CARDS: Record<
     {
         icon: keyof typeof Ionicons.glyphMap;
         title: string;
+        titleEn: string;
         description: string;
+        descriptionEn: string;
         color: string;
         tint: string;
     }
@@ -98,15 +130,20 @@ const STATUS_CARDS: Record<
     approved: {
         icon: "checkmark-circle",
         title: "Verified na ang iyong Account",
+        titleEn: "Your Account is Verified",
         description: "Makikita na ng lahat ang tsek sa tabi ng iyong pangalan.",
+        descriptionEn: "Everyone can now see the check next to your name.",
         color: VERIFIED_BLUE,
         tint: "#EAF1FC",
     },
     revoked: {
         icon: "close-circle",
         title: "Binawi ang Verified Badge",
+        titleEn: "Verified Badge Revoked",
         description:
             "Binawi ng admin ng barangay ang iyong verified badge. Makipag-ugnayan sa kanila para maibalik ito.",
+        descriptionEn:
+            "The barangay admin revoked your verified badge. Contact them to get it back.",
         color: "#9C3A2A",
         tint: "#FBECE9",
     },
@@ -114,15 +151,20 @@ const STATUS_CARDS: Record<
     pending: {
         icon: "refresh-circle",
         title: "Kailangang Magsumite Muli",
+        titleEn: "Please Submit Again",
         description:
             "Awtomatiko na ang beripikasyon. Pakisumite muli ang iyong ID para ma-verify agad.",
+        descriptionEn:
+            "Verification is now automatic. Please submit your ID again to get verified right away.",
         color: "#A85A30",
         tint: "#FBF1E8",
     },
     rejected: {
         icon: "close-circle",
         title: "Hindi Naaprubahan",
+        titleEn: "Not Approved",
         description: "Maaari kang magsumite muli gamit ang malinaw na ID.",
+        descriptionEn: "You can submit again with a clear ID.",
         color: "#9C3A2A",
         tint: "#FBECE9",
     },
@@ -138,7 +180,9 @@ function SectionTitle({ children }: { children: ReactNode }) {
 
 export default function Verify() {
     const { user, profile } = useAuth();
-    const displayName = profile?.username ?? user?.email ?? "Gumagamit";
+    const { t } = useLanguage();
+    const displayName =
+        profile?.username ?? user?.email ?? t("Gumagamit", "User");
     const initials = displayName.slice(0, 2).toUpperCase();
 
     // set by the submitVerification function, and by an admin revoking it
@@ -167,7 +211,7 @@ export default function Verify() {
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView contentContainerClassName="px-6 pt-4 pb-8">
-                <AuthHeader title="Beripikasyon" />
+                <AuthHeader title={t("Beripikasyon", "Verification")} />
 
                 {/* Hero banner */}
                 <View
@@ -198,13 +242,13 @@ export default function Verify() {
                         </Text>
                     </View>
                     <Text className="text-[21px] font-bold text-[#1F2A1F] text-center">
-                        I-verify ang Iyong Account
+                        {t("I-verify ang Iyong Account", "Verify Your Account")}
                     </Text>
                     <Text className="text-[13.5px] text-[#7A6D5C] text-center leading-5 mt-2">
-                        Patunayan na ikaw ay tunay na residente ng iyong
-                        barangay gamit ang isang valid na ID. Ang verified na
-                        account ay mas pinagkakatiwalaan sa buong komunidad ng
-                        TriboConnect.
+                        {t(
+                            "Patunayan na ikaw ay tunay na residente ng iyong barangay gamit ang isang valid na ID. Ang verified na account ay mas pinagkakatiwalaan sa buong komunidad ng TriboConnect.",
+                            "Prove that you are a real resident of your barangay using a valid ID. A verified account is more trusted across the whole TriboConnect community.",
+                        )}
                     </Text>
                 </View>
 
@@ -224,15 +268,18 @@ export default function Verify() {
                                 className="text-[14px] font-bold"
                                 style={{ color: statusCard.color }}
                             >
-                                {statusCard.title}
+                                {t(statusCard.title, statusCard.titleEn)}
                             </Text>
                             <Text className="text-[12.5px] text-[#7A6D5C] leading-[18px] mt-0.5">
-                                {statusCard.description}
+                                {t(
+                                    statusCard.description,
+                                    statusCard.descriptionEn,
+                                )}
                             </Text>
                             {hasReason && reason && (
                                 <Text className="text-[12.5px] text-[#1F2A1F] leading-[18px] mt-2">
                                     <Text className="font-semibold">
-                                        Dahilan:{" "}
+                                        {t("Dahilan:", "Reason:")}{" "}
                                     </Text>
                                     {reason}
                                 </Text>
@@ -242,7 +289,9 @@ export default function Verify() {
                 )}
 
                 {/* Badge preview */}
-                <SectionTitle>Ganito ka makikita ng iba</SectionTitle>
+                <SectionTitle>
+                    {t("Ganito ka makikita ng iba", "This is how others will see you")}
+                </SectionTitle>
                 <View
                     style={clayRaised}
                     className="bg-[--main-white] rounded-2xl p-4 flex-row items-center gap-3"
@@ -275,13 +324,14 @@ export default function Verify() {
                             />
                         </View>
                         <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
-                            Verified na Residente · Barangay {BARANGAY}
+                            {t("Verified na Residente", "Verified Resident")} ·
+                            Barangay {BARANGAY}
                         </Text>
                     </View>
                 </View>
 
                 {/* Benefits */}
-                <SectionTitle>Mga Benepisyo</SectionTitle>
+                <SectionTitle>{t("Mga Benepisyo", "Benefits")}</SectionTitle>
                 <View className="flex-row flex-wrap justify-between gap-y-3">
                     {BENEFITS.map((benefit) => (
                         <View
@@ -300,17 +350,17 @@ export default function Verify() {
                                 />
                             </View>
                             <Text className="text-[13.5px] font-bold text-[#1F2A1F]">
-                                {benefit.title}
+                                {t(benefit.title, benefit.titleEn)}
                             </Text>
                             <Text className="text-[11.5px] text-[#7A6D5C] leading-4 mt-1">
-                                {benefit.description}
+                                {t(benefit.description, benefit.descriptionEn)}
                             </Text>
                         </View>
                     ))}
                 </View>
 
                 {/* Steps */}
-                <SectionTitle>Mga Hakbang</SectionTitle>
+                <SectionTitle>{t("Mga Hakbang", "Steps")}</SectionTitle>
                 <View
                     style={clayRaised}
                     className="bg-[--main-white] rounded-2xl px-4 pt-4 pb-1"
@@ -332,10 +382,10 @@ export default function Verify() {
                                 </View>
                                 <View className="flex-1 pb-4 pt-1">
                                     <Text className="text-[14px] font-semibold text-[#1F2A1F]">
-                                        {step.title}
+                                        {t(step.title, step.titleEn)}
                                     </Text>
                                     <Text className="text-[12px] text-[#7A6D5C] leading-[17px] mt-0.5">
-                                        {step.description}
+                                        {t(step.description, step.descriptionEn)}
                                     </Text>
                                 </View>
                             </View>
@@ -344,7 +394,7 @@ export default function Verify() {
                 </View>
 
                 {/* Supported IDs */}
-                <SectionTitle>Mga Suportadong ID</SectionTitle>
+                <SectionTitle>{t("Mga Suportadong ID", "Supported IDs")}</SectionTitle>
                 <View className="flex-row flex-wrap gap-2">
                     {Object.values(VERIFICATION_TYPES).map((type) => (
                         <View
@@ -357,7 +407,7 @@ export default function Verify() {
                                 color={type.color}
                             />
                             <Text className="text-[12px] font-medium text-[#1F2A1F]">
-                                {type.label}
+                                {t(type.label, type.labelEn)}
                             </Text>
                         </View>
                     ))}
@@ -368,12 +418,16 @@ export default function Verify() {
                     <Ionicons name="lock-closed" size={18} color="#3F5C42" />
                     <View className="flex-1">
                         <Text className="text-[13px] font-semibold text-[#1F2A1F]">
-                            Protektado ang iyong impormasyon
+                            {t(
+                                "Protektado ang iyong impormasyon",
+                                "Your information is protected",
+                            )}
                         </Text>
                         <Text className="text-[12px] text-[#7A6D5C] leading-[17px] mt-1">
-                            Gagamitin lamang ang iyong ID at larawan para sa
-                            beripikasyon, at makikita lamang ito ng mga admin ng
-                            barangay.
+                            {t(
+                                "Gagamitin lamang ang iyong ID at larawan para sa beripikasyon, at makikita lamang ito ng mga admin ng barangay.",
+                                "Your ID and photo are only used for verification, and only barangay admins can see them.",
+                            )}
                         </Text>
                     </View>
                 </View>
@@ -393,11 +447,13 @@ export default function Verify() {
                             color="#fff"
                         />
                         <Text className="text-white font-semibold text-[16px]">
-                            {status ? "Subukang Muli" : "I-Verify ang Account"}
+                            {status
+                                ? t("Subukang Muli", "Try Again")
+                                : t("I-Verify ang Account", "Verify Account")}
                         </Text>
                     </ClayButton>
                     <Text className="text-[11.5px] text-[#9C978C] text-center mt-2">
-                        Aabutin lamang ng ilang minuto
+                        {t("Aabutin lamang ng ilang minuto", "It only takes a few minutes")}
                     </Text>
                 </View>
             )}

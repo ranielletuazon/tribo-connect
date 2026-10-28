@@ -9,6 +9,7 @@ import {
 } from "@/components/step-section";
 import { BARANGAY, MUNICIPALITY, PROVINCE } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
 import { uploadImage } from "@/lib/upload-image";
 import { useAuth } from "@/providers/auth-provider";
@@ -77,6 +78,7 @@ function FieldLabel({ children }: { children: string }) {
 export default function EditProfile() {
     const router = useRouter();
     const { user, profile } = useAuth();
+    const { lang, t } = useLanguage();
 
     const initialBirthdate = profile?.birthdate
         ? new Date(profile.birthdate)
@@ -152,7 +154,12 @@ export default function EditProfile() {
             router.back();
         } catch (err) {
             console.error("Edit profile error:", err);
-            setError("Nabigo ang pag-save. Pakisubukang muli.");
+            setError(
+                t(
+                    "Nabigo ang pag-save. Pakisubukang muli.",
+                    "Saving failed. Please try again.",
+                ),
+            );
         } finally {
             setIsSaving(false);
         }
@@ -178,7 +185,7 @@ export default function EditProfile() {
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    <AuthHeader title="I-edit ang Profile" />
+                    <AuthHeader title={t("I-edit ang Profile", "Edit Profile")} />
 
                     {/* Avatar */}
                     <View className="items-center mb-6 mt-1">
@@ -255,8 +262,14 @@ export default function EditProfile() {
                             style={{ color: PALETTE.forest }}
                         >
                             {imageUri !== (profile?.photoURL ?? null)
-                                ? "Bagong larawan, i-save para magamit"
-                                : "Pindutin para palitan ang larawan"}
+                                ? t(
+                                      "Bagong larawan, i-save para magamit",
+                                      "New photo, save to use it",
+                                  )
+                                : t(
+                                      "Pindutin para palitan ang larawan",
+                                      "Tap to change the photo",
+                                  )}
                         </Text>
                     </View>
 
@@ -284,7 +297,7 @@ export default function EditProfile() {
 
                     {/* Personal info */}
                     <FormCard
-                        title="Personal na Impormasyon"
+                        title={t("Personal na Impormasyon", "Personal Information")}
                         color={PALETTE.forest}
                     >
                         <FieldLabel>Username</FieldLabel>
@@ -320,10 +333,14 @@ export default function EditProfile() {
                             />
                         </View>
                         {username.trim().length === 0 && (
-                            <ErrorText>Kailangan ang username.</ErrorText>
+                            <ErrorText>
+                                {t("Kailangan ang username.", "A username is required.")}
+                            </ErrorText>
                         )}
 
-                        <FieldLabel>Numero ng Telepono</FieldLabel>
+                        <FieldLabel>
+                            {t("Numero ng Telepono", "Phone Number")}
+                        </FieldLabel>
                         <View
                             className="flex-row items-center gap-2.5 rounded-2xl px-3.5 border-[1.5px]"
                             style={{
@@ -353,11 +370,11 @@ export default function EditProfile() {
                                 style={{ color: PALETTE.ink }}
                             />
                             <Text className="text-[10.5px] font-semibold text-[#B5AFA0]">
-                                Opsyonal
+                                {t("Opsyonal", "Optional")}
                             </Text>
                         </View>
 
-                        <FieldLabel>Kaarawan</FieldLabel>
+                        <FieldLabel>{t("Kaarawan", "Birthday")}</FieldLabel>
                         <Pressable
                             onPress={() => setShowDatePicker(true)}
                             disabled={isSaving}
@@ -394,14 +411,14 @@ export default function EditProfile() {
                                     >
                                         {birthdate
                                             ? birthdate.toLocaleDateString(
-                                                  "fil-PH",
+                                                  lang === "en" ? "en-PH" : "fil-PH",
                                                   {
                                                       year: "numeric",
                                                       month: "long",
                                                       day: "numeric",
                                                   },
                                               )
-                                            : "Pumili ng petsa"}
+                                            : t("Pumili ng petsa", "Pick a date")}
                                     </Text>
                                     <Ionicons
                                         name="chevron-down"
@@ -429,7 +446,10 @@ export default function EditProfile() {
                     </FormCard>
 
                     {/* Location */}
-                    <FormCard title="Lokasyon" color={PALETTE.gold}>
+                    <FormCard
+                        title={t("Lokasyon", "Location")}
+                        color={PALETTE.gold}
+                    >
                         <FieldLabel>Barangay</FieldLabel>
                         <View
                             className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3 border-[1.5px]"
@@ -515,15 +535,15 @@ export default function EditProfile() {
                                 )}
                                 <Text className="text-white font-bold text-[16px]">
                                     {isSaving
-                                        ? "Sine-save..."
-                                        : "I-save ang Pagbabago"}
+                                        ? t("Sine-save...", "Saving...")
+                                        : t("I-save ang Pagbabago", "Save Changes")}
                                 </Text>
                             </LinearGradient>
                         )}
                     </Pressable>
                     {!hasChanges && !isSaving && (
                         <Text className="text-[12px] text-[#9C978C] text-center mt-2.5">
-                            Wala pang binago.
+                            {t("Wala pang binago.", "No changes yet.")}
                         </Text>
                     )}
                 </ScrollView>

@@ -17,6 +17,7 @@ import {
 } from "@/lib/push-notifications";
 import { BARANGAY, MUNICIPALITY, PROVINCE } from "@/constants/barangays";
 import { PALETTE as COLORS } from "@/constants/palette";
+import { useLanguage, type Language } from "@/hooks/use-language";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -38,7 +39,9 @@ interface ServiceItem {
     icon: keyof typeof Ionicons.glyphMap;
     colors: [string, string];
     title: string;
+    titleEn: string;
     subtitle: string;
+    subtitleEn: string;
     route: Href;
 }
 
@@ -49,7 +52,9 @@ const announcements: ServiceItem = {
     icon: "megaphone",
     colors: ["#E8894F", COLORS.clay],
     title: "Mga Anunsiyo",
+    titleEn: "Announcements",
     subtitle: "Balita mula sa komunidad",
+    subtitleEn: "News from the community",
     route: "/(tabs)/community",
 };
 
@@ -57,7 +62,9 @@ const messages: ServiceItem = {
     icon: "chatbubbles",
     colors: ["#56A06A", "#2F6540"],
     title: "Mensahe",
+    titleEn: "Messages",
     subtitle: "Pamilya at komunidad",
+    subtitleEn: "Family and community",
     route: "/(tabs)/chat",
 };
 
@@ -65,18 +72,23 @@ const report: ServiceItem = {
     icon: "document-text",
     colors: ["#F2BD4E", "#C9821F"],
     title: "Mag-report ng Insidente",
+    titleEn: "Report an Incident",
     subtitle: "I-pakalat ang isang pangyayari",
+    subtitleEn: "Let others know what happened",
     route: "/(tabs)/report",
 };
 
-function getGreeting() {
+function getGreeting(lang: Language) {
     const hour = new Date().getHours();
-    if (hour < 12) return "Magandang umaga";
-    if (hour < 18) return "Magandang hapon";
-    return "Magandang gabi";
+    const en = lang === "en";
+    if (hour < 12) return en ? "Good morning" : "Magandang umaga";
+    if (hour < 18) return en ? "Good afternoon" : "Magandang hapon";
+    return en ? "Good evening" : "Magandang gabi";
 }
 
 function ServiceTile({ item, wide }: { item: ServiceItem; wide?: boolean }) {
+    const { t } = useLanguage();
+
     return (
         <Pressable
             className={wide ? "w-full" : "flex-1"}
@@ -122,10 +134,10 @@ function ServiceTile({ item, wide }: { item: ServiceItem; wide?: boolean }) {
                         </View>
                         <View className={wide ? "flex-1" : "mt-6"}>
                             <Text className="text-[15px] font-bold text-white">
-                                {item.title}
+                                {t(item.title, item.titleEn)}
                             </Text>
                             <Text className="text-[12px] text-white/85 mt-0.5">
-                                {item.subtitle}
+                                {t(item.subtitle, item.subtitleEn)}
                             </Text>
                         </View>
                         {wide && (
@@ -146,6 +158,7 @@ function ServiceTile({ item, wide }: { item: ServiceItem; wide?: boolean }) {
 
 export default function Home() {
     const { user, profile } = useAuth();
+    const { lang, t } = useLanguage();
     const uid = user?.uid;
 
     const [notificationPrompt, setNotificationPrompt] =
@@ -269,7 +282,7 @@ export default function Home() {
                             className="text-[13px] font-medium"
                             style={{ color: COLORS.muted }}
                         >
-                            {getGreeting()},
+                            {getGreeting(lang)},
                         </Text>
                         <View className="flex-row items-center gap-1.5 mt-0.5">
                             <Text
@@ -277,7 +290,7 @@ export default function Home() {
                                 style={{ color: COLORS.ink }}
                                 numberOfLines={1}
                             >
-                                {profile?.username ?? "Kaibigan"}
+                                {profile?.username ?? t("Kaibigan", "Friend")}
                             </Text>
                             {profile?.isVerified === true && (
                                 <VerifiedBadge size={19} />
@@ -313,7 +326,7 @@ export default function Home() {
                                     numberOfLines={1}
                                 >
                                     {isAdmin
-                                        ? `Admin ng ${BARANGAY}`
+                                        ? t(`Admin ng ${BARANGAY}`, `${BARANGAY} Admin`)
                                         : `Brgy. ${BARANGAY}`}{" "}
                                     · {MUNICIPALITY}
                                 </Text>
@@ -398,7 +411,7 @@ export default function Home() {
 
                             <View className="flex-1 justify-end">
                                 <Text className="text-white/85 text-[14px] font-medium">
-                                    Maligayang Pagdating sa
+                                    {t("Maligayang Pagdating sa", "Welcome to")}
                                 </Text>
                                 <Text className="text-[30px] font-extrabold leading-9">
                                     <Text style={{ color: COLORS.leaf }}>
@@ -409,8 +422,10 @@ export default function Home() {
                                     </Text>
                                 </Text>
                                 <Text className="text-white/90 text-[12.5px]">
-                                    Iyong komunidad. Iyong boses. Iyong
-                                    kaligtasan.
+                                    {t(
+                                        "Iyong komunidad. Iyong boses. Iyong kaligtasan.",
+                                        "Your community. Your voice. Your safety.",
+                                    )}
                                 </Text>
                             </View>
                         </LinearGradient>
@@ -468,7 +483,10 @@ export default function Home() {
                                         Emergency
                                     </Text>
                                     <Text className="text-[12.5px] text-white/85 mt-0.5">
-                                        Pindutin para humingi ng agarang tulong
+                                        {t(
+                                            "Pindutin para humingi ng agarang tulong",
+                                            "Tap to ask for urgent help",
+                                        )}
                                     </Text>
                                 </View>
                                 <View className="px-3 py-1.5 rounded-full bg-white">
@@ -490,7 +508,7 @@ export default function Home() {
                         className="text-[17px] font-extrabold"
                         style={{ color: COLORS.ink }}
                     >
-                        Mabilisang Serbisyo
+                        {t("Mabilisang Serbisyo", "Quick Services")}
                     </Text>
                 </View>
 
@@ -541,14 +559,16 @@ export default function Home() {
                                         className="text-[16px] font-extrabold"
                                         style={{ color: COLORS.ink }}
                                     >
-                                        May tanong ka ba?
+                                        {t("May tanong ka ba?", "Have a question?")}
                                     </Text>
                                     <Text
                                         className="text-[12px] mt-0.5"
                                         style={{ color: COLORS.muted }}
                                     >
-                                        Kausapin si TriboAI, ang iyong katuwang
-                                        sa komunidad.
+                                        {t(
+                                            "Kausapin si TriboAI, ang iyong katuwang sa komunidad.",
+                                            "Talk to TriboAI, your community helper.",
+                                        )}
                                     </Text>
                                     <View className="flex-row mt-3">
                                         <View
@@ -558,7 +578,7 @@ export default function Home() {
                                             }}
                                         >
                                             <Text className="text-white text-[12px] font-bold">
-                                                Magtanong
+                                                {t("Magtanong", "Ask")}
                                             </Text>
                                             <Ionicons
                                                 name="arrow-forward"

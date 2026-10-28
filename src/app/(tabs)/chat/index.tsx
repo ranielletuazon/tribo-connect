@@ -3,6 +3,7 @@ import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { BARANGAY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import { formatListTime } from "@/lib/chat-time";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
@@ -71,6 +72,7 @@ function SectionTitle({ title, color }: { title: string; color: string }) {
 
 export default function Chat() {
     const { user, profile } = useAuth();
+    const { lang, t } = useLanguage();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<UserResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -276,13 +278,16 @@ export default function Chat() {
                             className="text-[22px] font-extrabold"
                             style={{ color: PALETTE.ink }}
                         >
-                            Mensahe
+                            {t("Mensahe", "Messages")}
                         </Text>
                         <Text
                             className="text-[12px]"
                             style={{ color: PALETTE.muted }}
                         >
-                            Makipag-usap sa pamilya at komunidad
+                            {t(
+                                "Makipag-usap sa pamilya at komunidad",
+                                "Talk with family and community",
+                            )}
                         </Text>
                     </View>
                     {/* starts a new chat by jumping to the search box */}
@@ -334,7 +339,10 @@ export default function Chat() {
                     />
                     <TextInput
                         ref={searchInputRef}
-                        placeholder="Maghanap ng mensahe o gumagamit..."
+                        placeholder={t(
+                            "Maghanap ng mensahe o gumagamit...",
+                            "Search messages or users...",
+                        )}
                         placeholderTextColor="#B5AFA0"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -369,8 +377,12 @@ export default function Chat() {
                     <View className="flex-row gap-2 pb-4">
                         {(
                             [
-                                ["all", "Lahat", "chatbubbles"],
-                                ["unread", "Hindi pa nababasa", "mail-unread"],
+                                ["all", t("Lahat", "All"), "chatbubbles"],
+                                [
+                                    "unread",
+                                    t("Hindi pa nababasa", "Unread"),
+                                    "mail-unread",
+                                ],
                             ] as const
                         ).map(([key, label, icon]) => {
                             const active = activeFilter === key;
@@ -468,7 +480,7 @@ export default function Chat() {
                 {showSearchUI && newUserResults.length > 0 && (
                     <>
                         <SectionTitle
-                            title="Magsimula ng Usapan"
+                            title={t("Magsimula ng Usapan", "Start a Conversation")}
                             color={PALETTE.terracotta}
                         />
                         {newUserResults.map((result) => (
@@ -529,7 +541,7 @@ export default function Chat() {
                                                 color="#fff"
                                             />
                                             <Text className="text-[12px] font-bold text-white">
-                                                Mensahe
+                                                {t("Mensahe", "Message")}
                                             </Text>
                                         </LinearGradient>
                                     </View>
@@ -537,7 +549,7 @@ export default function Chat() {
                             </Pressable>
                         ))}
                         <SectionTitle
-                            title="Mga Usapan"
+                            title={t("Mga Usapan", "Conversations")}
                             color={PALETTE.forest}
                         />
                     </>
@@ -571,10 +583,13 @@ export default function Chat() {
                             style={{ color: PALETTE.ink }}
                         >
                             {showSearchUI
-                                ? "Walang nahanap na mensahe."
+                                ? t(
+                                      "Walang nahanap na mensahe.",
+                                      "No messages found.",
+                                  )
                                 : activeFilter === "unread"
-                                  ? "Nabasa mo na lahat!"
-                                  : "Wala pang mensahe"}
+                                  ? t("Nabasa mo na lahat!", "You're all caught up!")
+                                  : t("Wala pang mensahe", "No messages yet")}
                         </Text>
                         <Text
                             className="text-[12.5px] text-center mt-1"
@@ -582,11 +597,23 @@ export default function Chat() {
                         >
                             {showSearchUI
                                 ? isSearching
-                                    ? "Naghahanap ng gumagamit..."
-                                    : "Subukan ang ibang pangalan."
+                                    ? t(
+                                          "Naghahanap ng gumagamit...",
+                                          "Searching for users...",
+                                      )
+                                    : t(
+                                          "Subukan ang ibang pangalan.",
+                                          "Try a different name.",
+                                      )
                                 : activeFilter === "unread"
-                                  ? "Walang bagong mensahe sa ngayon."
-                                  : "Maghanap ng gumagamit para magsimula ng usapan."}
+                                  ? t(
+                                        "Walang bagong mensahe sa ngayon.",
+                                        "No new messages for now.",
+                                    )
+                                  : t(
+                                        "Maghanap ng gumagamit para magsimula ng usapan.",
+                                        "Search for a user to start a conversation.",
+                                    )}
                         </Text>
                         {!showSearchUI && activeFilter === "all" && (
                             <Pressable
@@ -596,7 +623,7 @@ export default function Chat() {
                             >
                                 <Ionicons name="search" size={14} color="#fff" />
                                 <Text className="text-[13px] font-bold text-white">
-                                    Maghanap ng kausap
+                                    {t("Maghanap ng kausap", "Find someone to chat")}
                                 </Text>
                             </Pressable>
                         )}
@@ -660,6 +687,7 @@ export default function Chat() {
                                             >
                                                 {formatListTime(
                                                     item.lastMessageAt,
+                                                    lang,
                                                 )}
                                             </Text>
                                         </View>
@@ -681,7 +709,8 @@ export default function Chat() {
                                                 }}
                                                 numberOfLines={1}
                                             >
-                                                {item.isLastMine && "Ikaw: "}
+                                                {item.isLastMine &&
+                                                    t("Ikaw: ", "You: ")}
                                                 {item.lastMessage}
                                             </Text>
                                             {item.isUnread && (

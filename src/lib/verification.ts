@@ -19,7 +19,9 @@ export const VERIFICATION_TYPES: Record<
     VerificationType,
     {
         label: string;
+        labelEn: string;
         description: string;
+        descriptionEn: string;
         icon: keyof typeof Ionicons.glyphMap;
         color: string;
         // the eGov ID only exists on the phone, so it's a screenshot, not a photo
@@ -28,35 +30,45 @@ export const VERIFICATION_TYPES: Record<
 > = {
     "national-id": {
         label: "National ID",
+        labelEn: "National ID",
         description: "PhilSys card, harap na bahagi",
+        descriptionEn: "PhilSys card, front side",
         icon: "card",
         color: "#6B4F94",
         allowGallery: false,
     },
     "national-id-egov": {
         label: "National ID (eGov)",
+        labelEn: "National ID (eGov)",
         description: "Screenshot mula sa eGovPH app",
+        descriptionEn: "Screenshot from the eGovPH app",
         icon: "phone-portrait",
         color: "#2A7F8F",
         allowGallery: true,
     },
     "drivers-license": {
         label: "Driver's License",
+        labelEn: "Driver's License",
         description: "LTO license, harap na bahagi",
+        descriptionEn: "LTO license, front side",
         icon: "car",
         color: "#2A4F9E",
         allowGallery: false,
     },
     "barangay-id": {
         label: "Barangay ID",
+        labelEn: "Barangay ID",
         description: "Mula sa iyong barangay hall",
+        descriptionEn: "From your barangay hall",
         icon: "home",
         color: "#3F5C42",
         allowGallery: false,
     },
     "iba-pa": {
         label: "Iba Pa",
+        labelEn: "Others",
         description: "Ibang valid na government ID",
+        descriptionEn: "Another valid government ID",
         icon: "document-text",
         color: "#7A6D5C",
         allowGallery: false,

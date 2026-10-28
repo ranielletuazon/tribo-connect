@@ -1,5 +1,6 @@
 import { VerifiedBadge } from "@/components/verified-badge";
 import { BARANGAY } from "@/constants/barangays";
+import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
 import {
     formatTimeAgo,
@@ -78,6 +79,7 @@ export default function ViewFeed() {
         focusComment?: string;
     }>();
     const { user, profile } = useAuth();
+    const { lang, t } = useLanguage();
 
     const [post, setPost] = useState<Post | null>(null);
     const [isPostLoading, setIsPostLoading] = useState(true);
@@ -201,7 +203,12 @@ export default function ViewFeed() {
             console.error("Send comment error:", err);
             scrollAfterSend.current = false;
             setText(trimmed);
-            setError("Hindi naipadala ang komento. Pakisubukang muli.");
+            setError(
+                t(
+                    "Hindi naipadala ang komento. Pakisubukang muli.",
+                    "Your comment wasn't sent. Please try again.",
+                ),
+            );
         } finally {
             setIsSending(false);
         }
@@ -222,7 +229,12 @@ export default function ViewFeed() {
                         className="flex-1 text-[15.5px] font-bold text-[#1F2A1F]"
                         numberOfLines={1}
                     >
-                        {post ? `Post ni ${post.authorName}` : "Post"}
+                        {post
+                            ? t(
+                                  `Post ni ${post.authorName}`,
+                                  `${post.authorName}'s Post`,
+                              )
+                            : "Post"}
                     </Text>
                 </View>
 
@@ -238,8 +250,10 @@ export default function ViewFeed() {
                             color="#C4BFB2"
                         />
                         <Text className="text-center text-[13.5px] text-[#9C978C] mt-3">
-                            Hindi na makita ang post na ito. Maaaring binura na
-                            ito.
+                            {t(
+                                "Hindi na makita ang post na ito. Maaaring binura na ito.",
+                                "This post can't be found. It may have been deleted.",
+                            )}
                         </Text>
                     </View>
                 ) : (
@@ -270,7 +284,7 @@ export default function ViewFeed() {
                                     </View>
                                     <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
                                         Barangay {BARANGAY} ·{" "}
-                                        {formatTimeAgo(post.createdAt)}
+                                        {formatTimeAgo(post.createdAt, lang)}
                                     </Text>
                                 </View>
                             </View>
@@ -292,10 +306,22 @@ export default function ViewFeed() {
 
                             <View className="flex-row items-center justify-between px-4 pt-3 pb-1">
                                 <Text className="text-[11.5px] text-[#9C978C]">
-                                    {post.likes.length} gusto
+                                    {post.likes.length}{" "}
+                                    {t(
+                                        "gusto",
+                                        post.likes.length === 1
+                                            ? "like"
+                                            : "likes",
+                                    )}
                                 </Text>
                                 <Text className="text-[11.5px] text-[#9C978C]">
-                                    {post.commentCount} komento
+                                    {post.commentCount}{" "}
+                                    {t(
+                                        "komento",
+                                        post.commentCount === 1
+                                            ? "comment"
+                                            : "comments",
+                                    )}
                                 </Text>
                             </View>
 
@@ -321,7 +347,7 @@ export default function ViewFeed() {
                                                 : "#7A6D5C",
                                         }}
                                     >
-                                        Gusto
+                                        {t("Gusto", "Like")}
                                     </Text>
                                 </Pressable>
 
@@ -335,7 +361,7 @@ export default function ViewFeed() {
                                         color="#7A6D5C"
                                     />
                                     <Text className="text-[13px] font-medium text-[#7A6D5C]">
-                                        Komento
+                                        {t("Komento", "Comment")}
                                     </Text>
                                 </Pressable>
                             </View>
@@ -351,7 +377,10 @@ export default function ViewFeed() {
                                     />
                                 ) : comments.length === 0 ? (
                                     <Text className="text-center text-[13px] text-[#9C978C] mt-6">
-                                        Wala pang komento. Ikaw ang mauna!
+                                        {t(
+                                            "Wala pang komento. Ikaw ang mauna!",
+                                            "No comments yet. Be the first!",
+                                        )}
                                     </Text>
                                 ) : (
                                     comments.map((comment) => (
@@ -385,6 +414,7 @@ export default function ViewFeed() {
                                                 <Text className="text-[11px] text-[#9C978C] mt-1 ml-3">
                                                     {formatTimeAgo(
                                                         comment.createdAt,
+                                                        lang,
                                                     )}
                                                 </Text>
                                             </View>
@@ -411,7 +441,10 @@ export default function ViewFeed() {
                                 ref={inputRef}
                                 value={text}
                                 onChangeText={setText}
-                                placeholder="Sumulat ng komento..."
+                                placeholder={t(
+                                    "Sumulat ng komento...",
+                                    "Write a comment...",
+                                )}
                                 placeholderTextColor="#9C978C"
                                 multiline
                                 maxLength={MAX_COMMENT_LENGTH}

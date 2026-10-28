@@ -4,6 +4,7 @@ import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { BARANGAY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,8 +24,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const LANGUAGES = [
-    { key: "tl", label: "Tagalog", hint: "Filipino" },
-    { key: "en", label: "English", hint: "Ingles" },
+    { key: "tl", label: "Tagalog", hint: "Filipino", hintEn: "Filipino" },
+    { key: "en", label: "English", hint: "Ingles", hintEn: "English" },
 ] as const;
 
 const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
@@ -90,6 +91,7 @@ function InfoRow({
 
 export default function Settings() {
     const { user, profile, logOut } = useAuth();
+    const { t } = useLanguage();
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [isChangingLanguage, setIsChangingLanguage] = useState(false);
     // the language being saved, so its tile can show a spinner
@@ -115,7 +117,8 @@ export default function Settings() {
     };
 
     const isVerified = profile?.isVerified === true;
-    const displayName = profile?.username ?? user?.email ?? "Gumagamit";
+    const displayName =
+        profile?.username ?? user?.email ?? t("Gumagamit", "User");
 
     return (
         <SafeAreaView
@@ -129,7 +132,7 @@ export default function Settings() {
                 contentContainerClassName="px-5 pt-4 pb-10"
                 showsVerticalScrollIndicator={false}
             >
-                <AuthHeader title="Mga Setting" />
+                <AuthHeader title={t("Mga Setting", "Settings")} />
 
                 {/* Account */}
                 <View className="mt-2 mb-6">
@@ -159,7 +162,7 @@ export default function Settings() {
                                 <Text className="text-[12px] text-[#9C978C] mt-0.5">
                                     {profile?.role === "admin"
                                         ? "Admin"
-                                        : "Residente"}
+                                        : t("Residente", "Resident")}
                                     {` · ${BARANGAY}`}
                                 </Text>
                             </View>
@@ -171,7 +174,7 @@ export default function Settings() {
                         />
                         <InfoRow
                             icon="shield-checkmark-outline"
-                            label="Beripikasyon"
+                            label={t("Beripikasyon", "Verification")}
                             last
                             value={
                                 <Text
@@ -183,8 +186,8 @@ export default function Settings() {
                                     }}
                                 >
                                     {isVerified
-                                        ? "Beripikado"
-                                        : "Hindi pa beripikado"}
+                                        ? t("Beripikado", "Verified")
+                                        : t("Hindi pa beripikado", "Not verified yet")}
                                 </Text>
                             }
                         />
@@ -193,7 +196,10 @@ export default function Settings() {
 
                 {/* Language */}
                 <View className="mb-6">
-                    <SectionTitle title="Wika" color={PALETTE.gold} />
+                    <SectionTitle
+                        title={t("Wika", "Language")}
+                        color={PALETTE.gold}
+                    />
                     <View className="flex-row gap-3">
                         {LANGUAGES.map((lang) => {
                             // accounts without a saved language use Tagalog
@@ -302,7 +308,7 @@ export default function Settings() {
                                                         : "#9C978C",
                                                 }}
                                             >
-                                                {lang.hint}
+                                                {t(lang.hint, lang.hintEn)}
                                             </Text>
                                         </LinearGradient>
                                     )}
@@ -334,14 +340,14 @@ export default function Settings() {
                                 className="text-[15px] font-bold"
                                 style={{ color: PALETTE.blood }}
                             >
-                                Mag-sign Out
+                                {t("Mag-sign Out", "Sign Out")}
                             </Text>
                         </View>
                     )}
                 </Pressable>
 
                 <Text className="text-[11.5px] text-[#B5AFA0] text-center mt-6">
-                    TriboConnect · Bersyon {APP_VERSION}
+                    TriboConnect · {t("Bersyon", "Version")} {APP_VERSION}
                 </Text>
             </ScrollView>
 
@@ -375,13 +381,16 @@ export default function Settings() {
                             className="text-[17px] font-extrabold text-center mb-1.5"
                             style={{ color: PALETTE.ink }}
                         >
-                            Mag-sign Out?
+                            {t("Mag-sign Out?", "Sign Out?")}
                         </Text>
                         <Text
                             className="text-[13px] text-center mb-5"
                             style={{ color: PALETTE.muted }}
                         >
-                            Kakailanganin mong mag-login muli para bumalik.
+                            {t(
+                                "Kakailanganin mong mag-login muli para bumalik.",
+                                "You'll need to log in again to come back.",
+                            )}
                         </Text>
                         <Pressable
                             className="w-full mb-2"
@@ -405,7 +414,7 @@ export default function Settings() {
                                     ]}
                                 >
                                     <Text className="text-white font-bold text-[15px]">
-                                        Oo, mag-sign out
+                                        {t("Oo, mag-sign out", "Yes, sign out")}
                                     </Text>
                                 </LinearGradient>
                             )}
@@ -423,7 +432,7 @@ export default function Settings() {
                                 className="text-[14px] font-semibold"
                                 style={{ color: PALETTE.muted }}
                             >
-                                Kanselahin
+                                {t("Kanselahin", "Cancel")}
                             </Text>
                         </Pressable>
                     </Pressable>
