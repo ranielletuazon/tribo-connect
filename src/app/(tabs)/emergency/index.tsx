@@ -1,7 +1,14 @@
 import { AuthHeader } from "@/components/auth-header";
-import { ClaySurface, clayRaised } from "@/components/clay";
+import {
+    BackgroundBlobs,
+    clayRaised,
+    pressScale,
+    PulseRing,
+} from "@/components/clay";
+import { PALETTE } from "@/constants/palette";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -9,25 +16,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const NATIONAL_HOTLINES = [
     {
         agency: "Ambulance (MDRRMO)",
+        description: "Medikal na emergency at aksidente",
         icon: "medkit" as const,
-        colorLight: "#E0715F",
-        colorDark: "#9C3A2A",
+        colors: ["#F0624D", "#B8321F"] as [string, string],
+        tint: "rgba(240,98,77,0.12)",
         hotline1: "0929 441 6188",
         hotline2: "0960 846 8671",
     },
     {
         agency: "Bumbero (BFP)",
+        description: "Sunog at pagsagip",
         icon: "flame" as const,
-        colorLight: "#E0A177",
-        colorDark: "#A85A30",
+        colors: ["#F59A4A", "#C4561F"] as [string, string],
+        tint: "rgba(245,154,74,0.14)",
         hotline1: "0909 918 7205",
         hotline2: "0967 283 6777",
     },
     {
         agency: "Pulis (PNP)",
+        description: "Krimen at seguridad",
         icon: "shield-checkmark" as const,
-        colorLight: "#6B93E8",
-        colorDark: "#2A4F9E",
+        colors: ["#5B8DEF", "#2A4F9E"] as [string, string],
+        tint: "rgba(91,141,239,0.13)",
         hotline1: "0977 301 4154",
         hotline2: "0998 598 5464",
     },
@@ -71,6 +81,73 @@ function callNumber(number: string) {
     Linking.openURL(`tel:${number.replace(/\s/g, "")}`);
 }
 
+function SectionTitle({ title, color }: { title: string; color: string }) {
+    return (
+        <View className="flex-row items-center gap-2 mb-3 ml-1">
+            <View
+                className="w-1.5 h-5 rounded-full"
+                style={{ backgroundColor: color }}
+            />
+            <Text
+                className="text-[17px] font-extrabold"
+                style={{ color: PALETTE.ink }}
+            >
+                {title}
+            </Text>
+        </View>
+    );
+}
+
+function LineButton({
+    label,
+    number,
+    colors,
+}: {
+    label: string;
+    number: string;
+    colors: [string, string];
+}) {
+    return (
+        <Pressable className="flex-1" onPress={() => callNumber(number)}>
+            {({ pressed }) => (
+                <LinearGradient
+                    colors={colors}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[
+                        clayRaised,
+                        pressScale(pressed),
+                        {
+                            borderRadius: 18,
+                            paddingVertical: 11,
+                            paddingHorizontal: 12,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                        },
+                    ]}
+                >
+                    <View className="w-7 h-7 rounded-full bg-white/25 items-center justify-center">
+                        <Ionicons name="call" size={13} color="#fff" />
+                    </View>
+                    <View className="flex-1">
+                        <Text className="text-[10px] text-white/80 font-semibold">
+                            {label}
+                        </Text>
+                        <Text
+                            className="text-[13px] font-bold text-white"
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                        >
+                            {number}
+                        </Text>
+                    </View>
+                </LinearGradient>
+            )}
+        </Pressable>
+    );
+}
+
 export default function Emergency() {
     const { profile } = useAuth();
     const barangay = profile?.barangay as string | undefined;
@@ -79,188 +156,280 @@ export default function Emergency() {
         : FALLBACK_BARANGAY_HOTLINE;
 
     return (
-        <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
-            <ScrollView contentContainerClassName="px-6 pt-4 pb-10">
+        <SafeAreaView
+            className="flex-1"
+            style={{ backgroundColor: PALETTE.cream }}
+            edges={["top"]}
+        >
+            <BackgroundBlobs
+                colors={[PALETTE.ember, PALETTE.gold]}
+                opacity={[0.16, 0.18]}
+            />
+
+            <ScrollView
+                contentContainerClassName="px-5 pt-4 pb-10"
+                showsVerticalScrollIndicator={false}
+            >
                 <AuthHeader title="Emergency" />
 
-                {/* SOS badge (just for design) */}
-                <View
-                    className="items-center justify-center mt-6 mb-2"
-                    style={{ width: 180, height: 180, alignSelf: "center" }}
+                {/* Hero with the pulsing SOS badge (just for design) */}
+                <LinearGradient
+                    colors={[PALETTE.ember, "#D33C2E", PALETTE.blood]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{
+                        borderRadius: 30,
+                        overflow: "hidden",
+                        marginTop: 4,
+                        marginBottom: 28,
+                        shadowColor: PALETTE.blood,
+                        shadowOffset: { width: 0, height: 8 },
+                        shadowOpacity: 0.35,
+                        shadowRadius: 14,
+                        elevation: 10,
+                    }}
                 >
+                    {/* decorative circles */}
                     <View
-                        className="absolute rounded-full"
-                        style={{
-                            width: 180,
-                            height: 180,
-                            backgroundColor: "rgba(224,113,95,0.12)",
-                        }}
+                        pointerEvents="none"
+                        className="absolute w-48 h-48 rounded-full bg-white/10"
+                        style={{ right: -60, top: -70 }}
                     />
                     <View
-                        className="absolute rounded-full"
-                        style={{
-                            width: 158,
-                            height: 158,
-                            backgroundColor: "rgba(224,113,95,0.22)",
-                        }}
+                        pointerEvents="none"
+                        className="absolute w-32 h-32 rounded-full bg-white/10"
+                        style={{ left: -40, bottom: -60 }}
                     />
-                    <ClaySurface
-                        colors={["#E0715F", "#9C3A2A"]}
-                        borderRadius={999}
-                        style={{
-                            width: 136,
-                            height: 136,
-                            alignItems: "center",
-                            justifyContent: "center",
-                        }}
-                    >
-                        <Text className="text-white text-[26px] font-bold tracking-wider">
-                            SOS
-                        </Text>
-                    </ClaySurface>
-                </View>
 
-                <Text className="text-[16px] font-bold text-[#1F2A1F] text-center mt-2">
-                    Emergency Assistance
-                </Text>
-                <Text className="text-[13px] text-[#7A6D5C] text-center mt-1 px-6 mb-2">
-                    Piliin ang numerong tatawagan para sa agarang tulong.
-                </Text>
+                    <View className="items-center px-6 pt-8 pb-6">
+                        <View className="w-32 h-32 items-center justify-center mb-5">
+                            <PulseRing size={112} maxScale={1.45} />
+                            <PulseRing size={112} maxScale={1.45} delay={900} />
+                            <View
+                                className="w-28 h-28 rounded-full bg-white items-center justify-center"
+                                style={{
+                                    shadowColor: "#000",
+                                    shadowOffset: { width: 0, height: 6 },
+                                    shadowOpacity: 0.2,
+                                    shadowRadius: 10,
+                                    elevation: 8,
+                                }}
+                            >
+                                <Ionicons
+                                    name="warning"
+                                    size={30}
+                                    color={PALETTE.blood}
+                                />
+                                <Text
+                                    className="text-[24px] font-extrabold tracking-widest"
+                                    style={{ color: PALETTE.blood }}
+                                >
+                                    SOS
+                                </Text>
+                            </View>
+                        </View>
+
+                        <Text className="text-[20px] font-extrabold text-white text-center">
+                            Emergency Assistance
+                        </Text>
+                        <Text className="text-[13px] text-white/85 text-center mt-1">
+                            Piliin ang numerong tatawagan para sa agarang
+                            tulong.
+                        </Text>
+
+                        <View className="flex-row items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full bg-black/20 border border-white/20">
+                            <Ionicons name="heart" size={12} color="#FFD2C9" />
+                            <Text className="text-white text-[11.5px] font-semibold">
+                                Manatiling kalmado, may tutulong sa iyo
+                            </Text>
+                        </View>
+                    </View>
+                </LinearGradient>
+
+                {/* Dynamic barangay hotline */}
+                {profile?.role !== "admin" && (
+                    <>
+                        <SectionTitle
+                            title="Pinakamalapit na Tulong"
+                            color={PALETTE.forest}
+                        />
+                        <Pressable
+                            className="mb-7"
+                            onPress={() => callNumber(barangayHotline)}
+                        >
+                            {({ pressed }) => (
+                                <LinearGradient
+                                    colors={["#56A06A", "#2F6540"]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[
+                                        clayRaised,
+                                        pressScale(pressed),
+                                        { borderRadius: 26, overflow: "hidden" },
+                                    ]}
+                                >
+                                    {/* big faded icon as a background decoration */}
+                                    <View
+                                        pointerEvents="none"
+                                        className="absolute"
+                                        style={{
+                                            right: -14,
+                                            bottom: -24,
+                                            opacity: 0.14,
+                                        }}
+                                    >
+                                        <Ionicons
+                                            name="home"
+                                            size={104}
+                                            color="#fff"
+                                        />
+                                    </View>
+
+                                    <View className="flex-row items-center gap-3 p-4">
+                                        <View className="w-12 h-12 rounded-2xl bg-white/25 items-center justify-center border border-white/30">
+                                            <Ionicons
+                                                name="call"
+                                                size={22}
+                                                color="#fff"
+                                            />
+                                        </View>
+                                        <View className="flex-1">
+                                            <Text
+                                                className="text-[12px] text-white/85 font-semibold"
+                                                numberOfLines={1}
+                                            >
+                                                Barangay {barangay ?? "Hotline"}
+                                            </Text>
+                                            <Text className="text-[19px] font-extrabold text-white mt-0.5">
+                                                {barangayHotline}
+                                            </Text>
+                                        </View>
+                                        <View className="px-3.5 py-2 rounded-full bg-white">
+                                            <Text
+                                                className="text-[12px] font-bold"
+                                                style={{ color: PALETTE.forest }}
+                                            >
+                                                Tawagan
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </LinearGradient>
+                            )}
+                        </Pressable>
+                    </>
+                )}
 
                 {/* National agency hotlines */}
-                <Text className="text-[13px] font-medium text-[#7A6D5C] mb-3 ml-1 mt-6">
-                    Mga Numero ng Ahensya
-                </Text>
+                <SectionTitle
+                    title="Mga Numero ng Ahensya"
+                    color={PALETTE.terracotta}
+                />
 
                 <View className="gap-3.5 mb-6">
                     {NATIONAL_HOTLINES.map((agency) => (
                         <View
                             key={agency.agency}
                             style={clayRaised}
-                            className="bg-[--main-white] rounded-2xl p-4"
+                            className="bg-white rounded-[26px] p-4 overflow-hidden"
                         >
+                            {/* big faded icon as a background decoration */}
+                            <View
+                                pointerEvents="none"
+                                className="absolute"
+                                style={{ right: -16, top: -18, opacity: 0.08 }}
+                            >
+                                <Ionicons
+                                    name={agency.icon}
+                                    size={110}
+                                    color={agency.colors[1]}
+                                />
+                            </View>
+
                             <View className="flex-row items-center gap-3 mb-3.5">
-                                <View
-                                    className="w-10 h-10 rounded-full items-center justify-center"
+                                <LinearGradient
+                                    colors={agency.colors}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
                                     style={{
-                                        backgroundColor: agency.colorDark,
+                                        width: 46,
+                                        height: 46,
+                                        borderRadius: 16,
+                                        alignItems: "center",
+                                        justifyContent: "center",
                                     }}
                                 >
                                     <Ionicons
                                         name={agency.icon}
-                                        size={18}
+                                        size={21}
                                         color="#fff"
                                     />
+                                </LinearGradient>
+                                <View className="flex-1">
+                                    <Text
+                                        className="text-[15px] font-extrabold"
+                                        style={{ color: PALETTE.ink }}
+                                    >
+                                        {agency.agency}
+                                    </Text>
+                                    <View className="flex-row mt-1">
+                                        <View
+                                            className="px-2 py-0.5 rounded-full"
+                                            style={{
+                                                backgroundColor: agency.tint,
+                                            }}
+                                        >
+                                            <Text
+                                                className="text-[11px] font-semibold"
+                                                style={{
+                                                    color: agency.colors[1],
+                                                }}
+                                            >
+                                                {agency.description}
+                                            </Text>
+                                        </View>
+                                    </View>
                                 </View>
-                                <Text className="text-[14.5px] font-bold text-[#1F2A1F]">
-                                    {agency.agency}
-                                </Text>
                             </View>
 
                             <View className="flex-row gap-2.5">
-                                <Pressable
-                                    className="flex-1"
-                                    onPress={() => callNumber(agency.hotline1)}
-                                >
-                                    {({ pressed }) => (
-                                        <ClaySurface
-                                            colors={[
-                                                agency.colorLight,
-                                                agency.colorDark,
-                                            ]}
-                                            borderRadius={16}
-                                            style={{
-                                                paddingVertical: 12,
-                                                alignItems: "center",
-                                                opacity: pressed ? 0.88 : 1,
-                                            }}
-                                        >
-                                            <Text className="text-[10px] text-white/75 font-medium mb-0.5">
-                                                Linya 1
-                                            </Text>
-                                            <Text className="text-[13px] font-bold text-white">
-                                                {agency.hotline1}
-                                            </Text>
-                                        </ClaySurface>
-                                    )}
-                                </Pressable>
-
-                                <Pressable
-                                    className="flex-1"
-                                    onPress={() => callNumber(agency.hotline2)}
-                                >
-                                    {({ pressed }) => (
-                                        <ClaySurface
-                                            colors={[
-                                                agency.colorLight,
-                                                agency.colorDark,
-                                            ]}
-                                            borderRadius={16}
-                                            style={{
-                                                paddingVertical: 12,
-                                                alignItems: "center",
-                                                opacity: pressed ? 0.88 : 1,
-                                            }}
-                                        >
-                                            <Text className="text-[10px] text-white/75 font-medium mb-0.5">
-                                                Linya 2
-                                            </Text>
-                                            <Text className="text-[13px] font-bold text-white">
-                                                {agency.hotline2}
-                                            </Text>
-                                        </ClaySurface>
-                                    )}
-                                </Pressable>
+                                <LineButton
+                                    label="Linya 1"
+                                    number={agency.hotline1}
+                                    colors={agency.colors}
+                                />
+                                <LineButton
+                                    label="Linya 2"
+                                    number={agency.hotline2}
+                                    colors={agency.colors}
+                                />
                             </View>
                         </View>
                     ))}
                 </View>
 
-                {/* Dynamic barangay hotline */}
-                {profile?.role !== "admin" && (
-                    <>
-                        <Text className="text-[13px] font-medium text-[#7A6D5C] mb-3 ml-1">
-                            Barangay Hotline
-                        </Text>
-                        <Pressable onPress={() => callNumber(barangayHotline)}>
-                            {({ pressed }) => (
-                                <ClaySurface
-                                    colors={["#7A9B7D", "#3F5C42"]}
-                                    borderRadius={20}
-                                    style={{
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        gap: 12,
-                                        padding: 16,
-                                        opacity: pressed ? 0.9 : 1,
-                                    }}
-                                >
-                                    <View className="w-11 h-11 rounded-full bg-white/20 items-center justify-center">
-                                        <Ionicons
-                                            name="call"
-                                            size={20}
-                                            color="#fff"
-                                        />
-                                    </View>
-                                    <View className="flex-1">
-                                        <Text className="text-[14.5px] font-bold text-white">
-                                            {barangayHotline}
-                                        </Text>
-                                        <Text className="text-[12px] text-white/75 mt-0.5">
-                                            Barangay {barangay ?? "Hotline"}
-                                        </Text>
-                                    </View>
-                                    <Ionicons
-                                        name="chevron-forward"
-                                        size={18}
-                                        color="rgba(255,255,255,0.7)"
-                                    />
-                                </ClaySurface>
-                            )}
-                        </Pressable>
-                    </>
-                )}
+                {/* Reminder */}
+                <View
+                    className="flex-row items-start gap-3 p-4 rounded-[22px] border"
+                    style={{
+                        backgroundColor: "rgba(232,169,59,0.12)",
+                        borderColor: "rgba(232,169,59,0.35)",
+                    }}
+                >
+                    <Ionicons
+                        name="information-circle"
+                        size={20}
+                        color="#B9791A"
+                    />
+                    <Text
+                        className="flex-1 text-[12px] leading-[18px]"
+                        style={{ color: PALETTE.muted }}
+                    >
+                        Sabihin agad ang iyong pangalan, eksaktong lokasyon, at
+                        kung ano ang nangyari para mabilis kang matulungan.
+                    </Text>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
 }
+

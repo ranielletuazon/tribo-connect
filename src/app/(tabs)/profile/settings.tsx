@@ -1,124 +1,429 @@
 import { AuthHeader } from "@/components/auth-header";
-import { clayRaised } from "@/components/clay";
+import { Avatar } from "@/components/avatar";
+import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
+import { VerifiedBadge } from "@/components/verified-badge";
+import { PALETTE } from "@/constants/palette";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
+import { LinearGradient } from "expo-linear-gradient";
 import { doc, updateDoc } from "firebase/firestore";
+import type { ReactNode } from "react";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import {
+    ActivityIndicator,
+    Modal,
+    Pressable,
+    ScrollView,
+    Text,
+    View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const LANGUAGES = [
+    { key: "tl", label: "Tagalog", hint: "Filipino" },
+    { key: "en", label: "English", hint: "Ingles" },
+] as const;
+
+const APP_VERSION = Constants.expoConfig?.version ?? "1.0.0";
+
+function SectionTitle({ title, color }: { title: string; color: string }) {
+    return (
+        <View className="flex-row items-center gap-2 mb-2.5 ml-1">
+            <View
+                className="w-1.5 h-4 rounded-full"
+                style={{ backgroundColor: color }}
+            />
+            <Text
+                className="text-[14px] font-extrabold"
+                style={{ color: PALETTE.ink }}
+            >
+                {title}
+            </Text>
+        </View>
+    );
+}
+
+function InfoRow({
+    icon,
+    label,
+    value,
+    last,
+}: {
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    value: ReactNode;
+    last?: boolean;
+}) {
+    return (
+        <>
+            <View className="flex-row items-center gap-3 px-4 py-3">
+                <View
+                    className="w-9 h-9 rounded-xl items-center justify-center"
+                    style={{ backgroundColor: "rgba(62,123,79,0.12)" }}
+                >
+                    <Ionicons name={icon} size={17} color={PALETTE.forest} />
+                </View>
+                <View className="flex-1">
+                    <Text className="text-[11px] font-semibold text-[#9C978C]">
+                        {label}
+                    </Text>
+                    {typeof value === "string" ? (
+                        <Text
+                            className="text-[14px] font-semibold mt-0.5"
+                            style={{ color: PALETTE.ink }}
+                            numberOfLines={1}
+                        >
+                            {value}
+                        </Text>
+                    ) : (
+                        value
+                    )}
+                </View>
+            </View>
+            {!last && <View className="h-px bg-[#F1ECE3] ml-[64px]" />}
+        </>
+    );
+}
 
 export default function Settings() {
     const { user, profile, logOut } = useAuth();
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [isChangingLanguage, setIsChangingLanguage] = useState(false);
+    // the language being saved, so its tile can show a spinner
+    const [pendingLanguage, setPendingLanguage] = useState<"tl" | "en" | null>(
+        null,
+    );
 
     const handleLanguageChange = async (lang: "tl" | "en") => {
-        if (!user || isChangingLanguage || profile?.language === lang) return;
+        if (
+            !user ||
+            isChangingLanguage ||
+            (profile?.language ?? "tl") === lang
+        )
+            return;
         setIsChangingLanguage(true);
+        setPendingLanguage(lang);
         try {
             await updateDoc(doc(db, "users", user.uid), { language: lang });
         } finally {
             setIsChangingLanguage(false);
+            setPendingLanguage(null);
         }
     };
 
+    const isVerified = profile?.isVerified === true;
+    const displayName = profile?.username ?? user?.email ?? "Gumagamit";
+
     return (
-        <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
-            <ScrollView contentContainerClassName="px-6 pt-4 pb-10">
+        <SafeAreaView
+            className="flex-1"
+            style={{ backgroundColor: PALETTE.cream }}
+            edges={["top"]}
+        >
+            <BackgroundBlobs colors={[PALETTE.leaf, PALETTE.gold]} />
+
+            <ScrollView
+                contentContainerClassName="px-5 pt-4 pb-10"
+                showsVerticalScrollIndicator={false}
+            >
                 <AuthHeader title="Mga Setting" />
 
-                {/* Account info */}
-                <Text className="text-[13px] font-medium text-[#7A6D5C] mb-2 ml-1 mt-4">
-                    Account
-                </Text>
-                <View
-                    style={clayRaised}
-                    className="bg-[#F8F4EA] rounded-2xl p-4 mb-6"
-                >
-                    <Text className="text-[14px] text-[#1F2A1F]">
-                        {user?.email}
-                    </Text>
+                {/* Account */}
+                <View className="mt-2 mb-6">
+                    <SectionTitle title="Account" color={PALETTE.forest} />
+                    <View
+                        style={clayRaised}
+                        className="bg-white rounded-[24px] overflow-hidden"
+                    >
+                        <View className="flex-row items-center gap-3 p-4 bg-[#F3F9F1]">
+                            <Avatar
+                                name={displayName}
+                                photoURL={profile?.photoURL ?? null}
+                                size={48}
+                                ring
+                            />
+                            <View className="flex-1">
+                                <View className="flex-row items-center gap-1">
+                                    <Text
+                                        className="text-[15.5px] font-extrabold shrink"
+                                        style={{ color: PALETTE.ink }}
+                                        numberOfLines={1}
+                                    >
+                                        {displayName}
+                                    </Text>
+                                    {isVerified && <VerifiedBadge size={16} />}
+                                </View>
+                                <Text className="text-[12px] text-[#9C978C] mt-0.5">
+                                    {profile?.role === "admin"
+                                        ? "Admin"
+                                        : "Residente"}
+                                    {profile?.barangay
+                                        ? ` · ${profile.barangay}`
+                                        : ""}
+                                </Text>
+                            </View>
+                        </View>
+                        <InfoRow
+                            icon="mail-outline"
+                            label="Email"
+                            value={user?.email ?? "—"}
+                        />
+                        <InfoRow
+                            icon="shield-checkmark-outline"
+                            label="Beripikasyon"
+                            last
+                            value={
+                                <Text
+                                    className="text-[14px] font-semibold mt-0.5"
+                                    style={{
+                                        color: isVerified
+                                            ? PALETTE.forest
+                                            : "#C9821F",
+                                    }}
+                                >
+                                    {isVerified
+                                        ? "Beripikado"
+                                        : "Hindi pa beripikado"}
+                                </Text>
+                            }
+                        />
+                    </View>
                 </View>
 
                 {/* Language */}
-                <Text className="text-[13px] font-medium text-[#7A6D5C] mb-2 ml-1">
-                    Wika
-                </Text>
-                <View className="flex-row gap-3 mb-6">
-                    {(["tl", "en"] as const).map((lang) => (
-                        <Pressable
-                            key={lang}
-                            style={clayRaised}
-                            disabled={isChangingLanguage}
-                            className={`flex-1 rounded-2xl py-3.5 items-center ${
-                                profile?.language === lang
-                                    ? "bg-[#2F5233]"
-                                    : "bg-[#F8F4EA]"
-                            }`}
-                            onPress={() => handleLanguageChange(lang)}
-                        >
-                            <Text
-                                className={`text-[14px] font-medium ${
-                                    profile?.language === lang
-                                        ? "text-white"
-                                        : "text-[#1F2A1F]"
-                                }`}
-                            >
-                                {lang === "tl" ? "Tagalog" : "English"}
-                            </Text>
-                        </Pressable>
-                    ))}
+                <View className="mb-6">
+                    <SectionTitle title="Wika" color={PALETTE.gold} />
+                    <View className="flex-row gap-3">
+                        {LANGUAGES.map((lang) => {
+                            // accounts without a saved language use Tagalog
+                            const selected =
+                                (profile?.language ?? "tl") === lang.key;
+                            return (
+                                <Pressable
+                                    key={lang.key}
+                                    className="flex-1"
+                                    disabled={isChangingLanguage}
+                                    onPress={() =>
+                                        handleLanguageChange(lang.key)
+                                    }
+                                >
+                                    {({ pressed }) => (
+                                        <LinearGradient
+                                            colors={
+                                                selected
+                                                    ? ["#56A06A", "#2F6540"]
+                                                    : ["#FFFFFF", "#FFFFFF"]
+                                            }
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                            style={[
+                                                clayRaised,
+                                                pressScale(pressed),
+                                                {
+                                                    borderRadius: 22,
+                                                    padding: 14,
+                                                    opacity:
+                                                        isChangingLanguage &&
+                                                        pendingLanguage !==
+                                                            lang.key
+                                                            ? 0.6
+                                                            : 1,
+                                                },
+                                            ]}
+                                        >
+                                            <View className="flex-row items-center justify-between mb-3">
+                                                <View
+                                                    className="w-9 h-9 rounded-xl items-center justify-center"
+                                                    style={{
+                                                        backgroundColor:
+                                                            selected
+                                                                ? "rgba(255,255,255,0.25)"
+                                                                : "rgba(232,169,59,0.16)",
+                                                    }}
+                                                >
+                                                    <Ionicons
+                                                        name="language"
+                                                        size={18}
+                                                        color={
+                                                            selected
+                                                                ? "#fff"
+                                                                : "#C9821F"
+                                                        }
+                                                    />
+                                                </View>
+                                                {pendingLanguage ===
+                                                lang.key ? (
+                                                    <ActivityIndicator
+                                                        size="small"
+                                                        color={PALETTE.forest}
+                                                    />
+                                                ) : (
+                                                    <View
+                                                        className="w-5 h-5 rounded-full items-center justify-center border-2"
+                                                        style={{
+                                                            borderColor:
+                                                                selected
+                                                                    ? "#fff"
+                                                                    : "#D9D3C6",
+                                                            backgroundColor:
+                                                                selected
+                                                                    ? "#fff"
+                                                                    : "transparent",
+                                                        }}
+                                                    >
+                                                        {selected && (
+                                                            <Ionicons
+                                                                name="checkmark"
+                                                                size={12}
+                                                                color={
+                                                                    PALETTE.forest
+                                                                }
+                                                            />
+                                                        )}
+                                                    </View>
+                                                )}
+                                            </View>
+                                            <Text
+                                                className="text-[15px] font-extrabold"
+                                                style={{
+                                                    color: selected
+                                                        ? "#fff"
+                                                        : PALETTE.ink,
+                                                }}
+                                            >
+                                                {lang.label}
+                                            </Text>
+                                            <Text
+                                                className="text-[11.5px] mt-0.5"
+                                                style={{
+                                                    color: selected
+                                                        ? "rgba(255,255,255,0.85)"
+                                                        : "#9C978C",
+                                                }}
+                                            >
+                                                {lang.hint}
+                                            </Text>
+                                        </LinearGradient>
+                                    )}
+                                </Pressable>
+                            );
+                        })}
+                    </View>
                 </View>
 
                 {/* Sign out */}
-                <Pressable
-                    className="flex-row items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#F4DDD6]"
-                    onPress={() => setShowSignOutModal(true)}
-                >
-                    <Ionicons
-                        name="log-out-outline"
-                        size={18}
-                        color="#9C3A2A"
-                    />
-                    <Text className="text-[14.5px] font-semibold text-[#9C3A2A]">
-                        Mag-sign Out
-                    </Text>
+                <Pressable onPress={() => setShowSignOutModal(true)}>
+                    {({ pressed }) => (
+                        <View
+                            className="flex-row items-center justify-center gap-2 py-4 rounded-[22px] border-[1.5px]"
+                            style={[
+                                pressScale(pressed),
+                                {
+                                    backgroundColor: "rgba(240,98,77,0.08)",
+                                    borderColor: "rgba(240,98,77,0.3)",
+                                },
+                            ]}
+                        >
+                            <Ionicons
+                                name="log-out-outline"
+                                size={19}
+                                color={PALETTE.blood}
+                            />
+                            <Text
+                                className="text-[15px] font-bold"
+                                style={{ color: PALETTE.blood }}
+                            >
+                                Mag-sign Out
+                            </Text>
+                        </View>
+                    )}
                 </Pressable>
+
+                <Text className="text-[11.5px] text-[#B5AFA0] text-center mt-6">
+                    TriboConnect · Bersyon {APP_VERSION}
+                </Text>
             </ScrollView>
 
             {/* Confirm modal */}
-            <Modal visible={showSignOutModal} transparent animationType="fade">
+            <Modal
+                visible={showSignOutModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowSignOutModal(false)}
+            >
                 <Pressable
                     className="flex-1 bg-black/40 items-center justify-center px-8"
                     onPress={() => setShowSignOutModal(false)}
                 >
                     <Pressable
-                        className="bg-[--main-white] rounded-[24px] p-6 w-full"
+                        className="rounded-[28px] p-6 w-full items-center"
+                        style={{ backgroundColor: PALETTE.cream }}
                         onPress={(e) => e.stopPropagation()}
                     >
-                        <Text className="text-[16px] font-bold text-[#1F2A1F] text-center mb-2">
+                        <View
+                            className="w-16 h-16 rounded-full items-center justify-center mb-3"
+                            style={{ backgroundColor: "rgba(240,98,77,0.12)" }}
+                        >
+                            <Ionicons
+                                name="log-out-outline"
+                                size={28}
+                                color={PALETTE.blood}
+                            />
+                        </View>
+                        <Text
+                            className="text-[17px] font-extrabold text-center mb-1.5"
+                            style={{ color: PALETTE.ink }}
+                        >
                             Mag-sign Out?
                         </Text>
-                        <Text className="text-[13px] text-[#6B7280] text-center mb-5">
+                        <Text
+                            className="text-[13px] text-center mb-5"
+                            style={{ color: PALETTE.muted }}
+                        >
                             Kakailanganin mong mag-login muli para bumalik.
                         </Text>
                         <Pressable
-                            className="bg-[#9C3A2A] rounded-2xl py-3.5 items-center mb-2"
+                            className="w-full mb-2"
                             onPress={() => {
                                 setShowSignOutModal(false);
                                 logOut();
                             }}
                         >
-                            <Text className="text-white font-semibold text-[15px]">
-                                Oo, mag-sign out
-                            </Text>
+                            {({ pressed }) => (
+                                <LinearGradient
+                                    colors={[PALETTE.ember, PALETTE.blood]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[
+                                        pressScale(pressed),
+                                        {
+                                            borderRadius: 18,
+                                            paddingVertical: 14,
+                                            alignItems: "center",
+                                        },
+                                    ]}
+                                >
+                                    <Text className="text-white font-bold text-[15px]">
+                                        Oo, mag-sign out
+                                    </Text>
+                                </LinearGradient>
+                            )}
                         </Pressable>
                         <Pressable
-                            className="py-3 items-center"
+                            className="w-full py-3 items-center rounded-[18px]"
+                            style={({ pressed }) => ({
+                                backgroundColor: pressed
+                                    ? "#F0EDE6"
+                                    : "transparent",
+                            })}
                             onPress={() => setShowSignOutModal(false)}
                         >
-                            <Text className="text-[14px] text-[#6B7280]">
+                            <Text
+                                className="text-[14px] font-semibold"
+                                style={{ color: PALETTE.muted }}
+                            >
                                 Kanselahin
                             </Text>
                         </Pressable>
