@@ -1,7 +1,9 @@
+import { VerifyRequired } from "@/components/verify-required";
 import { BARANGAY } from "@/constants/barangays";
 import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
 import { uploadImage } from "@/lib/upload-image";
+import { canUseVerifiedFeatures } from "@/lib/verification";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -27,7 +29,9 @@ export default function CreatePost() {
     const [isPosting, setIsPosting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const canPost = (content.trim().length > 0 || !!imageUri) && !isPosting;
+    const isAllowed = canUseVerifiedFeatures(profile);
+    const canPost =
+        isAllowed && (content.trim().length > 0 || !!imageUri) && !isPosting;
     const initials = (profile?.username ?? "U").slice(0, 2).toUpperCase();
 
     const handlePickImage = async () => {
@@ -125,92 +129,109 @@ export default function CreatePost() {
                 </Pressable>
             </View>
 
-            <ScrollView
-                contentContainerClassName="px-4 pt-4 pb-8"
-                keyboardShouldPersistTaps="handled"
-            >
-                {error && (
-                    <Text className="text-[13px] text-[#B23A2E] mb-3">
-                        {error}
-                    </Text>
-                )}
-
-                {/* Author name and profile photo */}
-                <View className="flex-row items-center gap-3 mb-3">
-                    <View className="w-11 h-11 rounded-full bg-[#5C7A5F] items-center justify-center overflow-hidden">
-                        {profile?.photoURL ? (
-                            <Image
-                                source={{ uri: profile.photoURL }}
-                                className="w-full h-full"
-                                resizeMode="cover"
-                            />
-                        ) : (
-                            <Text className="text-white text-[13px] font-semibold">
-                                {initials}
-                            </Text>
-                        )}
-                    </View>
-                    <View>
-                        <Text className="text-[14.5px] font-bold text-[#1F2A1F]">
-                            {profile?.username ?? t("Gumagamit", "User")}
+            {!isAllowed ? (
+                <View className="px-5 pt-8">
+                    <VerifyRequired
+                        action="makapag-post sa Feed"
+                        actionEn="post on the Feed"
+                    />
+                </View>
+            ) : (
+                <ScrollView
+                    contentContainerClassName="px-4 pt-4 pb-8"
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {error && (
+                        <Text className="text-[13px] text-[#B23A2E] mb-3">
+                            {error}
                         </Text>
-                        <View className="flex-row items-center gap-1 mt-0.5 bg-[#F0EDE6] self-start rounded-full px-2 py-0.5">
-                            <Ionicons name="earth" size={11} color="#7A6D5C" />
-                            <Text className="text-[11px] text-[#7A6D5C]">
-                                {t("Publiko", "Public")}
+                    )}
+
+                    {/* Author name and profile photo */}
+                    <View className="flex-row items-center gap-3 mb-3">
+                        <View className="w-11 h-11 rounded-full bg-[#5C7A5F] items-center justify-center overflow-hidden">
+                            {profile?.photoURL ? (
+                                <Image
+                                    source={{ uri: profile.photoURL }}
+                                    className="w-full h-full"
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <Text className="text-white text-[13px] font-semibold">
+                                    {initials}
+                                </Text>
+                            )}
+                        </View>
+                        <View>
+                            <Text className="text-[14.5px] font-bold text-[#1F2A1F]">
+                                {profile?.username ?? t("Gumagamit", "User")}
                             </Text>
+                            <View className="flex-row items-center gap-1 mt-0.5 bg-[#F0EDE6] self-start rounded-full px-2 py-0.5">
+                                <Ionicons
+                                    name="earth"
+                                    size={11}
+                                    color="#7A6D5C"
+                                />
+                                <Text className="text-[11px] text-[#7A6D5C]">
+                                    {t("Publiko", "Public")}
+                                </Text>
+                            </View>
                         </View>
                     </View>
-                </View>
 
-                {/* Text input */}
-                <TextInput
-                    placeholder={t(
-                        `Ano ang nasa isip mo, ${profile?.username ?? "kaibigan"}?`,
-                        `What's on your mind, ${profile?.username ?? "friend"}?`,
-                    )}
-                    placeholderTextColor="#9C978C"
-                    value={content}
-                    onChangeText={setContent}
-                    multiline
-                    autoFocus
-                    editable={!isPosting}
-                    className="text-[17px] text-[#1F2A1F] leading-6 min-h-[80px]"
-                />
-
-                {/* Image preview */}
-                {imageUri && (
-                    <View className="relative mt-2 mb-4">
-                        <Image
-                            source={{ uri: imageUri }}
-                            className="w-full h-56 rounded-2xl"
-                            resizeMode="cover"
-                        />
-                        {!isPosting && (
-                            <Pressable
-                                onPress={() => setImageUri(null)}
-                                className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 items-center justify-center"
-                            >
-                                <Ionicons name="close" size={18} color="#fff" />
-                            </Pressable>
+                    {/* Text input */}
+                    <TextInput
+                        placeholder={t(
+                            `Ano ang nasa isip mo, ${profile?.username ?? "kaibigan"}?`,
+                            `What's on your mind, ${profile?.username ?? "friend"}?`,
                         )}
-                    </View>
-                )}
+                        placeholderTextColor="#9C978C"
+                        value={content}
+                        onChangeText={setContent}
+                        multiline
+                        autoFocus
+                        editable={!isPosting}
+                        className="text-[17px] text-[#1F2A1F] leading-6 min-h-[80px]"
+                    />
 
-                {/* Add image */}
-                <Pressable
-                    onPress={handlePickImage}
-                    disabled={isPosting}
-                    className="flex-row items-center justify-between border border-[#EDEAE2] rounded-2xl px-4 py-3 mt-2"
-                >
-                    <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
-                        {t("Idagdag ng Larawan", "Add a Photo")}
-                    </Text>
-                    <View className="w-9 h-9 rounded-full bg-[#3F9142] items-center justify-center">
-                        <Ionicons name="image" size={18} color="#fff" />
-                    </View>
-                </Pressable>
-            </ScrollView>
+                    {/* Image preview */}
+                    {imageUri && (
+                        <View className="relative mt-2 mb-4">
+                            <Image
+                                source={{ uri: imageUri }}
+                                className="w-full h-56 rounded-2xl"
+                                resizeMode="cover"
+                            />
+                            {!isPosting && (
+                                <Pressable
+                                    onPress={() => setImageUri(null)}
+                                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 items-center justify-center"
+                                >
+                                    <Ionicons
+                                        name="close"
+                                        size={18}
+                                        color="#fff"
+                                    />
+                                </Pressable>
+                            )}
+                        </View>
+                    )}
+
+                    {/* Add image */}
+                    <Pressable
+                        onPress={handlePickImage}
+                        disabled={isPosting}
+                        className="flex-row items-center justify-between border border-[#EDEAE2] rounded-2xl px-4 py-3 mt-2"
+                    >
+                        <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
+                            {t("Idagdag ng Larawan", "Add a Photo")}
+                        </Text>
+                        <View className="w-9 h-9 rounded-full bg-[#3F9142] items-center justify-center">
+                            <Ionicons name="image" size={18} color="#fff" />
+                        </View>
+                    </Pressable>
+                </ScrollView>
+            )}
         </SafeAreaView>
     );
 }

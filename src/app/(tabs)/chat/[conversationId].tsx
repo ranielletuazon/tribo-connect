@@ -5,11 +5,13 @@ import {
     pressScale,
 } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { VerifyRequired } from "@/components/verify-required";
 import { BARANGAY, MUNICIPALITY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
 import { useLanguage } from "@/hooks/use-language";
 import { formatClock, formatDayLabel, isSameDay } from "@/lib/chat-time";
 import { db } from "@/lib/firebase";
+import { canUseVerifiedFeatures } from "@/lib/verification";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -213,7 +215,8 @@ export default function ConversationThread() {
         };
     }, []);
 
-    const canSend = text.trim().length > 0 && !isSending;
+    const isAllowed = canUseVerifiedFeatures(profile);
+    const canSend = isAllowed && text.trim().length > 0 && !isSending;
 
     const handleSend = async () => {
         if (!canSend || !user) return;
@@ -661,88 +664,98 @@ export default function ConversationThread() {
                             : Math.max(insets.bottom, 10),
                     }}
                 >
-                    <View
-                        style={[
-                            clayRaised,
-                            {
-                                borderWidth: 1.5,
-                                borderColor: isInputFocused
-                                    ? "rgba(62,123,79,0.45)"
-                                    : "transparent",
-                            },
-                        ]}
-                        className="flex-row items-end gap-2 bg-white rounded-[26px] pl-4 pr-1.5 py-1.5"
-                    >
-                        <TextInput
-                            ref={inputRef}
-                            value={text}
-                            onChangeText={setText}
-                            onFocus={() => setIsInputFocused(true)}
-                            onBlur={() => setIsInputFocused(false)}
-                            placeholder={t(
-                                "Mag-type ng mensahe...",
-                                "Type a message...",
-                            )}
-                            placeholderTextColor="#B5AFA0"
-                            multiline
-                            maxLength={MESSAGE_MAX}
-                            textAlignVertical="center"
-                            className="flex-1 text-[15px] max-h-[120px]"
-                            style={{
-                                color: PALETTE.ink,
-                                paddingTop: 9,
-                                paddingBottom: 9,
-                            }}
+                    {!isAllowed ? (
+                        <VerifyRequired
+                            action="makapagpadala ng mensahe"
+                            actionEn="send messages"
+                            compact
                         />
-                        <Pressable
-                            onPress={handleSend}
-                            disabled={!canSend}
-                            accessibilityRole="button"
-                            accessibilityLabel={t("Ipadala", "Send")}
-                        >
-                            {({ pressed }) => (
-                                <LinearGradient
-                                    colors={
-                                        canSend
-                                            ? GREEN
-                                            : ["#ECE8E0", "#ECE8E0"]
-                                    }
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={{
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: 20,
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        transform: [
-                                            { scale: pressed ? 0.9 : 1 },
-                                        ],
-                                    }}
-                                >
-                                    {isSending ? (
-                                        <ActivityIndicator
-                                            size="small"
-                                            color="#fff"
-                                        />
-                                    ) : (
-                                        <Ionicons
-                                            name="send"
-                                            size={17}
-                                            color={
-                                                canSend ? "#fff" : "#B5AFA0"
-                                            }
-                                            style={{ marginLeft: 2 }}
-                                        />
+                    ) : (
+                        <>
+                            <View
+                                style={[
+                                    clayRaised,
+                                    {
+                                        borderWidth: 1.5,
+                                        borderColor: isInputFocused
+                                            ? "rgba(62,123,79,0.45)"
+                                            : "transparent",
+                                    },
+                                ]}
+                                className="flex-row items-end gap-2 bg-white rounded-[26px] pl-4 pr-1.5 py-1.5"
+                            >
+                                <TextInput
+                                    ref={inputRef}
+                                    value={text}
+                                    onChangeText={setText}
+                                    onFocus={() => setIsInputFocused(true)}
+                                    onBlur={() => setIsInputFocused(false)}
+                                    placeholder={t(
+                                        "Mag-type ng mensahe...",
+                                        "Type a message...",
                                     )}
-                                </LinearGradient>
+                                    placeholderTextColor="#B5AFA0"
+                                    multiline
+                                    maxLength={MESSAGE_MAX}
+                                    textAlignVertical="center"
+                                    className="flex-1 text-[15px] max-h-[120px]"
+                                    style={{
+                                        color: PALETTE.ink,
+                                        paddingTop: 9,
+                                        paddingBottom: 9,
+                                    }}
+                                />
+                                <Pressable
+                                    onPress={handleSend}
+                                    disabled={!canSend}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={t("Ipadala", "Send")}
+                                >
+                                    {({ pressed }) => (
+                                        <LinearGradient
+                                            colors={
+                                                canSend
+                                                    ? GREEN
+                                                    : ["#ECE8E0", "#ECE8E0"]
+                                            }
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                            style={{
+                                                width: 40,
+                                                height: 40,
+                                                borderRadius: 20,
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                transform: [
+                                                    { scale: pressed ? 0.9 : 1 },
+                                                ],
+                                            }}
+                                        >
+                                            {isSending ? (
+                                                <ActivityIndicator
+                                                    size="small"
+                                                    color="#fff"
+                                                />
+                                            ) : (
+                                                <Ionicons
+                                                    name="send"
+                                                    size={17}
+                                                    color={
+                                                        canSend ? "#fff" : "#B5AFA0"
+                                                    }
+                                                    style={{ marginLeft: 2 }}
+                                                />
+                                            )}
+                                        </LinearGradient>
+                                    )}
+                                </Pressable>
+                            </View>
+                            {text.length > MESSAGE_MAX - 100 && (
+                                <Text className="text-[10.5px] text-[#9C978C] text-right mt-1 mr-3">
+                                    {text.length}/{MESSAGE_MAX}
+                                </Text>
                             )}
-                        </Pressable>
-                    </View>
-                    {text.length > MESSAGE_MAX - 100 && (
-                        <Text className="text-[10.5px] text-[#9C978C] text-right mt-1 mr-3">
-                            {text.length}/{MESSAGE_MAX}
-                        </Text>
+                        </>
                     )}
                 </View>
             </KeyboardAvoidingView>

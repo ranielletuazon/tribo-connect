@@ -14,6 +14,15 @@ export type VerificationType =
 export type VerificationStatus =
     "approved" | "revoked" | "pending" | "rejected";
 
+// posting, messaging and reporting are only for verified users.
+// admins are exempt, they run the barangay's side of the app.
+// only checked in the app, the Firestore rules don't enforce it
+export function canUseVerifiedFeatures(
+    profile: { isVerified?: unknown; role?: unknown } | null | undefined,
+): boolean {
+    return profile?.isVerified === true || profile?.role === "admin";
+}
+
 // the IDs a user can verify their account with
 export const VERIFICATION_TYPES: Record<
     VerificationType,
