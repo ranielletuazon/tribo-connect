@@ -2,6 +2,7 @@
 
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton, clayRaised } from "@/components/clay";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
@@ -307,18 +308,7 @@ export default function Register() {
                 </Text>
 
                 {/* Google */}
-                <View style={clayRaised} className="mb-3 rounded-2xl">
-                    <Pressable className="flex-row items-center justify-center gap-2.5 bg-[#F0EDE6] rounded-2xl py-3.5">
-                        <Ionicons
-                            name="logo-google"
-                            size={18}
-                            color="#1F2A1F"
-                        />
-                        <Text className="text-[15px] font-medium text-[#1F2A1F]">
-                            Google
-                        </Text>
-                    </Pressable>
-                </View>
+                <GoogleSignInButton disabled={isSubmitting} />
 
                 {/* Phone OTP */}
                 {/* <View style={clayRaised} className="mb-8 rounded-2xl">

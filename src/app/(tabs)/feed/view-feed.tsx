@@ -3,6 +3,8 @@ import { BARANGAY } from "@/constants/barangays";
 import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
 import {
+    canDeletePost,
+    deletePost,
     formatTimeAgo,
     mapDocToComment,
     mapDocToPost,
@@ -28,6 +30,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -89,6 +92,7 @@ export default function ViewFeed() {
 
     const [text, setText] = useState("");
     const [isSending, setIsSending] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const inputRef = useRef<TextInput>(null);
@@ -168,6 +172,46 @@ export default function ViewFeed() {
         }
     };
 
+    const canDelete = !!post && canDeletePost(post, user?.uid, profile?.role);
+
+    // the feed reloads when it gets deletedPostId back
+    const handleDelete = () => {
+        if (!post || !canDelete) return;
+        const target = post;
+        Alert.alert(
+            t("Burahin ang post?", "Delete this post?"),
+            t(
+                "Mabubura rin ang lahat ng komento nito. Hindi na ito maibabalik.",
+                "All of its comments will be deleted too. This can't be undone.",
+            ),
+            [
+                { text: t("Kanselahin", "Cancel"), style: "cancel" },
+                {
+                    text: t("Burahin", "Delete"),
+                    style: "destructive",
+                    onPress: async () => {
+                        setIsDeleting(true);
+                        try {
+                            await deletePost(target);
+                            router.back();
+                            router.setParams({ deletedPostId: target.id });
+                        } catch (err) {
+                            console.error("Delete post error:", err);
+                            setIsDeleting(false);
+                            Alert.alert(
+                                t("Nabigo", "Failed"),
+                                t(
+                                    "Hindi nabura ang post. Pakisubukang muli.",
+                                    "The post wasn't deleted. Please try again.",
+                                ),
+                            );
+                        }
+                    },
+                },
+            ],
+        );
+    };
+
     const trimmed = text.trim();
     const canSend =
         trimmed.length > 0 &&
@@ -236,6 +280,22 @@ export default function ViewFeed() {
                               )
                             : "Post"}
                     </Text>
+                    {canDelete &&
+                        (isDeleting ? (
+                            <ActivityIndicator size="small" color="#B23A2E" />
+                        ) : (
+                            <Pressable
+                                onPress={handleDelete}
+                                hitSlop={10}
+                                className="p-1"
+                            >
+                                <Ionicons
+                                    name="trash-outline"
+                                    size={20}
+                                    color="#B23A2E"
+                                />
+                            </Pressable>
+                        ))}
                 </View>
 
                 {isPostLoading ? (

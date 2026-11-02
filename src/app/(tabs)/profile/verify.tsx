@@ -13,11 +13,19 @@ import { router } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, Text, View } from "react-native";
+import {
+    Image,
+    ScrollView,
+    Text,
+    View,
+    useWindowDimensions,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const HERO_BANNER = require("../../../../assets/images/hero-banner-verify.png");
-const HERO_ASPECT = 588 / 500;
+// real size of the image file, so the height always fits
+const HERO_SOURCE = Image.resolveAssetSource(HERO_BANNER);
+const HERO_RATIO = HERO_SOURCE.height / HERO_SOURCE.width;
 const VERIFIED_BLUE = "#2A6FDB";
 
 const BENEFITS: {
@@ -83,7 +91,8 @@ const STEPS: {
         title: "Kunan ng Larawan ang ID",
         titleEn: "Take a Photo of the ID",
         description: "Susuriin agad kung malinaw at nababasa ang larawan.",
-        descriptionEn: "The photo is checked right away to see if it's clear and readable.",
+        descriptionEn:
+            "The photo is checked right away to see if it's clear and readable.",
     },
     {
         title: "Awtomatikong Pagbasa",
@@ -97,7 +106,8 @@ const STEPS: {
         title: "Kumuha ng Selfie",
         titleEn: "Take a Selfie",
         description: "Kunan ang iyong mukha para maitugma sa larawan sa ID.",
-        descriptionEn: "Take a photo of your face to match the photo on the ID.",
+        descriptionEn:
+            "Take a photo of your face to match the photo on the ID.",
     },
     {
         title: "Suriin ang Detalye",
@@ -194,6 +204,10 @@ export default function Verify() {
     // revoked users can't submit again, only an admin can restore the badge
     const canSubmit = status !== "approved" && status !== "revoked";
 
+    const { width: screenWidth } = useWindowDimensions();
+    // screen width minus the px-6 padding on both sides
+    const heroHeight = (screenWidth - 48) * HERO_RATIO;
+
     // the reason is only on the verification doc, not the profile
     useEffect(() => {
         if (!hasReason || !user) return;
@@ -216,13 +230,12 @@ export default function Verify() {
                 {/* Hero banner */}
                 <View
                     style={clayRaised}
-                    className="rounded-[28px] bg-[#E9EEFB] overflow-hidden"
+                    className="rounded-[28px] bg-[#EEF3EE] overflow-hidden"
                 >
                     <Image
                         source={HERO_BANNER}
-                        className="w-full"
-                        style={{ aspectRatio: HERO_ASPECT }}
-                        resizeMode="contain"
+                        style={{ width: "100%", height: heroHeight }}
+                        resizeMode="cover"
                     />
                 </View>
 
@@ -290,7 +303,10 @@ export default function Verify() {
 
                 {/* Badge preview */}
                 <SectionTitle>
-                    {t("Ganito ka makikita ng iba", "This is how others will see you")}
+                    {t(
+                        "Ganito ka makikita ng iba",
+                        "This is how others will see you",
+                    )}
                 </SectionTitle>
                 <View
                     style={clayRaised}
@@ -385,7 +401,10 @@ export default function Verify() {
                                         {t(step.title, step.titleEn)}
                                     </Text>
                                     <Text className="text-[12px] text-[#7A6D5C] leading-[17px] mt-0.5">
-                                        {t(step.description, step.descriptionEn)}
+                                        {t(
+                                            step.description,
+                                            step.descriptionEn,
+                                        )}
                                     </Text>
                                 </View>
                             </View>
@@ -394,7 +413,9 @@ export default function Verify() {
                 </View>
 
                 {/* Supported IDs */}
-                <SectionTitle>{t("Mga Suportadong ID", "Supported IDs")}</SectionTitle>
+                <SectionTitle>
+                    {t("Mga Suportadong ID", "Supported IDs")}
+                </SectionTitle>
                 <View className="flex-row flex-wrap gap-2">
                     {Object.values(VERIFICATION_TYPES).map((type) => (
                         <View
@@ -453,7 +474,10 @@ export default function Verify() {
                         </Text>
                     </ClayButton>
                     <Text className="text-[11.5px] text-[#9C978C] text-center mt-2">
-                        {t("Aabutin lamang ng ilang minuto", "It only takes a few minutes")}
+                        {t(
+                            "Aabutin lamang ng ilang minuto",
+                            "It only takes a few minutes",
+                        )}
                     </Text>
                 </View>
             )}

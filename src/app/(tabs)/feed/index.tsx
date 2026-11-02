@@ -3,7 +3,13 @@ import { VerifiedBadge } from "@/components/verified-badge";
 import { BARANGAY } from "@/constants/barangays";
 import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
-import { formatTimeAgo, mapDocToPost, type Post } from "@/lib/posts";
+import {
+    canDeletePost,
+    deletePost,
+    formatTimeAgo,
+    mapDocToPost,
+    type Post,
+} from "@/lib/posts";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -25,6 +31,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     Modal,
     Pressable,
@@ -46,7 +53,10 @@ const POSTS_PER_PAGE = 5;
 export default function Feed() {
     const { user, profile } = useAuth();
     const { lang, t } = useLanguage();
-    const { newPostJson } = useLocalSearchParams<{ newPostJson?: string }>();
+    const { newPostJson, deletedPostId } = useLocalSearchParams<{
+        newPostJson?: string;
+        deletedPostId?: string;
+    }>();
     const lastScrollY = useRef(0);
     // the post that was opened in view-feed, refreshed when we come back
     const openedPostId = useRef<string | null>(null);
@@ -82,6 +92,13 @@ export default function Feed() {
         }
         router.setParams({ newPostJson: undefined });
     }, [newPostJson]);
+
+    // a post was deleted in view-feed, reload the whole feed
+    useEffect(() => {
+        if (!deletedPostId) return;
+        router.setParams({ deletedPostId: undefined });
+        handleRefresh();
+    }, [deletedPostId]);
 
     // after coming back from view-feed, reload that post so its
     // likes and comment count match what the user just did there
@@ -234,11 +251,49 @@ export default function Feed() {
     };
 
     // opens the small popover right where the ellipsis was tapped
-    // does nothing for your own post, no menu items exist for it yet
     const openPostMenu = (post: Post, pageY: number) => {
-        if (post.authorId === user?.uid) return;
         setMenuPosition({ top: pageY + 10, right: 24 });
         setMenuPost(post);
+    };
+
+    const isOwnMenuPost = !!menuPost && menuPost.authorId === user?.uid;
+    const canDeleteMenuPost =
+        !!menuPost && canDeletePost(menuPost, user?.uid, profile?.role);
+
+    const handleDeletePost = () => {
+        if (!menuPost) return;
+        const target = menuPost;
+        setMenuPost(null);
+
+        Alert.alert(
+            t("Burahin ang post?", "Delete this post?"),
+            t(
+                "Mabubura rin ang lahat ng komento nito. Hindi na ito maibabalik.",
+                "All of its comments will be deleted too. This can't be undone.",
+            ),
+            [
+                { text: t("Kanselahin", "Cancel"), style: "cancel" },
+                {
+                    text: t("Burahin", "Delete"),
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await deletePost(target);
+                            await handleRefresh();
+                        } catch (err) {
+                            console.error("Delete post error:", err);
+                            Alert.alert(
+                                t("Nabigo", "Failed"),
+                                t(
+                                    "Hindi nabura ang post. Pakisubukang muli.",
+                                    "The post wasn't deleted. Please try again.",
+                                ),
+                            );
+                        }
+                    },
+                },
+            ],
+        );
     };
 
     // reuses the same lookup as the chat search screen
@@ -518,19 +573,39 @@ export default function Feed() {
                         ]}
                         className="bg-[--main-white] rounded-xl overflow-hidden min-w-[130px]"
                     >
-                        <Pressable
-                            className="flex-row items-center gap-2 px-4 py-3"
-                            onPress={handleChatWithAuthor}
-                        >
-                            <Ionicons
-                                name="chatbubble-ellipses-outline"
-                                size={16}
-                                color="#1F2A1F"
-                            />
-                            <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
-                                {t("I-Chat", "Chat")}
-                            </Text>
-                        </Pressable>
+                        {!isOwnMenuPost && (
+                            <Pressable
+                                className="flex-row items-center gap-2 px-4 py-3"
+                                onPress={handleChatWithAuthor}
+                            >
+                                <Ionicons
+                                    name="chatbubble-ellipses-outline"
+                                    size={16}
+                                    color="#1F2A1F"
+                                />
+                                <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
+                                    {t("I-Chat", "Chat")}
+                                </Text>
+                            </Pressable>
+                        )}
+                        {!isOwnMenuPost && canDeleteMenuPost && (
+                            <View className="h-px bg-[#EDEAE2]" />
+                        )}
+                        {canDeleteMenuPost && (
+                            <Pressable
+                                className="flex-row items-center gap-2 px-4 py-3"
+                                onPress={handleDeletePost}
+                            >
+                                <Ionicons
+                                    name="trash-outline"
+                                    size={16}
+                                    color="#B23A2E"
+                                />
+                                <Text className="text-[13.5px] font-medium text-[#B23A2E]">
+                                    {t("Burahin", "Delete")}
+                                </Text>
+                            </Pressable>
+                        )}
                     </View>
                 </Pressable>
             </Modal>

@@ -12,7 +12,20 @@
           "package_name": "com.triboconnect.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "214397287772-psdmebd7ufcutj7st1fmk04fl3nqb22u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.triboconnect.app",
+            "certificate_hash": "467a2c1b0dd48fc9e3a0c7019579f7f879e1ea9a"
+          }
+        },
+        {
+          "client_id": "214397287772-vs3pgh6httva576c3i2b5k7im0ajrprl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyASn3xv6sJtoh6QIaed614WOfwPaHQeBl0"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "214397287772-vs3pgh6httva576c3i2b5k7im0ajrprl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

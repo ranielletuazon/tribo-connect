@@ -1,4 +1,5 @@
 import { ClayButton, clayRaised } from "@/components/clay";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -204,18 +205,7 @@ export default function Login() {
                 </Text>
 
                 {/* Google button */}
-                <View style={clayRaised} className="mb-3 rounded-2xl">
-                    <Pressable className="flex-row items-center justify-center gap-2.5 bg-[#F0EDE6] rounded-2xl py-3.5">
-                        <Ionicons
-                            name="logo-google"
-                            size={18}
-                            color="#1F2A1F"
-                        />
-                        <Text className="text-[15px] font-medium text-[#1F2A1F]">
-                            Google
-                        </Text>
-                    </Pressable>
-                </View>
+                <GoogleSignInButton disabled={isSubmitting} />
 
                 {/* OTP button */}
                 {/* <View style={clayRaised} className="mb-8 rounded-2xl">

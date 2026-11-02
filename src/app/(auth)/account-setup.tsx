@@ -3,7 +3,7 @@
 import { ClayButton, clayRaised } from "@/components/clay";
 import { BARANGAY, MUNICIPALITY } from "@/constants/barangays";
 import { db } from "@/lib/firebase";
-import { useAuth } from "@/providers/auth-provider";
+import { isGoogleUser, useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
@@ -61,6 +61,9 @@ export default function AccountSetup() {
 
         setErrors({});
         setIsSubmitting(true);
+        // Google already verified the email, so these users skip the OTP
+        // and the root guard takes them straight to the app
+        const skipOtp = isGoogleUser(user);
         try {
             await updateDoc(doc(db, "users", user.uid), {
                 username: username.trim(),
@@ -68,8 +71,9 @@ export default function AccountSetup() {
                 language,
                 barangay: BARANGAY,
                 phoneNumber: emergencyContact.trim() || null,
+                ...(skipOtp && { onboardingComplete: true }),
             });
-            router.push("/(auth)/otp-verify");
+            if (!skipOtp) router.push("/(auth)/otp-verify");
         } catch {
             setErrors({
                 general: "Nabigo ang pag-save ng profile. Pakisubukang muli.",

@@ -1,5 +1,18 @@
 import type { Language } from "@/hooks/use-language";
-import type { DocumentSnapshot, Timestamp } from "firebase/firestore";
+import { db, storage } from "@/lib/firebase";
+import {
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    writeBatch,
+    type DocumentSnapshot,
+    type Timestamp,
+} from "firebase/firestore";
+import { deleteObject, ref } from "firebase/storage";
+
+// a batch can hold at most 500 writes
+const DELETE_BATCH_SIZE = 500;
 
 export interface Post {
     id: string;
@@ -68,6 +81,42 @@ export function mapDocToPost(docSnap: DocumentSnapshot): Post {
         commentCount: data.commentCount ?? 0,
         createdAt: data.createdAt ?? null,
     };
+}
+
+// the author can delete their own post, admins can delete anyone's
+export function canDeletePost(
+    post: Post,
+    uid: string | undefined,
+    role: string | undefined,
+): boolean {
+    return !!uid && (post.authorId === uid || role === "admin");
+}
+
+// removes the post first so it disappears right away, then cleans up
+// its comments and image. if the cleanup fails the post is already gone,
+// so leftovers are fine
+export async function deletePost(post: Post): Promise<void> {
+    const postRef = doc(db, "posts", post.id);
+    await deleteDoc(postRef);
+
+    try {
+        const commentsSnap = await getDocs(collection(postRef, "comments"));
+        for (let i = 0; i < commentsSnap.docs.length; i += DELETE_BATCH_SIZE) {
+            const batch = writeBatch(db);
+            commentsSnap.docs
+                .slice(i, i + DELETE_BATCH_SIZE)
+                .forEach((commentDoc) => batch.delete(commentDoc.ref));
+            await batch.commit();
+        }
+    } catch (err) {
+        console.error("Delete post comments error:", err);
+    }
+
+    if (post.imageUrl) {
+        deleteObject(ref(storage, `posts/${post.id}.jpg`)).catch((err) =>
+            console.error("Delete post image error:", err),
+        );
+    }
 }
 
 export function mapDocToComment(docSnap: DocumentSnapshot): PostComment {
