@@ -11,6 +11,12 @@ import { VerifyRequired } from "@/components/verify-required";
 import { PALETTE } from "@/constants/palette";
 import { useLanguage } from "@/hooks/use-language";
 import { functions } from "@/lib/firebase";
+import { isDuplicateReport } from "@/lib/moderation";
+import {
+    REPORT_CATEGORIES,
+    saveReport,
+    type ReportInput,
+} from "@/lib/reports";
 import { canUseVerifiedFeatures } from "@/lib/verification";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -30,59 +36,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-interface ReportCategory {
-    key: string;
-    label: string;
-    labelEn: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    colors: [string, string];
-}
-
-const CATEGORIES: ReportCategory[] = [
-    {
-        key: "sakuna",
-        label: "Sakuna",
-        labelEn: "Disaster",
-        icon: "water",
-        colors: ["#5BA3E8", "#2A5C99"],
-    },
-    {
-        key: "kaligtasan",
-        label: "Kaligtasan",
-        labelEn: "Safety",
-        icon: "shield-checkmark",
-        colors: ["#E8894F", "#B4562A"],
-    },
-    {
-        key: "kalusugan",
-        label: "Kalusugan",
-        labelEn: "Health",
-        icon: "medkit",
-        colors: ["#F0624D", "#B8321F"],
-    },
-    {
-        key: "paligid",
-        label: "Paligid",
-        labelEn: "Surroundings",
-        icon: "leaf",
-        colors: ["#56A06A", "#2F6540"],
-    },
-    {
-        key: "sarili",
-        label: "Sarili",
-        labelEn: "Personal",
-        icon: "eye",
-        colors: ["#A98FE0", "#6B4F94"],
-    },
-    {
-        key: "iba-pa",
-        label: "Iba Pa",
-        labelEn: "Others",
-        icon: "ellipsis-horizontal",
-        colors: ["#B5AFA0", "#7A6D5C"],
-    },
-];
-
 const SUBJECT_MAX = 120;
 const DESCRIPTION_MAX = 2000;
 // same gold as the report tile on the homepage
@@ -90,20 +43,14 @@ const REPORT_COLORS: [string, string] = ["#F2BD4E", "#C9821F"];
 
 type Field = "subject" | "description";
 
-interface ReportPayload {
-    categories: string[];
-    subject: string;
-    description: string;
-}
-
-async function submitReport(payload: ReportPayload): Promise<void> {
+async function submitReport(payload: ReportInput): Promise<void> {
     const callable = httpsCallable(functions, "submitReport");
     await callable(payload);
 }
 
 export default function Report() {
     const { t } = useLanguage();
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
     const isAllowed = canUseVerifiedFeatures(profile);
     const [categories, setCategories] = useState<string[]>([]);
     const [subject, setSubject] = useState("");
@@ -137,15 +84,34 @@ export default function Report() {
 
     const handleSubmit = async () => {
         setAttemptedSubmit(true);
-        if (!isAllowed || !isValid || isSubmitting) return;
+        if (!isAllowed || !isValid || isSubmitting || !user) return;
+
+        const report = {
+            categories,
+            subject: subject.trim(),
+            description: description.trim(),
+        };
 
         setIsSubmitting(true);
+        if (await isDuplicateReport(user.uid, report)) {
+            setIsSubmitting(false);
+            Alert.alert(
+                t("Naipadala Na", "Already Sent"),
+                t(
+                    "Naipadala mo na ang ulat na ito sa nakaraang 24 oras. Ire-review pa ito ng iyong barangay, kaya hindi na kailangang ipadala ulit.",
+                    "You already sent this report in the last 24 hours. Your barangay will still review it, so there's no need to send it again.",
+                ),
+            );
+            return;
+        }
+
         try {
-            await submitReport({
-                categories,
-                subject: subject.trim(),
-                description: description.trim(),
-            });
+            await submitReport(report);
+            // the email already went out, so a failed save only means it
+            // won't show in My Reports
+            await saveReport(user.uid, user.email, report).catch((err) =>
+                console.error("Save report error:", err),
+            );
             Alert.alert(
                 t("Naipadala ang Ulat", "Report Sent"),
                 t(
@@ -297,7 +263,7 @@ export default function Report() {
                                 }
                             >
                                 <View className="flex-row flex-wrap justify-between">
-                                    {CATEGORIES.map((cat) => {
+                                    {REPORT_CATEGORIES.map((cat) => {
                                         const selected = categories.includes(cat.key);
                                         return (
                                             <Pressable

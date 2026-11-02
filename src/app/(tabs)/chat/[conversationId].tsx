@@ -11,6 +11,7 @@ import { PALETTE } from "@/constants/palette";
 import { useLanguage } from "@/hooks/use-language";
 import { formatClock, formatDayLabel, isSameDay } from "@/lib/chat-time";
 import { db } from "@/lib/firebase";
+import { censorBadWords, takeRateLimit } from "@/lib/moderation";
 import { canUseVerifiedFeatures } from "@/lib/verification";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -220,10 +221,25 @@ export default function ConversationThread() {
 
     const handleSend = async () => {
         if (!canSend || !user) return;
-        const toSend = text.trim();
-        setText("");
+        const typed = text.trim();
         setError(null);
         setIsSending(true);
+
+        const waitSeconds = await takeRateLimit("message", user.uid);
+        if (waitSeconds > 0) {
+            setIsSending(false);
+            setError(
+                t(
+                    `Masyadong mabilis. Subukang muli pagkalipas ng ${waitSeconds} segundo.`,
+                    `Slow down. Try again in ${waitSeconds} seconds.`,
+                ),
+            );
+            return;
+        }
+
+        // bad words are sent as *** instead of blocking the message
+        const toSend = censorBadWords(typed);
+        setText("");
 
         const newMessage: StoredMessage = {
             id: makeMessageId(),
@@ -284,7 +300,7 @@ export default function ConversationThread() {
             }
         } catch (err) {
             console.error("Send message error:", err);
-            setText(toSend);
+            setText(typed);
             setError(
                 t(
                     "Hindi naipadala ang mensahe. Pakisubukang muli.",

@@ -2,6 +2,7 @@ import { VerifyRequired } from "@/components/verify-required";
 import { BARANGAY } from "@/constants/barangays";
 import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
+import { findBadWords, RATE_LIMITS, takeRateLimit } from "@/lib/moderation";
 import { uploadImage } from "@/lib/upload-image";
 import { canUseVerifiedFeatures } from "@/lib/verification";
 import { useAuth } from "@/providers/auth-provider";
@@ -11,6 +12,7 @@ import { useRouter } from "expo-router";
 import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useState } from "react";
 import {
+    Alert,
     Image,
     Pressable,
     ScrollView,
@@ -53,7 +55,33 @@ export default function CreatePost() {
     const handlePost = async () => {
         if (!canPost || !user || !profile) return;
         setError(null);
+
+        const badWords = findBadWords(content);
+        if (badWords.length > 0) {
+            const list = badWords.map((w) => `"${w}"`).join(", ");
+            Alert.alert(
+                t("Hindi Maipo-post", "Can't Post"),
+                t(
+                    `May hindi angkop na salita sa iyong post: ${list}. Pakitanggal ito bago mag-post.`,
+                    `Your post has inappropriate language: ${list}. Please remove it before posting.`,
+                ),
+            );
+            return;
+        }
+
         setIsPosting(true);
+        const waitSeconds = await takeRateLimit("post", user.uid);
+        if (waitSeconds > 0) {
+            setIsPosting(false);
+            Alert.alert(
+                t("Masyadong Mabilis", "Slow Down"),
+                t(
+                    `Hanggang ${RATE_LIMITS.post.max} post lang bawat minuto. Subukang muli pagkalipas ng ${waitSeconds} segundo.`,
+                    `You can only make ${RATE_LIMITS.post.max} posts per minute. Try again in ${waitSeconds} seconds.`,
+                ),
+            );
+            return;
+        }
 
         try {
             const postRef = doc(collection(db, "posts"));
