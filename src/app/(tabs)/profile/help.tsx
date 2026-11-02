@@ -1,6 +1,7 @@
 import { AuthHeader } from "@/components/auth-header";
 import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
 import { InfoHero } from "@/components/info-page";
+import { CONTACT_EMAIL } from "@/constants/contact";
 import { PALETTE } from "@/constants/palette";
 import { useLanguage } from "@/hooks/use-language";
 import { RATE_LIMITS } from "@/lib/moderation";
@@ -9,8 +10,6 @@ import { useState } from "react";
 import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// same inbox the submitReport function sends reports to
-const CONTACT_EMAIL = "triboconnectapp@gmail.com";
 
 interface Faq {
     q: string;
