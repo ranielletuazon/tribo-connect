@@ -7,6 +7,7 @@ import {
     InfoStrong,
     InfoText,
 } from "@/components/info-page";
+import { CONTACT_EMAIL } from "@/constants/contact";
 import { PALETTE } from "@/constants/palette";
 import { useLanguage } from "@/hooks/use-language";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,8 +16,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 // change this date whenever the policy below changes
 const LAST_UPDATED = { tl: "Nobyembre 2, 2026", en: "November 2, 2026" };
-// same inbox the submitReport function sends reports to
-const CONTACT_EMAIL = "triboconnectapp@gmail.com";
 
 export default function PrivacyPolicy() {
     const { t } = useLanguage();
