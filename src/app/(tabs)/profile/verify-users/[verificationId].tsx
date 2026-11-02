@@ -1,6 +1,7 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton, clayRaised } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { useLanguage, type Language } from "@/hooks/use-language";
 import { db, functions, storage } from "@/lib/firebase";
 import { formatTimeAgo } from "@/lib/posts";
 import {
@@ -36,30 +37,43 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const REASON_MAX = 300;
 
-const QUICK_REASONS = [
-    "Hindi tugma ang selfie sa larawan sa ID.",
-    "Hindi tugma ang inilagay na detalye sa ID.",
-    "Malabo, peke o hindi valid ang ID.",
-    "Hindi residente ng barangay.",
-];
+// the chosen reason is saved as the admin typed it, so it stays in that language
+const QUICK_REASONS = {
+    tl: [
+        "Hindi tugma ang selfie sa larawan sa ID.",
+        "Hindi tugma ang inilagay na detalye sa ID.",
+        "Malabo, peke o hindi valid ang ID.",
+        "Hindi residente ng barangay.",
+    ],
+    en: [
+        "The selfie doesn't match the photo on the ID.",
+        "The entered details don't match the ID.",
+        "The ID is blurry, fake or not valid.",
+        "Not a resident of the barangay.",
+    ],
+};
 
-const STATUS_TITLES: Record<VerificationStatus, string> = {
-    approved: "Ibinalik ang verified badge",
-    revoked: "Binawi ang verified badge",
+const STATUS_TITLES: Record<VerificationStatus, { tl: string; en: string }> = {
+    approved: { tl: "Ibinalik ang verified badge", en: "Verified badge restored" },
+    revoked: { tl: "Binawi ang verified badge", en: "Verified badge revoked" },
     // only on requests from before auto-verify
-    pending: "Hindi pa verified",
-    rejected: "Tinanggihan",
+    pending: { tl: "Hindi pa verified", en: "Not verified yet" },
+    rejected: { tl: "Tinanggihan", en: "Rejected" },
 };
 
 // the rows of the comparison table, in the order they show
-const COMPARE_ROWS: { key: keyof ExtractedFields; label: string }[] = [
-    { key: "lastName", label: "Apelyido" },
-    { key: "firstName", label: "Pangalan" },
-    { key: "middleName", label: "Gitnang Pangalan" },
-    { key: "birthDate", label: "Kapanganakan" },
-    { key: "sex", label: "Kasarian" },
-    { key: "address", label: "Tirahan" },
-    { key: "idNumber", label: "Numero ng ID" },
+const COMPARE_ROWS: {
+    key: keyof ExtractedFields;
+    label: string;
+    labelEn: string;
+}[] = [
+    { key: "lastName", label: "Apelyido", labelEn: "Last Name" },
+    { key: "firstName", label: "Pangalan", labelEn: "First Name" },
+    { key: "middleName", label: "Gitnang Pangalan", labelEn: "Middle Name" },
+    { key: "birthDate", label: "Kapanganakan", labelEn: "Date of Birth" },
+    { key: "sex", label: "Kasarian", labelEn: "Sex" },
+    { key: "address", label: "Tirahan", labelEn: "Address" },
+    { key: "idNumber", label: "Numero ng ID", labelEn: "ID Number" },
 ];
 
 const setVerification = httpsCallable<
@@ -72,9 +86,17 @@ function normalize(value: string): string {
     return value.toLowerCase().replace(/[^a-z0-9ñ]/g, "");
 }
 
-function displayValue(key: keyof ExtractedFields, value: string): string {
+function displayValue(
+    key: keyof ExtractedFields,
+    value: string,
+    lang: Language,
+): string {
+    const en = lang === "en";
     if (!value) return "—";
-    if (key === "sex") return value === "F" ? "Babae" : "Lalaki";
+    if (key === "sex") {
+        if (value === "F") return en ? "Female" : "Babae";
+        return en ? "Male" : "Lalaki";
+    }
     if (key === "birthDate") {
         const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
         if (!match) return value;
@@ -82,7 +104,7 @@ function displayValue(key: keyof ExtractedFields, value: string): string {
             Number(match[1]),
             Number(match[2]) - 1,
             Number(match[3]),
-        ).toLocaleDateString("fil-PH", {
+        ).toLocaleDateString(en ? "en-PH" : "fil-PH", {
             year: "numeric",
             month: "long",
             day: "numeric",
@@ -118,6 +140,7 @@ export default function ReviewVerification() {
         verificationId: string;
     }>();
     const { profile } = useAuth();
+    const { lang, t } = useLanguage();
     const isAdmin = profile?.role === "admin";
 
     const [request, setRequest] = useState<VerificationRequest | null>(null);
@@ -188,10 +211,13 @@ export default function ReviewVerification() {
         } catch (err) {
             console.error("Set verification error:", err);
             Alert.alert(
-                "Nabigo",
+                t("Nabigo", "Failed"),
                 callableErrorMessage(
                     err,
-                    "Hindi naisumite ang pagbabago. Pakisubukang muli.",
+                    t(
+                        "Hindi naisumite ang pagbabago. Pakisubukang muli.",
+                        "The change wasn't submitted. Please try again.",
+                    ),
                 ),
             );
         } finally {
@@ -202,11 +228,17 @@ export default function ReviewVerification() {
     const handleRestore = () => {
         if (!request) return;
         Alert.alert(
-            "Ibalik ang verified badge?",
-            `Magiging verified muli ang account ni ${request.username} at makikita ng lahat ang verified badge.`,
+            t("Ibalik ang verified badge?", "Restore the verified badge?"),
+            t(
+                `Magiging verified muli ang account ni ${request.username} at makikita ng lahat ang verified badge.`,
+                `${request.username}'s account will be verified again and everyone will see the verified badge.`,
+            ),
             [
-                { text: "Kanselahin", style: "cancel" },
-                { text: "Ibalik", onPress: () => submitAction("restore") },
+                { text: t("Kanselahin", "Cancel"), style: "cancel" },
+                {
+                    text: t("Ibalik", "Restore"),
+                    onPress: () => submitAction("restore"),
+                },
             ],
         );
     };
@@ -216,7 +248,10 @@ export default function ReviewVerification() {
             <SafeAreaView className="flex-1 bg-[--main-white] items-center justify-center px-8">
                 <Ionicons name="lock-closed" size={36} color="#C4BFB2" />
                 <Text className="text-center text-[13.5px] text-[#9C978C] mt-3">
-                    Ang mga admin lamang ang maaaring pumasok sa pahinang ito.
+                    {t(
+                        "Ang mga admin lamang ang maaaring pumasok sa pahinang ito.",
+                        "Only admins can open this page.",
+                    )}
                 </Text>
             </SafeAreaView>
         );
@@ -233,7 +268,9 @@ export default function ReviewVerification() {
     if (!request) {
         return (
             <SafeAreaView className="flex-1 bg-[--main-white] px-6 pt-4">
-                <AuthHeader title="Suriin ang Beripikasyon" />
+                <AuthHeader
+                    title={t("Suriin ang Beripikasyon", "Review Verification")}
+                />
                 <View className="flex-1 items-center justify-center px-8">
                     <Ionicons
                         name="document-text-outline"
@@ -241,7 +278,10 @@ export default function ReviewVerification() {
                         color="#C4BFB2"
                     />
                     <Text className="text-center text-[13.5px] text-[#9C978C] mt-3">
-                        Hindi makita ang beripikasyong ito.
+                        {t(
+                            "Hindi makita ang beripikasyong ito.",
+                            "This verification can't be found.",
+                        )}
                     </Text>
                 </View>
             </SafeAreaView>
@@ -264,7 +304,9 @@ export default function ReviewVerification() {
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView contentContainerClassName="px-6 pt-4 pb-8">
-                <AuthHeader title="Suriin ang Beripikasyon" />
+                <AuthHeader
+                    title={t("Suriin ang Beripikasyon", "Review Verification")}
+                />
 
                 {/* User */}
                 <View
@@ -303,9 +345,13 @@ export default function ReviewVerification() {
                             </Text>
                         )}
                         <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
-                            Na-verify {formatTimeAgo(request.submittedAt)}
+                            {t("Na-verify", "Verified")}{" "}
+                            {formatTimeAgo(request.submittedAt, lang)}
                             {request.attempts > 1
-                                ? ` · Ika-${request.attempts} pagsumite`
+                                ? t(
+                                      ` · Ika-${request.attempts} pagsumite`,
+                                      ` · Attempt ${request.attempts}`,
+                                  )
                                 : ""}
                         </Text>
                     </View>
@@ -328,20 +374,26 @@ export default function ReviewVerification() {
                         />
                         <View className="flex-1">
                             <Text className="text-[13.5px] font-bold text-[#1F2A1F]">
-                                {STATUS_TITLES[request.status]}
+                                {t(
+                                    STATUS_TITLES[request.status].tl,
+                                    STATUS_TITLES[request.status].en,
+                                )}
                                 {request.reviewedByName
-                                    ? ` ni ${request.reviewedByName}`
+                                    ? t(
+                                          ` ni ${request.reviewedByName}`,
+                                          ` by ${request.reviewedByName}`,
+                                      )
                                     : ""}
                             </Text>
                             {request.reviewedAt && (
                                 <Text className="text-[11.5px] text-[#7A6D5C] mt-0.5">
-                                    {formatTimeAgo(request.reviewedAt)}
+                                    {formatTimeAgo(request.reviewedAt, lang)}
                                 </Text>
                             )}
                             {!isVerified && request.revokeReason && (
                                 <Text className="text-[12.5px] text-[#1F2A1F] leading-[18px] mt-2">
                                     <Text className="font-semibold">
-                                        Dahilan:{" "}
+                                        {t("Dahilan:", "Reason:")}{" "}
                                     </Text>
                                     {request.revokeReason}
                                 </Text>
@@ -352,7 +404,7 @@ export default function ReviewVerification() {
 
                 {/* ID image */}
                 <Section
-                    title="Larawan ng ID"
+                    title={t("Larawan ng ID", "ID Photo")}
                     right={
                         <View className="flex-row items-center gap-1">
                             <Ionicons
@@ -364,7 +416,7 @@ export default function ReviewVerification() {
                                 className="text-[12px] font-semibold"
                                 style={{ color: type.color }}
                             >
-                                {type.label}
+                                {t(type.label, type.labelEn)}
                             </Text>
                         </View>
                     }
@@ -394,7 +446,7 @@ export default function ReviewVerification() {
                                     color="#fff"
                                 />
                                 <Text className="text-[11px] text-white font-medium">
-                                    Palakihin
+                                    {t("Palakihin", "Enlarge")}
                                 </Text>
                             </View>
                         )}
@@ -404,7 +456,7 @@ export default function ReviewVerification() {
                     <View className="flex-row gap-2 mt-3">
                         <View className="flex-1 bg-[#F3F6F1] rounded-xl px-3 py-2">
                             <Text className="text-[10.5px] text-[#7A6D5C]">
-                                Kumpiyansa ng OCR
+                                {t("Kumpiyansa ng OCR", "OCR Confidence")}
                             </Text>
                             <Text className="text-[14px] font-bold text-[#1F2A1F]">
                                 {Math.round(request.ocr.confidence)}%
@@ -419,7 +471,7 @@ export default function ReviewVerification() {
                             }}
                         >
                             <Text className="text-[10.5px] text-[#7A6D5C]">
-                                Uri ng ID
+                                {t("Uri ng ID", "ID Type")}
                             </Text>
                             <Text
                                 className="text-[14px] font-bold"
@@ -430,8 +482,8 @@ export default function ReviewVerification() {
                                 }}
                             >
                                 {request.ocr.typeMatch
-                                    ? "Tugma"
-                                    : "Suriing mabuti"}
+                                    ? t("Tugma", "Matches")
+                                    : t("Suriing mabuti", "Check carefully")}
                             </Text>
                         </View>
                     </View>
@@ -470,18 +522,21 @@ export default function ReviewVerification() {
                             {request.selfiePath ? (
                                 <>
                                     <Text className="text-[13.5px] font-semibold text-[#1F2A1F]">
-                                        Ihambing ang mukha
+                                        {t("Ihambing ang mukha", "Compare the face")}
                                     </Text>
                                     <Text className="text-[12px] text-[#7A6D5C] leading-[17px] mt-1">
-                                        Siguraduhing iisang tao ang nasa selfie
-                                        at sa larawan ng ID. Pindutin para
-                                        palakihin.
+                                        {t(
+                                            "Siguraduhing iisang tao ang nasa selfie at sa larawan ng ID. Pindutin para palakihin.",
+                                            "Make sure the same person is in the selfie and the ID photo. Tap to enlarge.",
+                                        )}
                                     </Text>
                                 </>
                             ) : (
                                 <Text className="text-[12.5px] text-[#9C978C] leading-[18px]">
-                                    Walang selfie ang beripikasyong ito dahil
-                                    naisumite ito bago idinagdag ang selfie.
+                                    {t(
+                                        "Walang selfie ang beripikasyong ito dahil naisumite ito bago idinagdag ang selfie.",
+                                        "This verification has no selfie because it was submitted before the selfie step was added.",
+                                    )}
                                 </Text>
                             )}
                         </View>
@@ -490,15 +545,16 @@ export default function ReviewVerification() {
 
                 {/* Details the user entered vs what the OCR read */}
                 <Section
-                    title="Paghahambing ng Detalye"
+                    title={t("Paghahambing ng Detalye", "Details Comparison")}
                     right={
                         mismatchCount > 0 ? (
                             <Text className="text-[11.5px] font-semibold text-[#A85A30]">
-                                {mismatchCount} binago ng user
+                                {mismatchCount}{" "}
+                                {t("binago ng user", "changed by the user")}
                             </Text>
                         ) : (
                             <Text className="text-[11.5px] font-semibold text-[#3F5C42]">
-                                Lahat tugma
+                                {t("Lahat tugma", "All match")}
                             </Text>
                         )
                     }
@@ -509,13 +565,13 @@ export default function ReviewVerification() {
                     >
                         <View className="flex-row bg-[#F3F6F1] px-4 py-2.5">
                             <Text className="flex-1 text-[11px] font-semibold text-[#7A6D5C]">
-                                INILAGAY NG USER
+                                {t("INILAGAY NG USER", "ENTERED BY USER")}
                             </Text>
                             <Text className="flex-1 text-[11px] font-semibold text-[#7A6D5C]">
-                                NABASA SA ID
+                                {t("NABASA SA ID", "READ FROM ID")}
                             </Text>
                         </View>
-                        {COMPARE_ROWS.map(({ key, label }, i) => {
+                        {COMPARE_ROWS.map(({ key, label, labelEn }, i) => {
                             const entered = info[key];
                             const scanned = request.ocr.fields[key];
                             const matches =
@@ -538,7 +594,7 @@ export default function ReviewVerification() {
                                 >
                                     <View className="flex-row items-center gap-1 mb-1">
                                         <Text className="text-[11px] text-[#9C978C]">
-                                            {label}
+                                            {t(label, labelEn)}
                                         </Text>
                                         {matches && (
                                             <Ionicons
@@ -557,7 +613,7 @@ export default function ReviewVerification() {
                                     </View>
                                     <View className="flex-row gap-3">
                                         <Text className="flex-1 text-[13.5px] font-semibold text-[#1F2A1F]">
-                                            {displayValue(key, entered)}
+                                            {displayValue(key, entered, lang)}
                                         </Text>
                                         <Text
                                             className="flex-1 text-[13px]"
@@ -568,8 +624,8 @@ export default function ReviewVerification() {
                                             }}
                                         >
                                             {scanned
-                                                ? displayValue(key, scanned)
-                                                : "Hindi nabasa"}
+                                                ? displayValue(key, scanned, lang)
+                                                : t("Hindi nabasa", "Not read")}
                                         </Text>
                                     </View>
                                 </View>
@@ -586,7 +642,7 @@ export default function ReviewVerification() {
                     </View>
                     {fullName.length > 0 && (
                         <Text className="text-[11.5px] text-[#9C978C] mt-2 ml-1">
-                            Buong pangalan: {fullName}
+                            {t("Buong pangalan:", "Full name:")} {fullName}
                         </Text>
                     )}
                 </Section>
@@ -608,7 +664,10 @@ export default function ReviewVerification() {
                                 color="#7A6D5C"
                             />
                             <Text className="text-[12.5px] font-medium text-[#7A6D5C]">
-                                Buong teksto na nabasa ng OCR
+                                {t(
+                                    "Buong teksto na nabasa ng OCR",
+                                    "Full text read by the OCR",
+                                )}
                             </Text>
                         </Pressable>
                         {showRawText && (
@@ -642,7 +701,7 @@ export default function ReviewVerification() {
                     >
                         <Ionicons name="close" size={19} color="#9C3A2A" />
                         <Text className="text-[15px] font-semibold text-[#9C3A2A]">
-                            Bawiin ang Verified Badge
+                            {t("Bawiin ang Verified Badge", "Revoke Verified Badge")}
                         </Text>
                     </Pressable>
                 ) : (
@@ -659,8 +718,11 @@ export default function ReviewVerification() {
                         )}
                         <Text className="text-white font-semibold text-[15px]">
                             {request.status === "revoked"
-                                ? "Ibalik ang Verified Badge"
-                                : "I-verify ang User"}
+                                ? t(
+                                      "Ibalik ang Verified Badge",
+                                      "Restore Verified Badge",
+                                  )
+                                : t("I-verify ang User", "Verify User")}
                         </Text>
                     </ClayButton>
                 )}
@@ -717,17 +779,17 @@ export default function ReviewVerification() {
                                 <View className="w-10 h-1.5 rounded-full bg-[#E5E1D8]" />
                             </View>
                             <Text className="text-[17px] font-bold text-[#1F2A1F]">
-                                Bawiin ang verified badge
+                                {t("Bawiin ang verified badge", "Revoke the verified badge")}
                             </Text>
                             <Text className="text-[12.5px] text-[#7A6D5C] leading-[18px] mt-1 mb-4">
-                                Mawawala ang badge ni {request.username} sa
-                                kanyang profile at mga post, at makikita niya
-                                ang dahilang ito. Maibabalik mo ito anumang
-                                oras.
+                                {t(
+                                    `Mawawala ang badge ni ${request.username} sa kanyang profile at mga post, at makikita niya ang dahilang ito. Maibabalik mo ito anumang oras.`,
+                                    `${request.username} will lose the badge on their profile and posts, and will see this reason. You can restore it anytime.`,
+                                )}
                             </Text>
 
                             <View className="flex-row flex-wrap gap-2 mb-3">
-                                {QUICK_REASONS.map((quick) => (
+                                {QUICK_REASONS[lang].map((quick) => (
                                     <Pressable
                                         key={quick}
                                         onPress={() => setReason(quick)}
@@ -758,7 +820,10 @@ export default function ReviewVerification() {
                             <TextInput
                                 value={reason}
                                 onChangeText={setReason}
-                                placeholder="Isulat ang dahilan..."
+                                placeholder={t(
+                                    "Isulat ang dahilan...",
+                                    "Write the reason...",
+                                )}
                                 placeholderTextColor="#9C978C"
                                 multiline
                                 maxLength={REASON_MAX}
@@ -783,7 +848,9 @@ export default function ReviewVerification() {
                                     />
                                 )}
                                 <Text className="text-white font-semibold text-[16px]">
-                                    {isSubmitting ? "Ipinapadala..." : "Bawiin"}
+                                    {isSubmitting
+                                        ? t("Ipinapadala...", "Sending...")
+                                        : t("Bawiin", "Revoke")}
                                 </Text>
                             </ClayButton>
                         </Pressable>

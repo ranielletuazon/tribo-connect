@@ -8,6 +8,7 @@ import {
     type VerificationRequest,
     type VerificationStatus,
 } from "@/lib/verification";
+import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -32,27 +33,57 @@ import { SafeAreaView } from "react-native-safe-area-context";
 // users are verified right away, so admins only watch and revoke
 type Tab = "approved" | "revoked";
 
-const TABS: { status: Tab; label: string; empty: string }[] = [
+const TABS: {
+    status: Tab;
+    label: string;
+    labelEn: string;
+    empty: string;
+    emptyEn: string;
+}[] = [
     {
         status: "approved",
         label: "Verified",
+        labelEn: "Verified",
         empty: "Wala pang verified na user.",
+        emptyEn: "No verified users yet.",
     },
     {
         status: "revoked",
         label: "Binawi",
+        labelEn: "Revoked",
         empty: "Wala pang binawing verified badge.",
+        emptyEn: "No revoked verified badges yet.",
     },
 ];
 
 const STATUS_PILLS: Record<
     VerificationStatus,
-    { label: string; color: string; tint: string }
+    { label: string; labelEn: string; color: string; tint: string }
 > = {
-    approved: { label: "Verified", color: "#2A6FDB", tint: "#EAF1FC" },
-    revoked: { label: "Binawi", color: "#9C3A2A", tint: "#FBECE9" },
-    pending: { label: "Nakabinbin", color: "#A85A30", tint: "#FBF1E8" },
-    rejected: { label: "Tinanggihan", color: "#9C3A2A", tint: "#FBECE9" },
+    approved: {
+        label: "Verified",
+        labelEn: "Verified",
+        color: "#2A6FDB",
+        tint: "#EAF1FC",
+    },
+    revoked: {
+        label: "Binawi",
+        labelEn: "Revoked",
+        color: "#9C3A2A",
+        tint: "#FBECE9",
+    },
+    pending: {
+        label: "Nakabinbin",
+        labelEn: "Pending",
+        color: "#A85A30",
+        tint: "#FBF1E8",
+    },
+    rejected: {
+        label: "Tinanggihan",
+        labelEn: "Rejected",
+        color: "#9C3A2A",
+        tint: "#FBECE9",
+    },
 };
 
 // verifications from the last day, so admins can tell what's new
@@ -61,6 +92,7 @@ const NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
 export default function VerifyUsers() {
     const router = useRouter();
     const { profile } = useAuth();
+    const { lang, t } = useLanguage();
     const isAdmin = profile?.role === "admin";
 
     const [activeTab, setActiveTab] = useState<Tab>("approved");
@@ -132,26 +164,30 @@ export default function VerifyUsers() {
             <SafeAreaView className="flex-1 bg-[--main-white] items-center justify-center px-8">
                 <Ionicons name="lock-closed" size={36} color="#C4BFB2" />
                 <Text className="text-center text-[13.5px] text-[#9C978C] mt-3 mb-5">
-                    Ang mga admin lamang ang maaaring pumasok sa pahinang ito.
+                    {t(
+                        "Ang mga admin lamang ang maaaring pumasok sa pahinang ito.",
+                        "Only admins can open this page.",
+                    )}
                 </Text>
                 <Pressable
                     onPress={() => router.back()}
                     className="rounded-full px-5 py-2 bg-[#2F5233]"
                 >
                     <Text className="text-[13.5px] font-semibold text-white">
-                        Bumalik
+                        {t("Bumalik", "Go Back")}
                     </Text>
                 </Pressable>
             </SafeAreaView>
         );
     }
 
-    const emptyText = TABS.find((t) => t.status === activeTab)?.empty;
+    const emptyTab = TABS.find((tab) => tab.status === activeTab);
+    const emptyText = emptyTab && t(emptyTab.empty, emptyTab.emptyEn);
 
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView contentContainerClassName="px-6 pt-4 pb-10">
-                <AuthHeader title="I-verify ang mga User" />
+                <AuthHeader title={t("I-verify ang mga User", "Verify Users")} />
 
                 {/* Status tabs */}
                 <View
@@ -177,7 +213,7 @@ export default function VerifyUsers() {
                                         color: isActive ? "#fff" : "#7A6D5C",
                                     }}
                                 >
-                                    {tab.label}
+                                    {t(tab.label, tab.labelEn)}
                                 </Text>
                                 {tab.status === "approved" && newCount > 0 && (
                                     <View
@@ -196,7 +232,7 @@ export default function VerifyUsers() {
                                                     : "#fff",
                                             }}
                                         >
-                                            {newCount} bago
+                                            {newCount} {t("bago", "new")}
                                         </Text>
                                     </View>
                                 )}
@@ -296,7 +332,7 @@ export default function VerifyUsers() {
                                                 className="text-[12px] font-medium"
                                                 style={{ color: type.color }}
                                             >
-                                                {type.label}
+                                                {t(type.label, type.labelEn)}
                                             </Text>
                                             {!request.ocr.typeMatch && (
                                                 <Ionicons
@@ -319,7 +355,7 @@ export default function VerifyUsers() {
                                                 className="text-[10.5px] font-semibold"
                                                 style={{ color: pill.color }}
                                             >
-                                                {pill.label}
+                                                {t(pill.label, pill.labelEn)}
                                             </Text>
                                         </View>
                                         <Text className="text-[10.5px] text-[#9C978C]">
@@ -327,11 +363,15 @@ export default function VerifyUsers() {
                                                 request.status === "revoked"
                                                     ? request.reviewedAt
                                                     : request.submittedAt,
+                                                lang,
                                             )}
                                         </Text>
                                         {request.attempts > 1 && (
                                             <Text className="text-[10px] text-[#9C978C]">
-                                                Ika-{request.attempts} pagsumite
+                                                {t(
+                                                    `Ika-${request.attempts} pagsumite`,
+                                                    `Attempt ${request.attempts}`,
+                                                )}
                                             </Text>
                                         )}
                                     </View>
@@ -347,9 +387,10 @@ export default function VerifyUsers() {
                 </View>
 
                 <Text className="text-[11.5px] text-[#9C978C] text-center mt-4 px-4">
-                    Awtomatikong nave-verify ang mga user. Pindutin ang isang
-                    user para makita ang kanyang ID at bawiin ang verified badge
-                    kung may mali.
+                    {t(
+                        "Awtomatikong nave-verify ang mga user. Pindutin ang isang user para makita ang kanyang ID at bawiin ang verified badge kung may mali.",
+                        "Users are verified automatically. Tap a user to see their ID and revoke the verified badge if something is wrong.",
+                    )}
                 </Text>
             </ScrollView>
         </SafeAreaView>

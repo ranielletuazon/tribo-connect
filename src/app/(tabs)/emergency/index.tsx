@@ -6,6 +6,7 @@ import {
     PulseRing,
 } from "@/components/clay";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,7 +17,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const NATIONAL_HOTLINES = [
     {
         agency: "Ambulance (MDRRMO)",
+        agencyEn: "Ambulance (MDRRMO)",
         description: "Medikal na emergency at aksidente",
+        descriptionEn: "Medical emergencies and accidents",
         icon: "medkit" as const,
         colors: ["#F0624D", "#B8321F"] as [string, string],
         tint: "rgba(240,98,77,0.12)",
@@ -25,7 +28,9 @@ const NATIONAL_HOTLINES = [
     },
     {
         agency: "Bumbero (BFP)",
+        agencyEn: "Fire (BFP)",
         description: "Sunog at pagsagip",
+        descriptionEn: "Fire and rescue",
         icon: "flame" as const,
         colors: ["#F59A4A", "#C4561F"] as [string, string],
         tint: "rgba(245,154,74,0.14)",
@@ -34,7 +39,9 @@ const NATIONAL_HOTLINES = [
     },
     {
         agency: "Pulis (PNP)",
+        agencyEn: "Police (PNP)",
         description: "Krimen at seguridad",
+        descriptionEn: "Crime and security",
         icon: "shield-checkmark" as const,
         colors: ["#5B8DEF", "#2A4F9E"] as [string, string],
         tint: "rgba(91,141,239,0.13)",
@@ -150,6 +157,7 @@ function LineButton({
 
 export default function Emergency() {
     const { profile } = useAuth();
+    const { t } = useLanguage();
     const barangay = profile?.barangay as string | undefined;
     const barangayHotline = barangay
         ? (BARANGAY_HOTLINES[barangay] ?? FALLBACK_BARANGAY_HOTLINE)
@@ -233,14 +241,19 @@ export default function Emergency() {
                             Emergency Assistance
                         </Text>
                         <Text className="text-[13px] text-white/85 text-center mt-1">
-                            Piliin ang numerong tatawagan para sa agarang
-                            tulong.
+                            {t(
+                                "Piliin ang numerong tatawagan para sa agarang tulong.",
+                                "Choose a number to call for urgent help.",
+                            )}
                         </Text>
 
                         <View className="flex-row items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full bg-black/20 border border-white/20">
                             <Ionicons name="heart" size={12} color="#FFD2C9" />
                             <Text className="text-white text-[11.5px] font-semibold">
-                                Manatiling kalmado, may tutulong sa iyo
+                                {t(
+                                    "Manatiling kalmado, may tutulong sa iyo",
+                                    "Stay calm, help is on the way",
+                                )}
                             </Text>
                         </View>
                     </View>
@@ -250,7 +263,7 @@ export default function Emergency() {
                 {profile?.role !== "admin" && (
                     <>
                         <SectionTitle
-                            title="Pinakamalapit na Tulong"
+                            title={t("Pinakamalapit na Tulong", "Nearest Help")}
                             color={PALETTE.forest}
                         />
                         <Pressable
@@ -309,7 +322,7 @@ export default function Emergency() {
                                                 className="text-[12px] font-bold"
                                                 style={{ color: PALETTE.forest }}
                                             >
-                                                Tawagan
+                                                {t("Tawagan", "Call")}
                                             </Text>
                                         </View>
                                     </View>
@@ -321,7 +334,7 @@ export default function Emergency() {
 
                 {/* National agency hotlines */}
                 <SectionTitle
-                    title="Mga Numero ng Ahensya"
+                    title={t("Mga Numero ng Ahensya", "Agency Hotlines")}
                     color={PALETTE.terracotta}
                 />
 
@@ -369,7 +382,7 @@ export default function Emergency() {
                                         className="text-[15px] font-extrabold"
                                         style={{ color: PALETTE.ink }}
                                     >
-                                        {agency.agency}
+                                        {t(agency.agency, agency.agencyEn)}
                                     </Text>
                                     <View className="flex-row mt-1">
                                         <View
@@ -384,7 +397,10 @@ export default function Emergency() {
                                                     color: agency.colors[1],
                                                 }}
                                             >
-                                                {agency.description}
+                                                {t(
+                                                    agency.description,
+                                                    agency.descriptionEn,
+                                                )}
                                             </Text>
                                         </View>
                                     </View>
@@ -393,12 +409,12 @@ export default function Emergency() {
 
                             <View className="flex-row gap-2.5">
                                 <LineButton
-                                    label="Linya 1"
+                                    label={t("Linya 1", "Line 1")}
                                     number={agency.hotline1}
                                     colors={agency.colors}
                                 />
                                 <LineButton
-                                    label="Linya 2"
+                                    label={t("Linya 2", "Line 2")}
                                     number={agency.hotline2}
                                     colors={agency.colors}
                                 />
@@ -424,8 +440,10 @@ export default function Emergency() {
                         className="flex-1 text-[12px] leading-[18px]"
                         style={{ color: PALETTE.muted }}
                     >
-                        Sabihin agad ang iyong pangalan, eksaktong lokasyon, at
-                        kung ano ang nangyari para mabilis kang matulungan.
+                        {t(
+                            "Sabihin agad ang iyong pangalan, eksaktong lokasyon, at kung ano ang nangyari para mabilis kang matulungan.",
+                            "Say your name, exact location, and what happened right away so you can be helped quickly.",
+                        )}
                     </Text>
                 </View>
             </ScrollView>

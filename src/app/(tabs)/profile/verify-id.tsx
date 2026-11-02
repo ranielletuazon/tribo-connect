@@ -1,6 +1,7 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton, clayRaised } from "@/components/clay";
 import { VerificationSteps } from "@/components/verification-steps";
+import { useLanguage } from "@/hooks/use-language";
 import { functions } from "@/lib/firebase";
 import { uploadImage } from "@/lib/upload-image";
 import {
@@ -28,14 +29,31 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 type Stage = "idle" | "uploading" | "scanning" | "failed";
 
-const TIPS: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
-    { icon: "sunny-outline", text: "Maliwanag na lugar, walang silaw ng ilaw" },
-    { icon: "scan-outline", text: "Buo ang ID sa larawan, walang natatakpan" },
+const TIPS: {
+    icon: keyof typeof Ionicons.glyphMap;
+    text: string;
+    textEn: string;
+}[] = [
+    {
+        icon: "sunny-outline",
+        text: "Maliwanag na lugar, walang silaw ng ilaw",
+        textEn: "Bright place, no light glare",
+    },
+    {
+        icon: "scan-outline",
+        text: "Buo ang ID sa larawan, walang natatakpan",
+        textEn: "The whole ID is in the photo, nothing covered",
+    },
     {
         icon: "hand-left-outline",
         text: "Hawakan nang matatag para hindi malabo",
+        textEn: "Hold steady so it isn't blurry",
     },
-    { icon: "card-outline", text: "Orihinal na ID, hindi photocopy" },
+    {
+        icon: "card-outline",
+        text: "Orihinal na ID, hindi photocopy",
+        textEn: "Original ID, not a photocopy",
+    },
 ];
 
 // OCR on a cold function can take a while, so wait longer than the default
@@ -46,6 +64,7 @@ const scanIdImage = httpsCallable<
 
 export default function VerifyId() {
     const { user } = useAuth();
+    const { t } = useLanguage();
     const [idType, setIdType] = useState<VerificationType | null>(null);
     const [imageUri, setImageUri] = useState<string | null>(null);
     const [stage, setStage] = useState<Stage>("idle");
@@ -86,7 +105,10 @@ export default function VerifyId() {
             setFailure(
                 callableErrorMessage(
                     err,
-                    "Nagkaproblema sa pagbasa ng ID. Pakisubukang muli.",
+                    t(
+                        "Nagkaproblema sa pagbasa ng ID. Pakisubukang muli.",
+                        "There was a problem reading the ID. Please try again.",
+                    ),
                 ),
             );
         }
@@ -103,8 +125,14 @@ export default function VerifyId() {
             setStage("failed");
             setFailure(
                 source === "camera"
-                    ? "Kailangan ng pahintulot sa camera para makunan ang ID."
-                    : "Kailangan ng pahintulot sa mga larawan.",
+                    ? t(
+                          "Kailangan ng pahintulot sa camera para makunan ang ID.",
+                          "Camera permission is needed to capture the ID.",
+                      )
+                    : t(
+                          "Kailangan ng pahintulot sa mga larawan.",
+                          "Photo library permission is needed.",
+                      ),
             );
             return;
         }
@@ -140,12 +168,12 @@ export default function VerifyId() {
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView contentContainerClassName="px-6 pt-4 pb-8">
-                <AuthHeader title="Beripikasyon" />
+                <AuthHeader title={t("Beripikasyon", "Verification")} />
                 <VerificationSteps current={0} />
 
                 {/* ID type */}
                 <Text className="text-[13px] font-medium text-[#7A6D5C] mb-3 ml-1">
-                    Anong ID ang gagamitin mo?
+                    {t("Anong ID ang gagamitin mo?", "Which ID will you use?")}
                 </Text>
                 <View
                     style={clayRaised}
@@ -184,10 +212,10 @@ export default function VerifyId() {
                                 </View>
                                 <View className="flex-1">
                                     <Text className="text-[14.5px] font-semibold text-[#1F2A1F]">
-                                        {type.label}
+                                        {t(type.label, type.labelEn)}
                                     </Text>
                                     <Text className="text-[12px] text-[#7A6D5C] mt-0.5">
-                                        {type.description}
+                                        {t(type.description, type.descriptionEn)}
                                     </Text>
                                 </View>
                                 <View
@@ -212,7 +240,7 @@ export default function VerifyId() {
                 {imageUri && (
                     <View className="mt-6">
                         <Text className="text-[13px] font-medium text-[#7A6D5C] mb-3 ml-1">
-                            Larawan ng ID
+                            {t("Larawan ng ID", "ID Photo")}
                         </Text>
                         <View
                             style={clayRaised}
@@ -232,13 +260,22 @@ export default function VerifyId() {
                                     />
                                     <Text className="text-white text-[14px] font-semibold mt-3">
                                         {stage === "uploading"
-                                            ? "Ina-upload ang larawan..."
-                                            : "Binabasa ang iyong ID..."}
+                                            ? t(
+                                                  "Ina-upload ang larawan...",
+                                                  "Uploading the photo...",
+                                              )
+                                            : t(
+                                                  "Binabasa ang iyong ID...",
+                                                  "Reading your ID...",
+                                              )}
                                     </Text>
                                     <Text className="text-white/75 text-[11.5px] mt-1 text-center">
                                         {stage === "uploading"
-                                            ? "Sandali lang"
-                                            : "Sinusuri ang linaw at binabasa ang detalye. Maaaring tumagal nang hanggang 30 segundo."}
+                                            ? t("Sandali lang", "One moment")
+                                            : t(
+                                                  "Sinusuri ang linaw at binabasa ang detalye. Maaaring tumagal nang hanggang 30 segundo.",
+                                                  "Checking clarity and reading the details. This can take up to 30 seconds.",
+                                              )}
                                     </Text>
                                 </View>
                             )}
@@ -253,7 +290,10 @@ export default function VerifyId() {
                                 />
                                 <View className="flex-1">
                                     <Text className="text-[13px] font-semibold text-[#9C3A2A]">
-                                        Hindi natapos ang pagbasa
+                                        {t(
+                                            "Hindi natapos ang pagbasa",
+                                            "Reading didn't finish",
+                                        )}
                                     </Text>
                                     <Text className="text-[12.5px] text-[#7A6D5C] leading-[18px] mt-0.5">
                                         {failure}
@@ -273,7 +313,10 @@ export default function VerifyId() {
 
                 {/* Tips */}
                 <Text className="text-[13px] font-medium text-[#7A6D5C] mb-3 ml-1 mt-6">
-                    Mga Tip para sa Malinaw na Larawan
+                    {t(
+                        "Mga Tip para sa Malinaw na Larawan",
+                        "Tips for a Clear Photo",
+                    )}
                 </Text>
                 <View className="bg-[#F3F6F1] rounded-2xl p-4 gap-3">
                     {TIPS.map((tip) => (
@@ -287,7 +330,7 @@ export default function VerifyId() {
                                 color="#3F5C42"
                             />
                             <Text className="flex-1 text-[12.5px] text-[#1F2A1F]">
-                                {tip.text}
+                                {t(tip.text, tip.textEn)}
                             </Text>
                         </View>
                     ))}
@@ -310,11 +353,17 @@ export default function VerifyId() {
                     <Text className="text-white font-semibold text-[16px]">
                         {primarySource === "gallery"
                             ? hasTried
-                                ? "Pumili Muli ng Screenshot"
-                                : "Pumili ng Screenshot"
+                                ? t(
+                                      "Pumili Muli ng Screenshot",
+                                      "Pick Another Screenshot",
+                                  )
+                                : t("Pumili ng Screenshot", "Pick a Screenshot")
                             : hasTried
-                              ? "Kunan Muli ang ID"
-                              : "Kunan ng Larawan ang ID"}
+                              ? t("Kunan Muli ang ID", "Retake the ID")
+                              : t(
+                                    "Kunan ng Larawan ang ID",
+                                    "Take a Photo of the ID",
+                                )}
                     </Text>
                 </ClayButton>
 
@@ -330,14 +379,17 @@ export default function VerifyId() {
                             color="#2F5233"
                         />
                         <Text className="text-[13.5px] font-semibold text-[#2F5233]">
-                            O kunan gamit ang camera
+                            {t(
+                                "O kunan gamit ang camera",
+                                "Or take one with the camera",
+                            )}
                         </Text>
                     </Pressable>
                 )}
 
                 {!idType && (
                     <Text className="text-[11.5px] text-[#9C978C] text-center">
-                        Pumili muna ng uri ng ID
+                        {t("Pumili muna ng uri ng ID", "Pick an ID type first")}
                     </Text>
                 )}
             </View>

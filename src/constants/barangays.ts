@@ -1,31 +1,5 @@
-// same list as the BARANGAYS in account-setup.tsx
-export const BARANGAYS = [
-    "Babo Pangulo",
-    "Babo Sacan (Guanson)",
-    "Balubad",
-    "Calzadang Bayu",
-    "Camias",
-    "Cangatba",
-    "Diaz",
-    "Dolores (Hacienda Dolores)",
-    "Inararo (Aetas)",
-    "Jalung",
-    "Mancatian",
-    "Manibaug Libutad",
-    "Manibaug Paralaya",
-    "Manibaug Pasig",
-    "Manuali",
-    "Mitla Proper",
-    "Model Community (Tokwing)",
-    "Palat",
-    "Pias",
-    "Pio",
-    "Planas",
-    "Poblacion",
-    "Pulung Santol",
-    "Salu",
-    "San Jose Mitla",
-    "Santa Cruz",
-    "Sepung Bulaon",
-    "Sinura",
-];
+// the app only serves this one barangay, every user and
+// announcement belongs to it
+export const BARANGAY = "Nabuclod";
+export const MUNICIPALITY = "Floridablanca";
+export const PROVINCE = "Pampanga";

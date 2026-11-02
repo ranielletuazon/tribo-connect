@@ -5,7 +5,9 @@ import {
     pressScale,
 } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { BARANGAY, MUNICIPALITY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import { formatClock, formatDayLabel, isSameDay } from "@/lib/chat-time";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/providers/auth-provider";
@@ -59,7 +61,10 @@ function makeMessageId(): string {
 
 const GREEN: [string, string] = ["#56A06A", "#2F6540"];
 const MESSAGE_MAX = 1000;
-const QUICK_STARTERS = ["Kumusta! 👋", "Magandang araw po!", "May tanong po ako."];
+const QUICK_STARTERS = {
+    tl: ["Kumusta! 👋", "Magandang araw po!", "May tanong po ako."],
+    en: ["Hello! 👋", "Good day!", "I have a question."],
+};
 
 // messages from the same person within 5 minutes are shown as one group
 const GROUP_GAP_MS = 5 * 60 * 1000;
@@ -86,6 +91,7 @@ export default function ConversationThread() {
         targetVerified?: string;
     }>();
     const { user, profile } = useAuth();
+    const { lang, t } = useLanguage();
 
     // the current conversation id. for a new chat we just update this after
     // creating it, because router.replace would reload the whole screen
@@ -116,7 +122,6 @@ export default function ConversationThread() {
     const [isUnreadForMe, setIsUnreadForMe] = useState(false);
     // still in the unread list means the other user hasn't opened it yet
     const [isUnreadForOther, setIsUnreadForOther] = useState(false);
-    const [otherBarangay, setOtherBarangay] = useState<string | null>(null);
     const [isInputFocused, setIsInputFocused] = useState(false);
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
     const insets = useSafeAreaInsets();
@@ -277,7 +282,12 @@ export default function ConversationThread() {
         } catch (err) {
             console.error("Send message error:", err);
             setText(toSend);
-            setError("Hindi naipadala ang mensahe. Pakisubukang muli.");
+            setError(
+                t(
+                    "Hindi naipadala ang mensahe. Pakisubukang muli.",
+                    "Your message wasn't sent. Please try again.",
+                ),
+            );
         } finally {
             setIsSending(false);
         }
@@ -294,7 +304,6 @@ export default function ConversationThread() {
             setOtherName(data.username ?? "Gumagamit");
             setOtherPhotoURL(data.photoURL ?? null);
             setOtherVerified(data.isVerified === true);
-            setOtherBarangay(data.barangay ?? null);
         });
     }, [isNew, targetUid, otherUidFromConversation]);
 
@@ -353,22 +362,20 @@ export default function ConversationThread() {
                             </Text>
                             {otherVerified && <VerifiedBadge size={15} />}
                         </View>
-                        {otherBarangay && (
-                            <View className="flex-row items-center gap-1 mt-0.5">
-                                <Ionicons
-                                    name="location"
-                                    size={11}
-                                    color={PALETTE.forest}
-                                />
-                                <Text
-                                    className="text-[11.5px] font-semibold"
-                                    style={{ color: PALETTE.forest }}
-                                    numberOfLines={1}
-                                >
-                                    Barangay {otherBarangay}
-                                </Text>
-                            </View>
-                        )}
+                        <View className="flex-row items-center gap-1 mt-0.5">
+                            <Ionicons
+                                name="location"
+                                size={11}
+                                color={PALETTE.forest}
+                            />
+                            <Text
+                                className="text-[11.5px] font-semibold"
+                                style={{ color: PALETTE.forest }}
+                                numberOfLines={1}
+                            >
+                                Barangay {BARANGAY}
+                            </Text>
+                        </View>
                     </View>
                 </View>
 
@@ -402,20 +409,21 @@ export default function ConversationThread() {
                                 </Text>
                                 {otherVerified && <VerifiedBadge size={17} />}
                             </View>
-                            {otherBarangay && (
-                                <Text className="text-[12.5px] text-[#9C978C] mt-0.5">
-                                    Barangay {otherBarangay} · Porac
-                                </Text>
-                            )}
+                            <Text className="text-[12.5px] text-[#9C978C] mt-0.5">
+                                Barangay {BARANGAY} · {MUNICIPALITY}
+                            </Text>
                             <Text
                                 className="text-[13px] text-center mt-3"
                                 style={{ color: PALETTE.muted }}
                             >
-                                Magpadala ng mensahe para simulan ang usapan.
+                                {t(
+                                    "Magpadala ng mensahe para simulan ang usapan.",
+                                    "Send a message to start the conversation.",
+                                )}
                             </Text>
 
                             <View className="flex-row flex-wrap justify-center gap-2 mt-4">
-                                {QUICK_STARTERS.map((starter) => (
+                                {QUICK_STARTERS[lang].map((starter) => (
                                     <Pressable
                                         key={starter}
                                         onPress={() => {
@@ -510,7 +518,7 @@ export default function ConversationThread() {
                                         <View className="flex-row items-center gap-3 my-4 px-6">
                                             <View className="flex-1 h-px bg-[#E6E0D4]" />
                                             <Text className="text-[11px] font-bold text-[#9C978C] tracking-wide">
-                                                {formatDayLabel(msg.dateSent)}
+                                                {formatDayLabel(msg.dateSent, lang)}
                                             </Text>
                                             <View className="flex-1 h-px bg-[#E6E0D4]" />
                                         </View>
@@ -613,8 +621,8 @@ export default function ConversationThread() {
                                                                 }}
                                                             >
                                                                 {isUnreadForOther
-                                                                    ? "Naipadala"
-                                                                    : "Nakita"}
+                                                                    ? t("Naipadala", "Sent")
+                                                                    : t("Nakita", "Seen")}
                                                             </Text>
                                                         </>
                                                     )}
@@ -671,7 +679,10 @@ export default function ConversationThread() {
                             onChangeText={setText}
                             onFocus={() => setIsInputFocused(true)}
                             onBlur={() => setIsInputFocused(false)}
-                            placeholder="Mag-type ng mensahe..."
+                            placeholder={t(
+                                "Mag-type ng mensahe...",
+                                "Type a message...",
+                            )}
                             placeholderTextColor="#B5AFA0"
                             multiline
                             maxLength={MESSAGE_MAX}
@@ -687,7 +698,7 @@ export default function ConversationThread() {
                             onPress={handleSend}
                             disabled={!canSend}
                             accessibilityRole="button"
-                            accessibilityLabel="Ipadala"
+                            accessibilityLabel={t("Ipadala", "Send")}
                         >
                             {({ pressed }) => (
                                 <LinearGradient

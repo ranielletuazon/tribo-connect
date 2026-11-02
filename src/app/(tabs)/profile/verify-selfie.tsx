@@ -1,6 +1,7 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton } from "@/components/clay";
 import { VerificationSteps } from "@/components/verification-steps";
+import { useLanguage } from "@/hooks/use-language";
 import { uploadImage } from "@/lib/upload-image";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,14 +13,31 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const CIRCLE_SIZE = 220;
 
-const TIPS: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
-    { icon: "happy-outline", text: "Harapin ang camera nang diretso" },
-    { icon: "glasses-outline", text: "Tanggalin ang salamin, sumbrero o mask" },
+const TIPS: {
+    icon: keyof typeof Ionicons.glyphMap;
+    text: string;
+    textEn: string;
+}[] = [
+    {
+        icon: "happy-outline",
+        text: "Harapin ang camera nang diretso",
+        textEn: "Face the camera directly",
+    },
+    {
+        icon: "glasses-outline",
+        text: "Tanggalin ang salamin, sumbrero o mask",
+        textEn: "Remove glasses, hat or mask",
+    },
     {
         icon: "sunny-outline",
         text: "Maliwanag na lugar, walang anino sa mukha",
+        textEn: "Bright place, no shadows on your face",
     },
-    { icon: "person-outline", text: "Ikaw lang dapat ang nasa larawan" },
+    {
+        icon: "person-outline",
+        text: "Ikaw lang dapat ang nasa larawan",
+        textEn: "Only you should be in the photo",
+    },
 ];
 
 export default function VerifySelfie() {
@@ -31,6 +49,7 @@ export default function VerifySelfie() {
         typeMatch?: string;
     }>();
     const { user } = useAuth();
+    const { t } = useLanguage();
 
     const [selfieUri, setSelfieUri] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -44,7 +63,10 @@ export default function VerifySelfie() {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
             setError(
-                "Kailangan ng pahintulot sa camera para makakuha ng selfie.",
+                t(
+                    "Kailangan ng pahintulot sa camera para makakuha ng selfie.",
+                    "Camera permission is needed to take a selfie.",
+                ),
             );
             return;
         }
@@ -70,7 +92,12 @@ export default function VerifySelfie() {
             });
         } catch (err) {
             console.error("Upload selfie error:", err);
-            setError("Hindi na-upload ang selfie. Pakisubukang muli.");
+            setError(
+                t(
+                    "Hindi na-upload ang selfie. Pakisubukang muli.",
+                    "The selfie wasn't uploaded. Please try again.",
+                ),
+            );
         } finally {
             setIsUploading(false);
         }
@@ -79,16 +106,17 @@ export default function VerifySelfie() {
     return (
         <SafeAreaView className="flex-1 bg-[--main-white]" edges={["top"]}>
             <ScrollView contentContainerClassName="px-6 pt-4 pb-8">
-                <AuthHeader title="Beripikasyon" />
+                <AuthHeader title={t("Beripikasyon", "Verification")} />
                 <VerificationSteps current={1} />
 
                 <Text className="text-[20px] font-bold text-[#1F2A1F] text-center">
-                    Kumuha ng Selfie
+                    {t("Kumuha ng Selfie", "Take a Selfie")}
                 </Text>
                 <Text className="text-[13.5px] text-[#7A6D5C] text-center leading-5 mt-2 px-2">
-                    Para matiyak na ikaw ang may-ari ng ID, kumuha ng malinaw na
-                    larawan ng iyong mukha. Maaari itong ihambing ng admin sa
-                    larawan sa iyong ID.
+                    {t(
+                        "Para matiyak na ikaw ang may-ari ng ID, kumuha ng malinaw na larawan ng iyong mukha. Maaari itong ihambing ng admin sa larawan sa iyong ID.",
+                        "To make sure you own the ID, take a clear photo of your face. An admin may compare it with the photo on your ID.",
+                    )}
                 </Text>
 
                 {/* Face circle */}
@@ -130,7 +158,7 @@ export default function VerifySelfie() {
                                     color="#D9D4C8"
                                 />
                                 <Text className="text-[12px] text-[#9C978C] mt-1">
-                                    Pindutin para kumuha
+                                    {t("Pindutin para kumuha", "Tap to take one")}
                                 </Text>
                             </>
                         )}
@@ -161,7 +189,7 @@ export default function VerifySelfie() {
                                 color="#3F5C42"
                             />
                             <Text className="flex-1 text-[12.5px] text-[#1F2A1F]">
-                                {tip.text}
+                                {t(tip.text, tip.textEn)}
                             </Text>
                         </View>
                     ))}
@@ -179,7 +207,9 @@ export default function VerifySelfie() {
                             onPress={handleContinue}
                         >
                             <Text className="text-white font-semibold text-[16px]">
-                                {isUploading ? "Ina-upload..." : "Magpatuloy"}
+                                {isUploading
+                                    ? t("Ina-upload...", "Uploading...")
+                                    : t("Magpatuloy", "Continue")}
                             </Text>
                             {!isUploading && (
                                 <Ionicons
@@ -200,7 +230,7 @@ export default function VerifySelfie() {
                                 color="#2F5233"
                             />
                             <Text className="text-[13.5px] font-semibold text-[#2F5233]">
-                                Kunan Muli
+                                {t("Kunan Muli", "Retake")}
                             </Text>
                         </Pressable>
                     </>
@@ -212,7 +242,7 @@ export default function VerifySelfie() {
                     >
                         <Ionicons name="camera" size={19} color="#fff" />
                         <Text className="text-white font-semibold text-[16px]">
-                            Kumuha ng Selfie
+                            {t("Kumuha ng Selfie", "Take a Selfie")}
                         </Text>
                     </ClayButton>
                 )}

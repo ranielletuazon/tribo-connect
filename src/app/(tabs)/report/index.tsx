@@ -8,6 +8,7 @@ import {
     StepSection,
 } from "@/components/step-section";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import { functions } from "@/lib/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -29,6 +30,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 interface ReportCategory {
     key: string;
     label: string;
+    labelEn: string;
     icon: keyof typeof Ionicons.glyphMap;
     colors: [string, string];
 }
@@ -37,36 +39,42 @@ const CATEGORIES: ReportCategory[] = [
     {
         key: "sakuna",
         label: "Sakuna",
+        labelEn: "Disaster",
         icon: "water",
         colors: ["#5BA3E8", "#2A5C99"],
     },
     {
         key: "kaligtasan",
         label: "Kaligtasan",
+        labelEn: "Safety",
         icon: "shield-checkmark",
         colors: ["#E8894F", "#B4562A"],
     },
     {
         key: "kalusugan",
         label: "Kalusugan",
+        labelEn: "Health",
         icon: "medkit",
         colors: ["#F0624D", "#B8321F"],
     },
     {
         key: "paligid",
         label: "Paligid",
+        labelEn: "Surroundings",
         icon: "leaf",
         colors: ["#56A06A", "#2F6540"],
     },
     {
         key: "sarili",
         label: "Sarili",
+        labelEn: "Personal",
         icon: "eye",
         colors: ["#A98FE0", "#6B4F94"],
     },
     {
         key: "iba-pa",
         label: "Iba Pa",
+        labelEn: "Others",
         icon: "ellipsis-horizontal",
         colors: ["#B5AFA0", "#7A6D5C"],
     },
@@ -91,6 +99,7 @@ async function submitReport(payload: ReportPayload): Promise<void> {
 }
 
 export default function Report() {
+    const { t } = useLanguage();
     const [categories, setCategories] = useState<string[]>([]);
     const [subject, setSubject] = useState("");
     const [description, setDescription] = useState("");
@@ -133,8 +142,11 @@ export default function Report() {
                 description: description.trim(),
             });
             Alert.alert(
-                "Naipadala ang Ulat",
-                "Salamat! Ire-review ito ng iyong barangay sa lalong madaling panahon.",
+                t("Naipadala ang Ulat", "Report Sent"),
+                t(
+                    "Salamat! Ire-review ito ng iyong barangay sa lalong madaling panahon.",
+                    "Thank you! Your barangay will review it as soon as possible.",
+                ),
             );
             setCategories([]);
             setSubject("");
@@ -143,8 +155,11 @@ export default function Report() {
         } catch (err) {
             console.error("Submit report error:", err);
             Alert.alert(
-                "Hindi Naipadala",
-                "May problema sa pagpapadala ng ulat. Pakisubukang muli.",
+                t("Hindi Naipadala", "Not Sent"),
+                t(
+                    "May problema sa pagpapadala ng ulat. Pakisubukang muli.",
+                    "There was a problem sending the report. Please try again.",
+                ),
             );
         } finally {
             setIsSubmitting(false);
@@ -171,7 +186,7 @@ export default function Report() {
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    <AuthHeader title="Report" />
+                    <AuthHeader title={t("Report", "Report")} />
 
                     {/* Hero with the form progress */}
                     <LinearGradient
@@ -210,11 +225,13 @@ export default function Report() {
                                 />
                             </View>
                             <Text className="text-[21px] font-extrabold text-white">
-                                Mag-report ng Insidente
+                                {t("Mag-report ng Insidente", "Report an Incident")}
                             </Text>
                             <Text className="text-[13px] text-white/90 mt-1 pr-8">
-                                Ibahagi ang detalye ng pangyayari para
-                                makatulong sa iyong barangay.
+                                {t(
+                                    "Ibahagi ang detalye ng pangyayari para makatulong sa iyong barangay.",
+                                    "Share the details of what happened to help your barangay.",
+                                )}
                             </Text>
 
                             <View className="flex-row gap-1.5 mt-4">
@@ -232,8 +249,11 @@ export default function Report() {
                             </View>
                             <Text className="text-[11.5px] font-semibold text-white/90 mt-2">
                                 {isValid
-                                    ? "Handa nang isumite!"
-                                    : `${doneCount} sa 3 hakbang ang tapos`}
+                                    ? t("Handa nang isumite!", "Ready to submit!")
+                                    : t(
+                                          `${doneCount} sa 3 hakbang ang tapos`,
+                                          `${doneCount} of 3 steps done`,
+                                      )}
                             </Text>
                         </View>
                     </LinearGradient>
@@ -241,8 +261,8 @@ export default function Report() {
                     {/* Step 1: categories */}
                     <StepSection
                         step={1}
-                        title="Uri ng Ulat"
-                        hint="Pumili ng isa o higit pa"
+                        title={t("Uri ng Ulat", "Report Type")}
+                        hint={t("Pumili ng isa o higit pa", "Pick one or more")}
                         done={categoriesValid}
                         trailing={
                             categoriesValid ? (
@@ -256,7 +276,7 @@ export default function Report() {
                                         className="text-[11px] font-bold"
                                         style={{ color: PALETTE.forest }}
                                     >
-                                        {categories.length} napili
+                                        {categories.length} {t("napili", "selected")}
                                     </Text>
                                 </View>
                             ) : null
@@ -275,7 +295,11 @@ export default function Report() {
                                             checked: selected,
                                             disabled: isSubmitting,
                                         }}
-                                        accessibilityLabel={`${cat.label}, ${selected ? "napili" : "hindi napili"}`}
+                                        accessibilityLabel={`${t(cat.label, cat.labelEn)}, ${
+                                            selected
+                                                ? t("napili", "selected")
+                                                : t("hindi napili", "not selected")
+                                        }`}
                                         style={{
                                             width: "31.5%",
                                             marginBottom: 10,
@@ -316,7 +340,7 @@ export default function Report() {
                                                         />
                                                     </View>
                                                     <Text className="text-[12.5px] font-bold text-white text-center">
-                                                        {cat.label}
+                                                        {t(cat.label, cat.labelEn)}
                                                     </Text>
                                                 </LinearGradient>
                                             ) : (
@@ -357,7 +381,7 @@ export default function Report() {
                                                             color: PALETTE.ink,
                                                         }}
                                                     >
-                                                        {cat.label}
+                                                        {t(cat.label, cat.labelEn)}
                                                     </Text>
                                                 </View>
                                             )
@@ -368,7 +392,10 @@ export default function Report() {
                         </View>
                         {showError(categoriesValid) && (
                             <ErrorText>
-                                Pumili ng kahit isang uri ng ulat.
+                                {t(
+                                    "Pumili ng kahit isang uri ng ulat.",
+                                    "Pick at least one report type.",
+                                )}
                             </ErrorText>
                         )}
                     </StepSection>
@@ -376,8 +403,8 @@ export default function Report() {
                     {/* Step 2: subject */}
                     <StepSection
                         step={2}
-                        title="Pamagat"
-                        hint="Maikling buod ng nangyari"
+                        title={t("Pamagat", "Title")}
+                        hint={t("Maikling buod ng nangyari", "A short summary of what happened")}
                         done={subjectValid}
                     >
                         <View
@@ -400,7 +427,10 @@ export default function Report() {
                                 }
                             />
                             <TextInput
-                                placeholder="Maikling paglalarawan ng insidente"
+                                placeholder={t(
+                                    "Maikling paglalarawan ng insidente",
+                                    "Short description of the incident",
+                                )}
                                 placeholderTextColor="#B5AFA0"
                                 value={subject}
                                 onChangeText={setSubject}
@@ -408,7 +438,7 @@ export default function Report() {
                                 onBlur={() => setFocusedField(null)}
                                 maxLength={SUBJECT_MAX}
                                 editable={!isSubmitting}
-                                accessibilityLabel="Pamagat ng ulat"
+                                accessibilityLabel={t("Pamagat ng ulat", "Report title")}
                                 className="flex-1 text-[15px] py-3.5"
                                 style={{ color: PALETTE.ink }}
                             />
@@ -416,7 +446,9 @@ export default function Report() {
                         <View className="flex-row items-start justify-between">
                             <View className="flex-1">
                                 {showError(subjectValid) && (
-                                    <ErrorText>Kailangan ang pamagat.</ErrorText>
+                                    <ErrorText>
+                                        {t("Kailangan ang pamagat.", "A title is required.")}
+                                    </ErrorText>
                                 )}
                             </View>
                             <Text className="text-[11px] text-[#B5AFA0] mt-2 ml-2">
@@ -428,8 +460,11 @@ export default function Report() {
                     {/* Step 3: description */}
                     <StepSection
                         step={3}
-                        title="Detalye"
-                        hint="Ano, saan, at kailan nangyari"
+                        title={t("Detalye", "Details")}
+                        hint={t(
+                            "Ano, saan, at kailan nangyari",
+                            "What, where, and when it happened",
+                        )}
                         done={descriptionValid}
                     >
                         <View
@@ -443,7 +478,10 @@ export default function Report() {
                             }}
                         >
                             <TextInput
-                                placeholder="Ilarawan ang buong detalye ng pangyayari..."
+                                placeholder={t(
+                                    "Ilarawan ang buong detalye ng pangyayari...",
+                                    "Describe the full details of what happened...",
+                                )}
                                 placeholderTextColor="#B5AFA0"
                                 value={description}
                                 onChangeText={setDescription}
@@ -454,7 +492,10 @@ export default function Report() {
                                 maxLength={DESCRIPTION_MAX}
                                 editable={!isSubmitting}
                                 textAlignVertical="top"
-                                accessibilityLabel="Detalye ng insidente"
+                                accessibilityLabel={t(
+                                    "Detalye ng insidente",
+                                    "Incident details",
+                                )}
                                 className="text-[15px] min-h-[130px]"
                                 style={{ color: PALETTE.ink }}
                             />
@@ -462,7 +503,12 @@ export default function Report() {
                         <View className="flex-row items-start justify-between">
                             <View className="flex-1">
                                 {showError(descriptionValid) && (
-                                    <ErrorText>Ilarawan ang pangyayari.</ErrorText>
+                                    <ErrorText>
+                                        {t(
+                                            "Ilarawan ang pangyayari.",
+                                            "Describe what happened.",
+                                        )}
+                                    </ErrorText>
                                 )}
                             </View>
                             <Text className="text-[11px] text-[#B5AFA0] mt-2 ml-2">
@@ -488,8 +534,10 @@ export default function Report() {
                             className="flex-1 text-[12px] leading-[18px]"
                             style={{ color: PALETTE.muted }}
                         >
-                            Gagamitin ang email ng iyong naka-log in na account
-                            para makipag-ugnayan tungkol sa ulat na ito.
+                            {t(
+                                "Gagamitin ang email ng iyong naka-log in na account para makipag-ugnayan tungkol sa ulat na ito.",
+                                "The email of your logged-in account will be used to contact you about this report.",
+                            )}
                         </Text>
                     </View>
 
@@ -536,8 +584,8 @@ export default function Report() {
                                 )}
                                 <Text className="text-white text-[16px] font-bold">
                                     {isSubmitting
-                                        ? "Ipinapadala..."
-                                        : "Isumite ang Ulat"}
+                                        ? t("Ipinapadala...", "Sending...")
+                                        : t("Isumite ang Ulat", "Submit Report")}
                                 </Text>
                             </LinearGradient>
                         )}

@@ -5,8 +5,9 @@ import {
     FIELD_BORDER,
     StepSection,
 } from "@/components/step-section";
-import { BARANGAYS } from "@/constants/barangays";
+import { BARANGAY, MUNICIPALITY, PROVINCE } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import {
     CATEGORIES,
     CATEGORY_ORDER,
@@ -28,7 +29,6 @@ import {
     ActivityIndicator,
     Image,
     KeyboardAvoidingView,
-    Modal,
     Platform,
     Pressable,
     ScrollView,
@@ -44,14 +44,13 @@ const CONTENT_MAX = 3000;
 export default function CreateEmergency() {
     const router = useRouter();
     const { user, profile } = useAuth();
+    const { t } = useLanguage();
     const isAdmin = profile?.role === "admin";
 
     const [severity, setSeverity] = useState<AnnouncementSeverity>("abiso");
     const [category, setCategory] = useState<AnnouncementCategory | null>(
         null,
     );
-    const [targetBarangay, setTargetBarangay] = useState<string | null>(null);
-    const [showBarangayModal, setShowBarangayModal] = useState(false);
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [imageUri, setImageUri] = useState<string | null>(null);
@@ -109,7 +108,7 @@ export default function CreateEmergency() {
                 content: content.trim(),
                 category,
                 severity,
-                targetBarangay,
+                targetBarangay: BARANGAY,
                 imageUrl,
             };
 
@@ -127,7 +126,12 @@ export default function CreateEmergency() {
             });
         } catch (err) {
             console.error("Create announcement error:", err);
-            setError("Nabigo ang pag-post ng anunsyo. Pakisubukang muli.");
+            setError(
+                t(
+                    "Nabigo ang pag-post ng anunsyo. Pakisubukang muli.",
+                    "Posting the announcement failed. Please try again.",
+                ),
+            );
         } finally {
             setIsPosting(false);
         }
@@ -154,7 +158,10 @@ export default function CreateEmergency() {
                     className="text-center text-[13.5px] mb-5"
                     style={{ color: PALETTE.muted }}
                 >
-                    Ang mga admin lamang ang maaaring gumawa ng anunsyo.
+                    {t(
+                        "Ang mga admin lamang ang maaaring gumawa ng anunsyo.",
+                        "Only admins can create announcements.",
+                    )}
                 </Text>
                 <Pressable
                     onPress={() => router.back()}
@@ -162,7 +169,7 @@ export default function CreateEmergency() {
                     style={{ backgroundColor: PALETTE.forest }}
                 >
                     <Text className="text-[13.5px] font-bold text-white">
-                        Bumalik
+                        {t("Bumalik", "Go Back")}
                     </Text>
                 </Pressable>
             </SafeAreaView>
@@ -200,7 +207,7 @@ export default function CreateEmergency() {
                         className="flex-1 text-center text-[15px] font-bold"
                         style={{ color: PALETTE.ink }}
                     >
-                        Bagong Anunsyo
+                        {t("Bagong Anunsyo", "New Announcement")}
                     </Text>
                     <Pressable disabled={!canPost} onPress={handlePost}>
                         {({ pressed }) => (
@@ -228,7 +235,9 @@ export default function CreateEmergency() {
                                         color: canPost ? "#fff" : "#9C978C",
                                     }}
                                 >
-                                    {isPosting ? "Nagpopost..." : "I-post"}
+                                    {isPosting
+                                        ? t("Nagpopost...", "Posting...")
+                                        : t("I-post", "Post")}
                                 </Text>
                             </LinearGradient>
                         )}
@@ -296,29 +305,31 @@ export default function CreateEmergency() {
                                 </View>
                                 <View className="flex-1">
                                     <Text className="text-[11px] font-extrabold text-white/85 tracking-wider">
-                                        {level.label.toUpperCase()}
+                                        {t(level.label, level.labelEn).toUpperCase()}
                                         {category
-                                            ? ` · ${CATEGORIES[category].label.toUpperCase()}`
+                                            ? ` · ${t(CATEGORIES[category].label, CATEGORIES[category].labelEn).toUpperCase()}`
                                             : ""}
                                     </Text>
                                     <Text
                                         className="text-[17px] font-extrabold text-white mt-0.5"
                                         numberOfLines={2}
                                     >
-                                        {title.trim() || "Opisyal na Anunsyo"}
+                                        {title.trim() ||
+                                            t(
+                                                "Opisyal na Anunsyo",
+                                                "Official Announcement",
+                                            )}
                                     </Text>
                                 </View>
                             </View>
                             <View className="flex-row items-center gap-1 mt-3">
                                 <Ionicons
-                                    name={targetBarangay ? "location" : "earth"}
+                                    name="location"
                                     size={12}
                                     color="rgba(255,255,255,0.85)"
                                 />
                                 <Text className="text-[12px] text-white/85">
-                                    {targetBarangay
-                                        ? `Barangay ${targetBarangay}`
-                                        : "Lahat ng Barangay"}
+                                    Barangay {BARANGAY}
                                 </Text>
                             </View>
                         </View>
@@ -349,8 +360,11 @@ export default function CreateEmergency() {
                     {/* Step 1: alert level */}
                     <StepSection
                         step={1}
-                        title="Antas ng Alerto"
-                        hint="Gaano kaseryoso ang sitwasyon"
+                        title={t("Antas ng Alerto", "Alert Level")}
+                        hint={t(
+                            "Gaano kaseryoso ang sitwasyon",
+                            "How serious the situation is",
+                        )}
                         done
                     >
                         <View className="flex-row gap-2.5">
@@ -427,7 +441,7 @@ export default function CreateEmergency() {
                                                             : item.colorDark,
                                                     }}
                                                 >
-                                                    {item.label}
+                                                    {t(item.label, item.labelEn)}
                                                 </Text>
                                                 <Text
                                                     className="text-[10px] mt-0.5 text-center"
@@ -437,7 +451,7 @@ export default function CreateEmergency() {
                                                             : PALETTE.muted,
                                                     }}
                                                 >
-                                                    {item.description}
+                                                    {t(item.description, item.descriptionEn)}
                                                 </Text>
                                             </LinearGradient>
                                         )}
@@ -450,8 +464,8 @@ export default function CreateEmergency() {
                     {/* Step 2: category */}
                     <StepSection
                         step={2}
-                        title="Uri ng Anunsyo"
-                        hint="Pumili ng isa"
+                        title={t("Uri ng Anunsyo", "Announcement Type")}
+                        hint={t("Pumili ng isa", "Pick one")}
                         done={!!category}
                     >
                         <View className="flex-row flex-wrap justify-between">
@@ -521,7 +535,7 @@ export default function CreateEmergency() {
                                                             : PALETTE.ink,
                                                     }}
                                                 >
-                                                    {item.label}
+                                                    {t(item.label, item.labelEn)}
                                                 </Text>
                                             </LinearGradient>
                                         )}
@@ -534,70 +548,56 @@ export default function CreateEmergency() {
                     {/* Step 3: target area */}
                     <StepSection
                         step={3}
-                        title="Sakop na Lugar"
-                        hint="Sino ang makakatanggap"
+                        title={t("Sakop na Lugar", "Covered Area")}
+                        hint={t("Sino ang makakatanggap", "Who will receive it")}
                         done
                     >
-                        <Pressable
-                            onPress={() => setShowBarangayModal(true)}
-                            disabled={isPosting}
+                        <View
+                            className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3 border-[1.5px]"
+                            style={{
+                                backgroundColor: FIELD_BG,
+                                borderColor: FIELD_BORDER,
+                            }}
                         >
-                            {({ pressed }) => (
-                                <View
-                                    className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3 border-[1.5px]"
-                                    style={[
-                                        pressScale(pressed),
-                                        {
-                                            backgroundColor: FIELD_BG,
-                                            borderColor: FIELD_BORDER,
-                                        },
-                                    ]}
+                            <View
+                                className="w-9 h-9 rounded-full items-center justify-center"
+                                style={{
+                                    backgroundColor: PALETTE.forest,
+                                }}
+                            >
+                                <Ionicons
+                                    name="location"
+                                    size={17}
+                                    color="#fff"
+                                />
+                            </View>
+                            <View className="flex-1">
+                                <Text
+                                    className="text-[15px] font-semibold"
+                                    style={{ color: PALETTE.ink }}
                                 >
-                                    <View
-                                        className="w-9 h-9 rounded-full items-center justify-center"
-                                        style={{
-                                            backgroundColor: PALETTE.forest,
-                                        }}
-                                    >
-                                        <Ionicons
-                                            name={
-                                                targetBarangay
-                                                    ? "location"
-                                                    : "earth"
-                                            }
-                                            size={17}
-                                            color="#fff"
-                                        />
-                                    </View>
-                                    <Text
-                                        className="flex-1 text-[15px] font-semibold"
-                                        style={{ color: PALETTE.ink }}
-                                    >
-                                        {targetBarangay
-                                            ? `Barangay ${targetBarangay}`
-                                            : "Lahat ng Barangay"}
-                                    </Text>
-                                    <Text
-                                        className="text-[12px] font-bold"
-                                        style={{ color: PALETTE.forest }}
-                                    >
-                                        Palitan
-                                    </Text>
-                                    <Ionicons
-                                        name="chevron-down"
-                                        size={16}
-                                        color={PALETTE.forest}
-                                    />
-                                </View>
-                            )}
-                        </Pressable>
+                                    Barangay {BARANGAY}
+                                </Text>
+                                <Text
+                                    className="text-[12px]"
+                                    style={{ color: PALETTE.muted }}
+                                >
+                                    {MUNICIPALITY}, {PROVINCE}
+                                </Text>
+                            </View>
+                            <Ionicons
+                                name="lock-closed-outline"
+                                size={16}
+                                color="#B5AFA0"
+                            />
+                        </View>
                     </StepSection>
 
                     {/* Step 4: title */}
                     <StepSection
                         step={4}
-                        title="Pamagat"
-                        hint="Maikli at malinaw"
+                        title={t("Pamagat", "Title")}
+                        hint={t("Maikli at malinaw", "Short and clear")}
                         done={title.trim().length > 0}
                     >
                         <View
@@ -620,7 +620,10 @@ export default function CreateEmergency() {
                                 }
                             />
                             <TextInput
-                                placeholder="Hal. Signal No. 2 sa buong bayan"
+                                placeholder={t(
+                                    "Hal. Signal No. 2 sa buong bayan",
+                                    "E.g. Signal No. 2 across the town",
+                                )}
                                 placeholderTextColor="#B5AFA0"
                                 value={title}
                                 onChangeText={setTitle}
@@ -640,8 +643,11 @@ export default function CreateEmergency() {
                     {/* Step 5: details */}
                     <StepSection
                         step={5}
-                        title="Detalye"
-                        hint="Ano ang nangyayari at ano ang dapat gawin"
+                        title={t("Detalye", "Details")}
+                        hint={t(
+                            "Ano ang nangyayari at ano ang dapat gawin",
+                            "What is happening and what to do",
+                        )}
                         done={content.trim().length > 0}
                     >
                         <View
@@ -655,7 +661,10 @@ export default function CreateEmergency() {
                             }}
                         >
                             <TextInput
-                                placeholder="Ilarawan ang sitwasyon at kung ano ang dapat gawin ng mga residente."
+                                placeholder={t(
+                                    "Ilarawan ang sitwasyon at kung ano ang dapat gawin ng mga residente.",
+                                    "Describe the situation and what residents should do.",
+                                )}
                                 placeholderTextColor="#B5AFA0"
                                 value={content}
                                 onChangeText={setContent}
@@ -677,8 +686,8 @@ export default function CreateEmergency() {
                     {/* Step 6: image */}
                     <StepSection
                         step={6}
-                        title="Larawan"
-                        hint="Opsyonal"
+                        title={t("Larawan", "Photo")}
+                        hint={t("Opsyonal", "Optional")}
                         done={!!imageUri}
                     >
                         {imageUri ? (
@@ -700,7 +709,7 @@ export default function CreateEmergency() {
                                                 color="#fff"
                                             />
                                             <Text className="text-[12px] font-bold text-white">
-                                                Palitan
+                                                {t("Palitan", "Change")}
                                             </Text>
                                         </Pressable>
                                         <Pressable
@@ -755,13 +764,16 @@ export default function CreateEmergency() {
                                             className="text-[13.5px] font-bold"
                                             style={{ color: level.colorDark }}
                                         >
-                                            Idagdag ng Larawan
+                                            {t("Idagdag ng Larawan", "Add a Photo")}
                                         </Text>
                                         <Text
                                             className="text-[11.5px] mt-0.5"
                                             style={{ color: PALETTE.muted }}
                                         >
-                                            Pindutin para pumili sa gallery
+                                            {t(
+                                                "Pindutin para pumili sa gallery",
+                                                "Tap to pick from the gallery",
+                                            )}
                                         </Text>
                                     </View>
                                 )}
@@ -812,112 +824,17 @@ export default function CreateEmergency() {
                                 )}
                                 <Text className="text-white text-[16px] font-bold">
                                     {isPosting
-                                        ? "Nagpopost..."
-                                        : "I-post ang Anunsyo"}
+                                        ? t("Nagpopost...", "Posting...")
+                                        : t(
+                                              "I-post ang Anunsyo",
+                                              "Post Announcement",
+                                          )}
                                 </Text>
                             </LinearGradient>
                         )}
                     </Pressable>
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            {/* Target barangay picker */}
-            <Modal
-                visible={showBarangayModal}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setShowBarangayModal(false)}
-            >
-                <Pressable
-                    className="flex-1 bg-black/40 justify-end"
-                    onPress={() => setShowBarangayModal(false)}
-                >
-                    <Pressable
-                        className="rounded-t-[30px] max-h-[75%]"
-                        style={{ backgroundColor: PALETTE.cream }}
-                        onPress={(e) => e.stopPropagation()}
-                    >
-                        <View className="items-center pt-3 pb-1">
-                            <View className="w-10 h-1.5 rounded-full bg-[#E5E1D8]" />
-                        </View>
-                        <View className="flex-row items-center justify-between px-5 pt-2 pb-3">
-                            <View>
-                                <Text
-                                    className="text-[17px] font-extrabold"
-                                    style={{ color: PALETTE.ink }}
-                                >
-                                    Sakop na Lugar
-                                </Text>
-                                <Text
-                                    className="text-[12px]"
-                                    style={{ color: PALETTE.muted }}
-                                >
-                                    Sino ang makakatanggap ng anunsyo
-                                </Text>
-                            </View>
-                            <Pressable
-                                onPress={() => setShowBarangayModal(false)}
-                                className="w-9 h-9 rounded-full bg-[#F0EDE6] items-center justify-center"
-                            >
-                                <Ionicons
-                                    name="close"
-                                    size={19}
-                                    color={PALETTE.ink}
-                                />
-                            </Pressable>
-                        </View>
-                        <ScrollView contentContainerClassName="px-4 pb-10 gap-1.5">
-                            {[null, ...BARANGAYS].map((b) => {
-                                const selected = targetBarangay === b;
-                                return (
-                                    <Pressable
-                                        key={b ?? "all"}
-                                        className="flex-row items-center gap-3 rounded-2xl px-3.5 py-3"
-                                        style={{
-                                            backgroundColor: selected
-                                                ? "rgba(62,123,79,0.12)"
-                                                : "transparent",
-                                        }}
-                                        onPress={() => {
-                                            setTargetBarangay(b);
-                                            setShowBarangayModal(false);
-                                        }}
-                                    >
-                                        <Ionicons
-                                            name={b ? "location-outline" : "earth"}
-                                            size={18}
-                                            color={
-                                                selected
-                                                    ? PALETTE.forest
-                                                    : "#9C978C"
-                                            }
-                                        />
-                                        <Text
-                                            className={`flex-1 text-[15px] ${
-                                                selected ? "font-bold" : ""
-                                            }`}
-                                            style={{
-                                                color: selected
-                                                    ? PALETTE.forest
-                                                    : PALETTE.ink,
-                                            }}
-                                        >
-                                            {b ?? "Lahat ng Barangay"}
-                                        </Text>
-                                        {selected && (
-                                            <Ionicons
-                                                name="checkmark-circle"
-                                                size={20}
-                                                color={PALETTE.forest}
-                                            />
-                                        )}
-                                    </Pressable>
-                                );
-                            })}
-                        </ScrollView>
-                    </Pressable>
-                </Pressable>
-            </Modal>
         </SafeAreaView>
     );
 }

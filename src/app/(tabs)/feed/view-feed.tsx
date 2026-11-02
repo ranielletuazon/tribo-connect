@@ -1,6 +1,10 @@
 import { VerifiedBadge } from "@/components/verified-badge";
+import { BARANGAY } from "@/constants/barangays";
+import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
 import {
+    canDeletePost,
+    deletePost,
     formatTimeAgo,
     mapDocToComment,
     mapDocToPost,
@@ -26,6 +30,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -77,6 +82,7 @@ export default function ViewFeed() {
         focusComment?: string;
     }>();
     const { user, profile } = useAuth();
+    const { lang, t } = useLanguage();
 
     const [post, setPost] = useState<Post | null>(null);
     const [isPostLoading, setIsPostLoading] = useState(true);
@@ -86,6 +92,7 @@ export default function ViewFeed() {
 
     const [text, setText] = useState("");
     const [isSending, setIsSending] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const inputRef = useRef<TextInput>(null);
@@ -165,6 +172,46 @@ export default function ViewFeed() {
         }
     };
 
+    const canDelete = !!post && canDeletePost(post, user?.uid, profile?.role);
+
+    // the feed reloads when it gets deletedPostId back
+    const handleDelete = () => {
+        if (!post || !canDelete) return;
+        const target = post;
+        Alert.alert(
+            t("Burahin ang post?", "Delete this post?"),
+            t(
+                "Mabubura rin ang lahat ng komento nito. Hindi na ito maibabalik.",
+                "All of its comments will be deleted too. This can't be undone.",
+            ),
+            [
+                { text: t("Kanselahin", "Cancel"), style: "cancel" },
+                {
+                    text: t("Burahin", "Delete"),
+                    style: "destructive",
+                    onPress: async () => {
+                        setIsDeleting(true);
+                        try {
+                            await deletePost(target);
+                            router.back();
+                            router.setParams({ deletedPostId: target.id });
+                        } catch (err) {
+                            console.error("Delete post error:", err);
+                            setIsDeleting(false);
+                            Alert.alert(
+                                t("Nabigo", "Failed"),
+                                t(
+                                    "Hindi nabura ang post. Pakisubukang muli.",
+                                    "The post wasn't deleted. Please try again.",
+                                ),
+                            );
+                        }
+                    },
+                },
+            ],
+        );
+    };
+
     const trimmed = text.trim();
     const canSend =
         trimmed.length > 0 &&
@@ -200,7 +247,12 @@ export default function ViewFeed() {
             console.error("Send comment error:", err);
             scrollAfterSend.current = false;
             setText(trimmed);
-            setError("Hindi naipadala ang komento. Pakisubukang muli.");
+            setError(
+                t(
+                    "Hindi naipadala ang komento. Pakisubukang muli.",
+                    "Your comment wasn't sent. Please try again.",
+                ),
+            );
         } finally {
             setIsSending(false);
         }
@@ -221,8 +273,29 @@ export default function ViewFeed() {
                         className="flex-1 text-[15.5px] font-bold text-[#1F2A1F]"
                         numberOfLines={1}
                     >
-                        {post ? `Post ni ${post.authorName}` : "Post"}
+                        {post
+                            ? t(
+                                  `Post ni ${post.authorName}`,
+                                  `${post.authorName}'s Post`,
+                              )
+                            : "Post"}
                     </Text>
+                    {canDelete &&
+                        (isDeleting ? (
+                            <ActivityIndicator size="small" color="#B23A2E" />
+                        ) : (
+                            <Pressable
+                                onPress={handleDelete}
+                                hitSlop={10}
+                                className="p-1"
+                            >
+                                <Ionicons
+                                    name="trash-outline"
+                                    size={20}
+                                    color="#B23A2E"
+                                />
+                            </Pressable>
+                        ))}
                 </View>
 
                 {isPostLoading ? (
@@ -237,8 +310,10 @@ export default function ViewFeed() {
                             color="#C4BFB2"
                         />
                         <Text className="text-center text-[13.5px] text-[#9C978C] mt-3">
-                            Hindi na makita ang post na ito. Maaaring binura na
-                            ito.
+                            {t(
+                                "Hindi na makita ang post na ito. Maaaring binura na ito.",
+                                "This post can't be found. It may have been deleted.",
+                            )}
                         </Text>
                     </View>
                 ) : (
@@ -268,8 +343,8 @@ export default function ViewFeed() {
                                         )}
                                     </View>
                                     <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
-                                        Barangay {post.authorBarangay} ·{" "}
-                                        {formatTimeAgo(post.createdAt)}
+                                        Barangay {BARANGAY} ·{" "}
+                                        {formatTimeAgo(post.createdAt, lang)}
                                     </Text>
                                 </View>
                             </View>
@@ -291,10 +366,22 @@ export default function ViewFeed() {
 
                             <View className="flex-row items-center justify-between px-4 pt-3 pb-1">
                                 <Text className="text-[11.5px] text-[#9C978C]">
-                                    {post.likes.length} gusto
+                                    {post.likes.length}{" "}
+                                    {t(
+                                        "gusto",
+                                        post.likes.length === 1
+                                            ? "like"
+                                            : "likes",
+                                    )}
                                 </Text>
                                 <Text className="text-[11.5px] text-[#9C978C]">
-                                    {post.commentCount} komento
+                                    {post.commentCount}{" "}
+                                    {t(
+                                        "komento",
+                                        post.commentCount === 1
+                                            ? "comment"
+                                            : "comments",
+                                    )}
                                 </Text>
                             </View>
 
@@ -320,7 +407,7 @@ export default function ViewFeed() {
                                                 : "#7A6D5C",
                                         }}
                                     >
-                                        Gusto
+                                        {t("Gusto", "Like")}
                                     </Text>
                                 </Pressable>
 
@@ -334,7 +421,7 @@ export default function ViewFeed() {
                                         color="#7A6D5C"
                                     />
                                     <Text className="text-[13px] font-medium text-[#7A6D5C]">
-                                        Komento
+                                        {t("Komento", "Comment")}
                                     </Text>
                                 </Pressable>
                             </View>
@@ -350,7 +437,10 @@ export default function ViewFeed() {
                                     />
                                 ) : comments.length === 0 ? (
                                     <Text className="text-center text-[13px] text-[#9C978C] mt-6">
-                                        Wala pang komento. Ikaw ang mauna!
+                                        {t(
+                                            "Wala pang komento. Ikaw ang mauna!",
+                                            "No comments yet. Be the first!",
+                                        )}
                                     </Text>
                                 ) : (
                                     comments.map((comment) => (
@@ -384,6 +474,7 @@ export default function ViewFeed() {
                                                 <Text className="text-[11px] text-[#9C978C] mt-1 ml-3">
                                                     {formatTimeAgo(
                                                         comment.createdAt,
+                                                        lang,
                                                     )}
                                                 </Text>
                                             </View>
@@ -410,7 +501,10 @@ export default function ViewFeed() {
                                 ref={inputRef}
                                 value={text}
                                 onChangeText={setText}
-                                placeholder="Sumulat ng komento..."
+                                placeholder={t(
+                                    "Sumulat ng komento...",
+                                    "Write a comment...",
+                                )}
                                 placeholderTextColor="#9C978C"
                                 multiline
                                 maxLength={MAX_COMMENT_LENGTH}

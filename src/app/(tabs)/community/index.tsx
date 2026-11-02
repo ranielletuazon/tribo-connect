@@ -1,5 +1,7 @@
 import { BackgroundBlobs, clayRaised, pressScale } from "@/components/clay";
+import { BARANGAY } from "@/constants/barangays";
 import { PALETTE } from "@/constants/palette";
+import { useLanguage } from "@/hooks/use-language";
 import {
     CATEGORIES,
     SEVERITIES,
@@ -36,7 +38,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const FILTERS = ["Lahat", "Barangay", "Emergency"] as const;
+const FILTERS = ["Lahat", "Emergency"] as const;
 type Filter = (typeof FILTERS)[number];
 
 const FILTER_STYLES: Record<
@@ -44,16 +46,20 @@ const FILTER_STYLES: Record<
     { icon: keyof typeof Ionicons.glyphMap; colors: [string, string] }
 > = {
     Lahat: { icon: "apps", colors: ["#56A06A", "#2F6540"] },
-    Barangay: { icon: "location", colors: ["#F2BD4E", "#C9821F"] },
     Emergency: { icon: "warning", colors: [PALETTE.ember, PALETTE.blood] },
+};
+
+const FILTER_LABELS_EN: Record<Filter, string> = {
+    Lahat: "All",
+    Emergency: "Emergency",
 };
 
 const ANNOUNCEMENTS_PER_PAGE = 5;
 
 export default function Community() {
     const { profile } = useAuth();
+    const { lang, t } = useLanguage();
     const isAdmin = profile?.role === "admin";
-    const userBarangay = profile?.barangay as string | undefined;
 
     const { newAnnouncementJson } = useLocalSearchParams<{
         newAnnouncementJson?: string;
@@ -173,19 +179,14 @@ export default function Community() {
     };
 
     // filter and search only go through the announcements already loaded
-    // "Barangay" is the ones meant for the user's own barangay
     // "Emergency" is every announcement for now, since all of them are emergency ones
     const search = searchQuery.trim().toLowerCase();
-    const filtered = announcements.filter((item) => {
-        const matchesFilter =
-            activeFilter !== "Barangay" ||
-            (!!userBarangay && item.targetBarangay === userBarangay);
-        const matchesSearch =
+    const filtered = announcements.filter(
+        (item) =>
             search.length === 0 ||
             item.title.toLowerCase().includes(search) ||
-            item.content.toLowerCase().includes(search);
-        return matchesFilter && matchesSearch;
-    });
+            item.content.toLowerCase().includes(search),
+    );
 
     return (
         <SafeAreaView
@@ -210,13 +211,16 @@ export default function Community() {
                             className="text-[22px] font-extrabold"
                             style={{ color: PALETTE.ink }}
                         >
-                            Mga Anunsyo
+                            {t("Mga Anunsyo", "Announcements")}
                         </Text>
                         <Text
                             className="text-[12px]"
                             style={{ color: PALETTE.muted }}
                         >
-                            Balita at abiso mula sa komunidad
+                            {t(
+                                "Balita at abiso mula sa komunidad",
+                                "News and notices from the community",
+                            )}
                         </Text>
                     </View>
                     {/* only admins see this */}
@@ -246,7 +250,7 @@ export default function Community() {
                                 >
                                     <Ionicons name="add" size={16} color="#fff" />
                                     <Text className="text-[13px] font-bold text-white">
-                                        Mag-anunsyo
+                                        {t("Mag-anunsyo", "Announce")}
                                     </Text>
                                 </LinearGradient>
                             )}
@@ -261,7 +265,10 @@ export default function Community() {
                 >
                     <Ionicons name="search" size={18} color={PALETTE.terracotta} />
                     <TextInput
-                        placeholder="Maghanap ng anunsyo..."
+                        placeholder={t(
+                            "Maghanap ng anunsyo...",
+                            "Search announcements...",
+                        )}
                         placeholderTextColor="#B5AFA0"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -333,7 +340,7 @@ export default function Community() {
                                                     : PALETTE.ink,
                                             }}
                                         >
-                                            {filter}
+                                            {t(filter, FILTER_LABELS_EN[filter])}
                                         </Text>
                                     </LinearGradient>
                                 )}
@@ -377,14 +384,20 @@ export default function Community() {
                             className="text-[14.5px] font-bold"
                             style={{ color: PALETTE.ink }}
                         >
-                            Walang nahanap na anunsyo.
+                            {t(
+                                "Walang nahanap na anunsyo.",
+                                "No announcements found.",
+                            )}
                         </Text>
                         {(search.length > 0 || activeFilter !== "Lahat") && (
                             <Text
                                 className="text-[12.5px] text-center mt-1"
                                 style={{ color: PALETTE.muted }}
                             >
-                                Subukan ang ibang salita o filter.
+                                {t(
+                                    "Subukan ang ibang salita o filter.",
+                                    "Try a different word or filter.",
+                                )}
                             </Text>
                         )}
                     </View>
@@ -466,7 +479,10 @@ export default function Community() {
                                                                     color: level.colorDark,
                                                                 }}
                                                             >
-                                                                {level.label.toUpperCase()}
+                                                                {t(
+                                                                    level.label,
+                                                                    level.labelEn,
+                                                                ).toUpperCase()}
                                                             </Text>
                                                         </View>
                                                         <Text
@@ -475,12 +491,16 @@ export default function Community() {
                                                                 color: PALETTE.muted,
                                                             }}
                                                         >
-                                                            {category.label}
+                                                            {t(
+                                                                category.label,
+                                                                category.labelEn,
+                                                            )}
                                                         </Text>
                                                     </View>
                                                     <Text className="text-[11px] text-[#9C978C] mt-0.5">
                                                         {formatTimeAgo(
                                                             announcement.createdAt,
+                                                            lang,
                                                         )}
                                                     </Text>
                                                 </View>
@@ -504,11 +524,7 @@ export default function Community() {
                                             <View className="flex-row items-center gap-2 mt-3 pt-3 border-t border-[#F1ECE3]">
                                                 <View className="flex-row items-center gap-1 shrink rounded-full px-2.5 py-1 bg-[#F6F2EA]">
                                                     <Ionicons
-                                                        name={
-                                                            announcement.targetBarangay
-                                                                ? "location"
-                                                                : "earth"
-                                                        }
+                                                        name="location"
                                                         size={12}
                                                         color={PALETTE.forest}
                                                     />
@@ -519,9 +535,7 @@ export default function Community() {
                                                         }}
                                                         numberOfLines={1}
                                                     >
-                                                        {announcement.targetBarangay
-                                                            ? `Barangay ${announcement.targetBarangay}`
-                                                            : "Lahat ng Barangay"}
+                                                        Barangay {BARANGAY}
                                                     </Text>
                                                 </View>
                                                 {announcement.imageUrl && (
@@ -541,7 +555,7 @@ export default function Community() {
                                                             color: level.colorDark,
                                                         }}
                                                     >
-                                                        Basahin
+                                                        {t("Basahin", "Read")}
                                                     </Text>
                                                     <Ionicons
                                                         name="chevron-forward"
@@ -576,7 +590,7 @@ export default function Community() {
                                     className="text-[13.5px] font-bold"
                                     style={{ color: PALETTE.clay }}
                                 >
-                                    Mag-load ng Higit Pa
+                                    {t("Mag-load ng Higit Pa", "Load More")}
                                 </Text>
                                 <Ionicons
                                     name="chevron-down"

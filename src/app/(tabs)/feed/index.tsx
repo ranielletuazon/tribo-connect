@@ -1,7 +1,15 @@
 import { clayRaised } from "@/components/clay";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { BARANGAY } from "@/constants/barangays";
+import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
-import { formatTimeAgo, mapDocToPost, type Post } from "@/lib/posts";
+import {
+    canDeletePost,
+    deletePost,
+    formatTimeAgo,
+    mapDocToPost,
+    type Post,
+} from "@/lib/posts";
 import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -23,6 +31,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     Modal,
     Pressable,
@@ -43,7 +52,11 @@ const POSTS_PER_PAGE = 5;
 
 export default function Feed() {
     const { user, profile } = useAuth();
-    const { newPostJson } = useLocalSearchParams<{ newPostJson?: string }>();
+    const { lang, t } = useLanguage();
+    const { newPostJson, deletedPostId } = useLocalSearchParams<{
+        newPostJson?: string;
+        deletedPostId?: string;
+    }>();
     const lastScrollY = useRef(0);
     // the post that was opened in view-feed, refreshed when we come back
     const openedPostId = useRef<string | null>(null);
@@ -79,6 +92,13 @@ export default function Feed() {
         }
         router.setParams({ newPostJson: undefined });
     }, [newPostJson]);
+
+    // a post was deleted in view-feed, reload the whole feed
+    useEffect(() => {
+        if (!deletedPostId) return;
+        router.setParams({ deletedPostId: undefined });
+        handleRefresh();
+    }, [deletedPostId]);
 
     // after coming back from view-feed, reload that post so its
     // likes and comment count match what the user just did there
@@ -231,11 +251,49 @@ export default function Feed() {
     };
 
     // opens the small popover right where the ellipsis was tapped
-    // does nothing for your own post, no menu items exist for it yet
     const openPostMenu = (post: Post, pageY: number) => {
-        if (post.authorId === user?.uid) return;
         setMenuPosition({ top: pageY + 10, right: 24 });
         setMenuPost(post);
+    };
+
+    const isOwnMenuPost = !!menuPost && menuPost.authorId === user?.uid;
+    const canDeleteMenuPost =
+        !!menuPost && canDeletePost(menuPost, user?.uid, profile?.role);
+
+    const handleDeletePost = () => {
+        if (!menuPost) return;
+        const target = menuPost;
+        setMenuPost(null);
+
+        Alert.alert(
+            t("Burahin ang post?", "Delete this post?"),
+            t(
+                "Mabubura rin ang lahat ng komento nito. Hindi na ito maibabalik.",
+                "All of its comments will be deleted too. This can't be undone.",
+            ),
+            [
+                { text: t("Kanselahin", "Cancel"), style: "cancel" },
+                {
+                    text: t("Burahin", "Delete"),
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await deletePost(target);
+                            await handleRefresh();
+                        } catch (err) {
+                            console.error("Delete post error:", err);
+                            Alert.alert(
+                                t("Nabigo", "Failed"),
+                                t(
+                                    "Hindi nabura ang post. Pakisubukang muli.",
+                                    "The post wasn't deleted. Please try again.",
+                                ),
+                            );
+                        }
+                    },
+                },
+            ],
+        );
     };
 
     // reuses the same lookup as the chat search screen
@@ -297,7 +355,7 @@ export default function Feed() {
                     </View>
                     <View className="flex-1 bg-[#F0EDE6] rounded-full px-4 py-2.5">
                         <Text className="text-[13.5px] text-[#9C978C]">
-                            Ano ang nasa isip mo?
+                            {t("Ano ang nasa isip mo?", "What's on your mind?")}
                         </Text>
                     </View>
                 </Pressable>
@@ -327,7 +385,10 @@ export default function Feed() {
                     />
                 ) : posts.length === 0 ? (
                     <Text className="text-center text-[13px] text-[#9C978C] mt-10">
-                        Walang post pa. Ikaw ang una!
+                        {t(
+                            "Walang post pa. Ikaw ang una!",
+                            "No posts yet. Be the first!",
+                        )}
                     </Text>
                 ) : (
                     posts.map((post) => {
@@ -370,8 +431,8 @@ export default function Feed() {
                                             )}
                                         </View>
                                         <Text className="text-[11.5px] text-[#9C978C] mt-0.5">
-                                            Barangay {post.authorBarangay} ·{" "}
-                                            {formatTimeAgo(post.createdAt)}
+                                            Barangay {BARANGAY} ·{" "}
+                                            {formatTimeAgo(post.createdAt, lang)}
                                         </Text>
                                     </View>
                                     <Pressable
@@ -406,10 +467,22 @@ export default function Feed() {
 
                                     <View className="flex-row items-center justify-between px-4 pt-3 pb-1">
                                         <Text className="text-[11.5px] text-[#9C978C]">
-                                            {post.likes.length} gusto
+                                            {post.likes.length}{" "}
+                                            {t(
+                                                "gusto",
+                                                post.likes.length === 1
+                                                    ? "like"
+                                                    : "likes",
+                                            )}
                                         </Text>
                                         <Text className="text-[11.5px] text-[#9C978C]">
-                                            {post.commentCount} komento
+                                            {post.commentCount}{" "}
+                                            {t(
+                                                "komento",
+                                                post.commentCount === 1
+                                                    ? "comment"
+                                                    : "comments",
+                                            )}
                                         </Text>
                                     </View>
                                 </Pressable>
@@ -440,7 +513,7 @@ export default function Feed() {
                                                     : "#7A6D5C",
                                             }}
                                         >
-                                            Gusto
+                                            {t("Gusto", "Like")}
                                         </Text>
                                     </Pressable>
 
@@ -454,7 +527,7 @@ export default function Feed() {
                                             color="#7A6D5C"
                                         />
                                         <Text className="text-[13px] font-medium text-[#7A6D5C]">
-                                            Komento
+                                            {t("Komento", "Comment")}
                                         </Text>
                                     </Pressable>
                                 </View>
@@ -474,7 +547,7 @@ export default function Feed() {
                             <ActivityIndicator color="#2F5233" />
                         ) : (
                             <Text className="text-[13.5px] font-semibold text-[#2F5233]">
-                                Mag-load ng Higit Pa
+                                {t("Mag-load ng Higit Pa", "Load More")}
                             </Text>
                         )}
                     </Pressable>
@@ -500,19 +573,39 @@ export default function Feed() {
                         ]}
                         className="bg-[--main-white] rounded-xl overflow-hidden min-w-[130px]"
                     >
-                        <Pressable
-                            className="flex-row items-center gap-2 px-4 py-3"
-                            onPress={handleChatWithAuthor}
-                        >
-                            <Ionicons
-                                name="chatbubble-ellipses-outline"
-                                size={16}
-                                color="#1F2A1F"
-                            />
-                            <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
-                                I-Chat
-                            </Text>
-                        </Pressable>
+                        {!isOwnMenuPost && (
+                            <Pressable
+                                className="flex-row items-center gap-2 px-4 py-3"
+                                onPress={handleChatWithAuthor}
+                            >
+                                <Ionicons
+                                    name="chatbubble-ellipses-outline"
+                                    size={16}
+                                    color="#1F2A1F"
+                                />
+                                <Text className="text-[13.5px] font-medium text-[#1F2A1F]">
+                                    {t("I-Chat", "Chat")}
+                                </Text>
+                            </Pressable>
+                        )}
+                        {!isOwnMenuPost && canDeleteMenuPost && (
+                            <View className="h-px bg-[#EDEAE2]" />
+                        )}
+                        {canDeleteMenuPost && (
+                            <Pressable
+                                className="flex-row items-center gap-2 px-4 py-3"
+                                onPress={handleDeletePost}
+                            >
+                                <Ionicons
+                                    name="trash-outline"
+                                    size={16}
+                                    color="#B23A2E"
+                                />
+                                <Text className="text-[13.5px] font-medium text-[#B23A2E]">
+                                    {t("Burahin", "Delete")}
+                                </Text>
+                            </Pressable>
+                        )}
                     </View>
                 </Pressable>
             </Modal>

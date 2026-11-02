@@ -1,14 +1,21 @@
+import { useLanguage } from "@/hooks/use-language";
 import { Ionicons } from "@expo/vector-icons";
 import { Fragment } from "react";
 import { Text, View } from "react-native";
 
-const STEPS = ["Kunan ang ID", "Selfie", "Suriin ang Detalye"];
+const STEPS = {
+    tl: ["Kunan ang ID", "Selfie", "Suriin ang Detalye"],
+    en: ["Capture ID", "Selfie", "Review Details"],
+};
 
 // progress bar at the top of the verification screens, current is 0-based
 export function VerificationSteps({ current }: { current: number }) {
+    const { lang } = useLanguage();
+    const steps = STEPS[lang];
+
     return (
         <View className="flex-row items-center mb-5 px-1">
-            {STEPS.map((label, i) => {
+            {steps.map((label, i) => {
                 const done = i < current;
                 const active = i === current;
                 return (
@@ -48,7 +55,7 @@ export function VerificationSteps({ current }: { current: number }) {
                                 {label}
                             </Text>
                         </View>
-                        {i < STEPS.length - 1 && (
+                        {i < steps.length - 1 && (
                             <View
                                 className="flex-1 h-0.5 rounded-full -mt-4"
                                 style={{

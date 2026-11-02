@@ -1,7 +1,8 @@
 import { AuthHeader } from "@/components/auth-header";
 import { ClayButton, clayRaised } from "@/components/clay";
 import { VerificationSteps } from "@/components/verification-steps";
-import { BARANGAYS } from "@/constants/barangays";
+import { BARANGAY, MUNICIPALITY } from "@/constants/barangays";
+import { useLanguage } from "@/hooks/use-language";
 import { functions, storage } from "@/lib/firebase";
 import {
     VERIFICATION_TYPES,
@@ -9,7 +10,6 @@ import {
     type ExtractedFields,
     type VerificationType,
 } from "@/lib/verification";
-import { useAuth } from "@/providers/auth-provider";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
@@ -20,7 +20,6 @@ import { useEffect, useState } from "react";
 import {
     Image,
     KeyboardAvoidingView,
-    Modal,
     Platform,
     Pressable,
     ScrollView,
@@ -85,6 +84,8 @@ function FieldLabel({
     fromId?: boolean;
     optional?: boolean;
 }) {
+    const { t } = useLanguage();
+
     return (
         <View className="flex-row items-center justify-between mb-2 ml-1 mt-4">
             <Text className="text-[13px] font-medium text-[#4B4739]">
@@ -92,7 +93,7 @@ function FieldLabel({
                 {optional && (
                     <Text className="text-[#9C978C] font-normal">
                         {" "}
-                        (opsyonal)
+                        {t("(opsyonal)", "(optional)")}
                     </Text>
                 )}
             </Text>
@@ -100,13 +101,13 @@ function FieldLabel({
                 <View className="flex-row items-center gap-1 bg-[#EAF1FC] rounded-full px-2 py-0.5">
                     <Ionicons name="scan" size={10} color="#2A6FDB" />
                     <Text className="text-[10px] font-semibold text-[#2A6FDB]">
-                        Mula sa ID
+                        {t("Mula sa ID", "From the ID")}
                     </Text>
                 </View>
             ) : (
                 !optional && (
                     <Text className="text-[10.5px] text-[#A85A30]">
-                        Hindi nabasa, pakipunan
+                        {t("Hindi nabasa, pakipunan", "Not read, please fill in")}
                     </Text>
                 )
             )}
@@ -139,7 +140,7 @@ export default function VerifyDetails() {
         fieldsJson?: string;
         typeMatch?: string;
     }>();
-    const { profile } = useAuth();
+    const { lang, t } = useLanguage();
     const idType = params.idType;
     const idInfo = VERIFICATION_TYPES[idType] ?? VERIFICATION_TYPES["iba-pa"];
 
@@ -155,10 +156,6 @@ export default function VerifyDetails() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [sex, setSex] = useState(scanned.sex);
     const [address, setAddress] = useState(scanned.address);
-    const [barangay, setBarangay] = useState<string | null>(
-        profile?.barangay ?? null,
-    );
-    const [showBarangayModal, setShowBarangayModal] = useState(false);
     const [idNumber, setIdNumber] = useState(scanned.idNumber);
     const [confirmed, setConfirmed] = useState(false);
 
@@ -181,12 +178,11 @@ export default function VerifyDetails() {
         !!birthDate &&
         (sex === "M" || sex === "F") &&
         address.trim().length > 0 &&
-        !!barangay &&
         idNumber.trim().length > 0;
     const canSubmit = isComplete && confirmed && !isSubmitting;
 
     const handleSubmit = async () => {
-        if (!canSubmit || !birthDate || !barangay) return;
+        if (!canSubmit || !birthDate) return;
         setError(null);
         setIsSubmitting(true);
         try {
@@ -200,7 +196,7 @@ export default function VerifyDetails() {
                 birthDate: formatBirthDate(birthDate),
                 sex,
                 address: address.trim(),
-                barangay,
+                barangay: BARANGAY,
                 idNumber: idNumber.trim(),
             });
             setIsSubmitted(true);
@@ -209,7 +205,10 @@ export default function VerifyDetails() {
             setError(
                 callableErrorMessage(
                     err,
-                    "Hindi naipadala ang beripikasyon. Pakisubukang muli.",
+                    t(
+                        "Hindi naipadala ang beripikasyon. Pakisubukang muli.",
+                        "The verification wasn't sent. Please try again.",
+                    ),
                 ),
             );
         } finally {
@@ -226,12 +225,13 @@ export default function VerifyDetails() {
                     </View>
                 </View>
                 <Text className="text-[20px] font-bold text-[#1F2A1F] text-center">
-                    Verified ka na!
+                    {t("Verified ka na!", "You're verified!")}
                 </Text>
                 <Text className="text-[13.5px] text-[#7A6D5C] text-center leading-5 mt-2 mb-8">
-                    Makikita na ng lahat ang tsek sa tabi ng iyong pangalan.
-                    Maaari itong bawiin ng admin ng barangay kung may mali sa
-                    iyong impormasyon.
+                    {t(
+                        "Makikita na ng lahat ang tsek sa tabi ng iyong pangalan. Maaari itong bawiin ng admin ng barangay kung may mali sa iyong impormasyon.",
+                        "Everyone can now see the check next to your name. The barangay admin can revoke it if your information is wrong.",
+                    )}
                 </Text>
                 <View className="self-stretch">
                     <ClayButton
@@ -242,7 +242,7 @@ export default function VerifyDetails() {
                         }
                     >
                         <Text className="text-white font-semibold text-[16px]">
-                            Tapos Na
+                            {t("Tapos Na", "Done")}
                         </Text>
                     </ClayButton>
                 </View>
@@ -260,12 +260,14 @@ export default function VerifyDetails() {
                     contentContainerClassName="px-6 pt-4 pb-8"
                     keyboardShouldPersistTaps="handled"
                 >
-                    <AuthHeader title="Beripikasyon" />
+                    <AuthHeader title={t("Beripikasyon", "Verification")} />
                     <VerificationSteps current={2} />
 
                     <Text className="text-[13.5px] text-[#7A6D5C] leading-5 mb-4 px-1">
-                        Nabasa namin ang iyong ID. Suriing mabuti ang bawat
-                        field at itama kung may mali bago isumite.
+                        {t(
+                            "Nabasa namin ang iyong ID. Suriing mabuti ang bawat field at itama kung may mali bago isumite.",
+                            "We read your ID. Check each field carefully and fix anything wrong before submitting.",
+                        )}
                     </Text>
 
                     {/* the OCR didn't find the words expected on this ID */}
@@ -277,8 +279,10 @@ export default function VerifyDetails() {
                                 color="#A85A30"
                             />
                             <Text className="flex-1 text-[12.5px] text-[#7A6D5C] leading-[18px]">
-                                Mukhang hindi ito {idInfo.label}. Kung mali ang
-                                napiling ID, bumalik at pumili muli.
+                                {t(
+                                    `Mukhang hindi ito ${idInfo.label}. Kung mali ang napiling ID, bumalik at pumili muli.`,
+                                    `This doesn't look like a ${idInfo.labelEn}. If you picked the wrong ID, go back and pick again.`,
+                                )}
                             </Text>
                         </View>
                     )}
@@ -305,7 +309,7 @@ export default function VerifyDetails() {
                         </View>
                         <View className="flex-1">
                             <Text className="text-[14px] font-semibold text-[#1F2A1F]">
-                                {idInfo.label}
+                                {t(idInfo.label, idInfo.labelEn)}
                             </Text>
                             <View className="flex-row items-center gap-1 mt-0.5">
                                 <Ionicons
@@ -314,7 +318,7 @@ export default function VerifyDetails() {
                                     color="#3F5C42"
                                 />
                                 <Text className="text-[12px] text-[#3F5C42]">
-                                    Malinaw at nabasa
+                                    {t("Malinaw at nabasa", "Clear and readable")}
                                 </Text>
                             </View>
                         </View>
@@ -326,21 +330,21 @@ export default function VerifyDetails() {
                             className="px-3 py-1.5 rounded-full bg-[#F0EDE6]"
                         >
                             <Text className="text-[12px] font-semibold text-[#1F2A1F]">
-                                Palitan
+                                {t("Palitan", "Change")}
                             </Text>
                         </Pressable>
                     </View>
 
                     {/* Name */}
-                    <Card title="Pangalan">
+                    <Card title={t("Pangalan", "Name")}>
                         <FieldLabel
-                            label="Apelyido"
+                            label={t("Apelyido", "Last Name")}
                             fromId={!!scanned.lastName}
                         />
                         <TextInput
                             value={lastName}
                             onChangeText={setLastName}
-                            placeholder="Hal. Dela Cruz"
+                            placeholder={t("Hal. Dela Cruz", "E.g. Dela Cruz")}
                             placeholderTextColor="#9C978C"
                             maxLength={MAX_LENGTH.lastName}
                             autoCapitalize="words"
@@ -348,13 +352,13 @@ export default function VerifyDetails() {
                             className={inputClass}
                         />
                         <FieldLabel
-                            label="Pangalan"
+                            label={t("Pangalan", "First Name")}
                             fromId={!!scanned.firstName}
                         />
                         <TextInput
                             value={firstName}
                             onChangeText={setFirstName}
-                            placeholder="Hal. Juan"
+                            placeholder={t("Hal. Juan", "E.g. Juan")}
                             placeholderTextColor="#9C978C"
                             maxLength={MAX_LENGTH.firstName}
                             autoCapitalize="words"
@@ -362,14 +366,14 @@ export default function VerifyDetails() {
                             className={inputClass}
                         />
                         <FieldLabel
-                            label="Gitnang Pangalan"
+                            label={t("Gitnang Pangalan", "Middle Name")}
                             fromId={!!scanned.middleName}
                             optional
                         />
                         <TextInput
                             value={middleName}
                             onChangeText={setMiddleName}
-                            placeholder="Hal. Santos"
+                            placeholder={t("Hal. Santos", "E.g. Santos")}
                             placeholderTextColor="#9C978C"
                             maxLength={MAX_LENGTH.middleName}
                             autoCapitalize="words"
@@ -379,9 +383,9 @@ export default function VerifyDetails() {
                     </Card>
 
                     {/* Personal details */}
-                    <Card title="Personal na Detalye">
+                    <Card title={t("Personal na Detalye", "Personal Details")}>
                         <FieldLabel
-                            label="Petsa ng Kapanganakan"
+                            label={t("Petsa ng Kapanganakan", "Date of Birth")}
                             fromId={!!scanned.birthDate}
                         />
                         <Pressable
@@ -393,12 +397,15 @@ export default function VerifyDetails() {
                                 className={`text-[15px] ${birthDate ? "text-[#1F2A1F]" : "text-[#9C978C]"}`}
                             >
                                 {birthDate
-                                    ? birthDate.toLocaleDateString("fil-PH", {
-                                          year: "numeric",
-                                          month: "long",
-                                          day: "numeric",
-                                      })
-                                    : "Pumili ng petsa"}
+                                    ? birthDate.toLocaleDateString(
+                                          lang === "en" ? "en-PH" : "fil-PH",
+                                          {
+                                              year: "numeric",
+                                              month: "long",
+                                              day: "numeric",
+                                          },
+                                      )
+                                    : t("Pumili ng petsa", "Pick a date")}
                             </Text>
                             <Ionicons
                                 name="calendar-outline"
@@ -425,12 +432,15 @@ export default function VerifyDetails() {
                             />
                         )}
 
-                        <FieldLabel label="Kasarian" fromId={!!scanned.sex} />
+                        <FieldLabel
+                            label={t("Kasarian", "Sex")}
+                            fromId={!!scanned.sex}
+                        />
                         <View className="flex-row gap-2.5">
                             {(
                                 [
-                                    ["M", "Lalaki", "male"],
-                                    ["F", "Babae", "female"],
+                                    ["M", t("Lalaki", "Male"), "male"],
+                                    ["F", t("Babae", "Female"), "female"],
                                 ] as const
                             ).map(([value, label, icon]) => (
                                 <Pressable
@@ -469,15 +479,18 @@ export default function VerifyDetails() {
                     </Card>
 
                     {/* Address */}
-                    <Card title="Tirahan">
+                    <Card title={t("Tirahan", "Address")}>
                         <FieldLabel
-                            label="Buong Tirahan"
+                            label={t("Buong Tirahan", "Full Address")}
                             fromId={!!scanned.address}
                         />
                         <TextInput
                             value={address}
                             onChangeText={setAddress}
-                            placeholder="Bahay/Blg., Kalye, Barangay, Bayan, Probinsya"
+                            placeholder={t(
+                                "Bahay/Blg., Kalye, Barangay, Bayan, Probinsya",
+                                "House No., Street, Barangay, Town, Province",
+                            )}
                             placeholderTextColor="#9C978C"
                             maxLength={MAX_LENGTH.address}
                             multiline
@@ -486,34 +499,31 @@ export default function VerifyDetails() {
                             className={`${inputClass} min-h-[80px]`}
                         />
                         <FieldLabel label="Barangay" />
-                        <Pressable
-                            onPress={() => setShowBarangayModal(true)}
-                            disabled={isSubmitting}
-                            className="rounded-2xl bg-[#F0EDE6] px-4 py-3.5 flex-row items-center justify-between"
-                        >
-                            <Text
-                                className={`text-[15px] ${barangay ? "text-[#1F2A1F]" : "text-[#9C978C]"}`}
-                            >
-                                {barangay ?? "Piliin ang barangay"}
+                        <View className="rounded-2xl bg-[#F0EDE6] px-4 py-3.5 flex-row items-center justify-between">
+                            <Text className="text-[15px] text-[#1F2A1F]">
+                                {BARANGAY}, {MUNICIPALITY}
                             </Text>
                             <Ionicons
-                                name="chevron-down"
-                                size={18}
-                                color="#6B7280"
+                                name="lock-closed-outline"
+                                size={16}
+                                color="#9C978C"
                             />
-                        </Pressable>
+                        </View>
                     </Card>
 
                     {/* ID number */}
-                    <Card title="Detalye ng ID">
+                    <Card title={t("Detalye ng ID", "ID Details")}>
                         <FieldLabel
-                            label="Numero ng ID"
+                            label={t("Numero ng ID", "ID Number")}
                             fromId={!!scanned.idNumber}
                         />
                         <TextInput
                             value={idNumber}
                             onChangeText={setIdNumber}
-                            placeholder="Hal. 1234-5678-9012-3456"
+                            placeholder={t(
+                                "Hal. 1234-5678-9012-3456",
+                                "E.g. 1234-5678-9012-3456",
+                            )}
                             placeholderTextColor="#9C978C"
                             maxLength={MAX_LENGTH.idNumber}
                             autoCapitalize="characters"
@@ -548,8 +558,10 @@ export default function VerifyDetails() {
                             )}
                         </View>
                         <Text className="flex-1 text-[12.5px] text-[#4B4739] leading-[18px]">
-                            Kinukumpirma kong tama ang lahat ng impormasyon at
-                            ang ID na ito ay akin.
+                            {t(
+                                "Kinukumpirma kong tama ang lahat ng impormasyon at ang ID na ito ay akin.",
+                                "I confirm that all the information is correct and this ID is mine.",
+                            )}
                         </Text>
                     </Pressable>
 
@@ -574,70 +586,21 @@ export default function VerifyDetails() {
                             color="#fff"
                         />
                         <Text className="text-white font-semibold text-[16px]">
-                            {isSubmitting ? "Ipinapadala..." : "I-Verify"}
+                            {isSubmitting
+                                ? t("Ipinapadala...", "Sending...")
+                                : t("I-Verify", "Verify")}
                         </Text>
                     </ClayButton>
                     {!isComplete && (
                         <Text className="text-[11.5px] text-[#9C978C] text-center mt-2">
-                            Punan ang lahat ng kailangang field
+                            {t(
+                                "Punan ang lahat ng kailangang field",
+                                "Fill in all required fields",
+                            )}
                         </Text>
                     )}
                 </View>
             </KeyboardAvoidingView>
-
-            {/* Barangay picker */}
-            <Modal
-                visible={showBarangayModal}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setShowBarangayModal(false)}
-            >
-                <Pressable
-                    className="flex-1 bg-black/40 justify-end"
-                    onPress={() => setShowBarangayModal(false)}
-                >
-                    <Pressable
-                        className="bg-[--main-white] rounded-t-[28px] max-h-[75%]"
-                        onPress={(e) => e.stopPropagation()}
-                    >
-                        <View className="items-center pt-3 pb-2">
-                            <View className="w-10 h-1.5 rounded-full bg-[#E5E1D8]" />
-                        </View>
-                        <Text className="text-[16px] font-semibold text-[#1F2A1F] text-center mb-2">
-                            Piliin ang Barangay
-                        </Text>
-                        <ScrollView className="px-4 pb-8">
-                            {BARANGAYS.map((b) => (
-                                <Pressable
-                                    key={b}
-                                    className="flex-row items-center justify-between py-3.5 border-b border-[#EDEAE2]"
-                                    onPress={() => {
-                                        setBarangay(b);
-                                        setShowBarangayModal(false);
-                                    }}
-                                >
-                                    <Text
-                                        className={`text-[15px] ${
-                                            barangay === b
-                                                ? "text-[#2F5233] font-semibold"
-                                                : "text-[#1F2A1F]"
-                                        }`}
-                                    >
-                                        {b}
-                                    </Text>
-                                    {barangay === b && (
-                                        <Ionicons
-                                            name="checkmark"
-                                            size={18}
-                                            color="#2F5233"
-                                        />
-                                    )}
-                                </Pressable>
-                            ))}
-                        </ScrollView>
-                    </Pressable>
-                </Pressable>
-            </Modal>
         </SafeAreaView>
     );
 }

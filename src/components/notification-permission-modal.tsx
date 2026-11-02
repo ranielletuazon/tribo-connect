@@ -1,3 +1,4 @@
+import { useLanguage } from "@/hooks/use-language";
 import { Ionicons } from "@expo/vector-icons";
 import { Modal, Pressable, Text, View } from "react-native";
 
@@ -19,6 +20,8 @@ export function NotificationPermissionModal({
     onEnable,
     onDismiss,
 }: NotificationPermissionModalProps) {
+    const { t } = useLanguage();
+
     return (
         <Modal
             visible={visible}
@@ -36,15 +39,18 @@ export function NotificationPermissionModal({
                         />
                     </View>
                     <Text className="text-[17px] font-bold text-[#1F2A1F] text-center mb-2">
-                        I-on ang Notifications
+                        {t("I-on ang Notifications", "Turn On Notifications")}
                     </Text>
                     <Text className="text-[13px] text-[#7A6D5C] text-center leading-5 mb-5">
-                        Para makatanggap ng napapanahon at agarang impormasyon
-                        tungkol sa mga emergency at anunsiyo sa iyong barangay,
-                        pakipayagan ang TriboConnect na magpadala ng
-                        notifications.
+                        {t(
+                            "Para makatanggap ng napapanahon at agarang impormasyon tungkol sa mga emergency at anunsiyo sa iyong barangay, pakipayagan ang TriboConnect na magpadala ng notifications.",
+                            "To get timely and urgent updates about emergencies and announcements in your barangay, please allow TriboConnect to send notifications.",
+                        )}
                         {mode === "settings" &&
-                            " Buksan ang Settings at i-on ang Notifications para sa TriboConnect."}
+                            t(
+                                " Buksan ang Settings at i-on ang Notifications para sa TriboConnect.",
+                                " Open Settings and turn on Notifications for TriboConnect.",
+                            )}
                     </Text>
                     <Pressable
                         onPress={onEnable}
@@ -54,10 +60,10 @@ export function NotificationPermissionModal({
                     >
                         <Text className="text-[14px] font-semibold text-white">
                             {isEnabling
-                                ? "Sandali lang..."
+                                ? t("Sandali lang...", "One moment...")
                                 : mode === "settings"
-                                  ? "Buksan ang Settings"
-                                  : "Payagan"}
+                                  ? t("Buksan ang Settings", "Open Settings")
+                                  : t("Payagan", "Allow")}
                         </Text>
                     </Pressable>
                     <Pressable
@@ -66,7 +72,7 @@ export function NotificationPermissionModal({
                         className="w-full py-3 items-center mt-1"
                     >
                         <Text className="text-[13.5px] font-medium text-[#9C978C]">
-                            Mamaya na
+                            {t("Mamaya na", "Maybe later")}
                         </Text>
                     </Pressable>
                 </View>
