@@ -12,6 +12,10 @@ export default function ProfileLayout() {
             <Stack.Screen name="verify-details" />
             <Stack.Screen name="verify-users/index" />
             <Stack.Screen name="verify-users/[verificationId]" />
+            <Stack.Screen name="my-reports" />
+            <Stack.Screen name="help" />
+            <Stack.Screen name="about" />
+            <Stack.Screen name="privacy" />
         </Stack>
     );
 }

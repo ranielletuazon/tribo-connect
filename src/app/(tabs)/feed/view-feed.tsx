@@ -2,6 +2,7 @@ import { VerifiedBadge } from "@/components/verified-badge";
 import { BARANGAY } from "@/constants/barangays";
 import { useLanguage } from "@/hooks/use-language";
 import { db } from "@/lib/firebase";
+import { findBadWords, takeRateLimit } from "@/lib/moderation";
 import {
     canDeletePost,
     deletePost,
@@ -224,9 +225,33 @@ export default function ViewFeed() {
     // the comment and the count go in one batch so they never get out of sync
     const handleSend = async () => {
         if (!canSend || !user || !profile || !post) return;
-        setText("");
         setError(null);
+
+        const badWords = findBadWords(trimmed);
+        if (badWords.length > 0) {
+            const list = badWords.map((w) => `"${w}"`).join(", ");
+            setError(
+                t(
+                    `May hindi angkop na salita sa iyong komento: ${list}. Pakitanggal ito.`,
+                    `Your comment has inappropriate language: ${list}. Please remove it.`,
+                ),
+            );
+            return;
+        }
+
         setIsSending(true);
+        const waitSeconds = await takeRateLimit("comment", user.uid);
+        if (waitSeconds > 0) {
+            setIsSending(false);
+            setError(
+                t(
+                    `Masyadong mabilis. Subukang muli pagkalipas ng ${waitSeconds} segundo.`,
+                    `Slow down. Try again in ${waitSeconds} seconds.`,
+                ),
+            );
+            return;
+        }
+        setText("");
 
         try {
             const postRef = doc(db, "posts", post.id);
